@@ -109,7 +109,8 @@
       <li>The desktop VoiceInk/FlowLocal fork is no longer the primary product path; the user bought official VoiceInk for Mac.</li>
       <li>The new product is a separate mobile transcription and translation app.</li>
       <li>The initial platform preference is iOS first, with Android later if useful.</li>
-      <li>The pragmatic default under consideration is an Expo/React Native app with cloud transcription and translation providers.</li>
+      <li class="decision">V1 should be built with Expo/React Native, not native Swift-only.</li>
+      <li>The pragmatic default is an Expo/React Native app with cloud transcription and translation providers.</li>
       <li>The likely backend for a later synced-history version is Supabase, because it is fast for auth, database, storage, and React Native/Expo integration.</li>
       <li class="decision">V1 should store transcription and translation history locally on the device. Database sync is deferred to v2.</li>
       <li class="decision">V1 should include both Transcribe mode and Translate mode.</li>
@@ -133,6 +134,11 @@
     <h3>Q3 - MVP Modes</h3>
     <p><strong>Asked:</strong> Should v1 support both Transcribe and Translate modes, or focus only on Transcribe first and add Translate immediately after?</p>
     <p><strong>Captured:</strong> V1 should include both Transcribe and Translate modes.</p>
+    <p><strong>Flags:</strong> None.</p>
+
+    <h3>Q4 - App Framework</h3>
+    <p><strong>Asked:</strong> Should v1 be built as Expo/React Native so Android is easier later, or as native Swift iOS for the most iOS-specific app first?</p>
+    <p><strong>Captured:</strong> V1 should use Expo/React Native.</p>
     <p><strong>Flags:</strong> None.</p>
   </section>
 
