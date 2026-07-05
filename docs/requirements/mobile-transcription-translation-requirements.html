@@ -130,6 +130,7 @@
       <li class="decision">V1 should include both Copy and native Share actions for result text.</li>
       <li class="decision">Translate mode should support simple manual text input in addition to voice-to-translation.</li>
       <li class="decision">Voice recording should use tap once to start and tap again to stop for v1.</li>
+      <li class="decision">V1 should be cloud-only for transcription, translation, and cleanup. Offline/local speech models are deferred.</li>
       <li class="decision">The working product name is <code>Tarek-Wisper</code>, with final naming still open to alternatives.</li>
       <li>OpenRouter currently documents a dedicated speech-to-text endpoint, <code>/api/v1/audio/transcriptions</code>, with base64 audio input and support for 99+ languages including English, Spanish, and Arabic.</li>
       <li class="decision">All durable project artifacts should live in this project folder and be written as HTML unless the user explicitly requests otherwise.</li>
@@ -238,6 +239,11 @@
     <p><strong>Asked:</strong> Should recording be tap once to start and tap again to stop, or press and hold to record?</p>
     <p><strong>Captured:</strong> Voice recording should use tap once to start and tap again to stop for v1.</p>
     <p><strong>Flags:</strong> Press-and-hold can be considered later as an alternate short-clip mode.</p>
+
+    <h3>Q21 - Offline Support</h3>
+    <p><strong>Asked:</strong> Should v1 require an internet connection for all transcription and translation, or should it include offline/local speech features?</p>
+    <p><strong>Captured:</strong> V1 should be cloud-only for transcription, translation, and cleanup. Offline/local speech models are deferred.</p>
+    <p><strong>Flags:</strong> The design should include clear offline and provider-error states.</p>
   </section>
 
   <section>
@@ -253,6 +259,7 @@
       <li>Specify the Expo/React Native secure local storage mechanism for the OpenRouter token.</li>
       <li>Future enhancement: consider nested folders, complex category management, or AI auto-tagging after simple manual tags are working.</li>
       <li>Decide whether raw/original AI output is stored separately for troubleshooting or omitted in v1.</li>
+      <li>Include offline and provider-error states in the design.</li>
       <li>Add a Git remote before future implementation work that depends on upstream sync.</li>
     </ul>
   </section>
