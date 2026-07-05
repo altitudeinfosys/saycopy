@@ -32,6 +32,24 @@ class RejectingSourceLanguageSettingsRepository extends MemorySettingsRepository
   });
 }
 
+class OutOfOrderSourceLanguageSettingsRepository extends MemorySettingsRepository {
+  readonly spanishDeferred = createDeferred();
+  readonly englishDeferred = createDeferred();
+
+  saveSettings = jest.fn(async (settings: Partial<AppSettings>): Promise<void> => {
+    if (settings.sourceLanguageId === 'spanish') {
+      await this.spanishDeferred.promise;
+      throw new Error('Older Spanish save failed');
+    }
+
+    if (settings.sourceLanguageId === 'english') {
+      await this.englishDeferred.promise;
+    }
+
+    this.settings = { ...this.settings, ...settings };
+  });
+}
+
 class MemoryTokenStore implements SecureTokenStore {
   token: string | null;
 
@@ -213,6 +231,47 @@ describe('SettingsScreen', () => {
         screen.getByRole('button', { name: 'Default source language Auto-detect' }).props
           .accessibilityState,
       ).toMatchObject({ selected: true });
+    });
+  });
+
+  it('does not roll back a newer same-setting selection when an older save fails later', async () => {
+    const settingsRepository = new OutOfOrderSourceLanguageSettingsRepository();
+    renderSettingsScreen({ settingsRepository });
+
+    await screen.findByText('Defaults');
+
+    fireEvent.press(screen.getByRole('button', { name: 'Default source language Spanish' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Default source language English' }));
+
+    await act(async () => {
+      settingsRepository.englishDeferred.resolve();
+      await settingsRepository.englishDeferred.promise;
+    });
+
+    await waitFor(() => {
+      expect(settingsRepository.settings.sourceLanguageId).toBe('english');
+      expect(
+        screen.getByRole('button', { name: 'Default source language English' }).props
+          .accessibilityState,
+      ).toMatchObject({ selected: true });
+    });
+
+    await act(async () => {
+      settingsRepository.spanishDeferred.resolve();
+      await settingsRepository.spanishDeferred.promise;
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Could not save settings.')).toBeTruthy();
+      expect(settingsRepository.settings.sourceLanguageId).toBe('english');
+      expect(
+        screen.getByRole('button', { name: 'Default source language English' }).props
+          .accessibilityState,
+      ).toMatchObject({ selected: true });
+      expect(
+        screen.getByRole('button', { name: 'Default source language Auto-detect' }).props
+          .accessibilityState,
+      ).toMatchObject({ selected: false });
     });
   });
 });

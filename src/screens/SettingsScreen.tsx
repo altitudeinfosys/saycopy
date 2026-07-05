@@ -72,6 +72,8 @@ function pickSettings(
 
 export default function SettingsScreen({ settingsRepository, tokenStore }: SettingsScreenProps) {
   const settingsRef = useRef<AppSettings | null>(null);
+  const settingsSaveRequestIdRef = useRef(0);
+  const latestSettingRequestIdsRef = useRef<Partial<Record<keyof AppSettings, number>>>({});
   const tokenUpdateInFlightRef = useRef(false);
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [tokenStatus, setTokenStatus] = useState<TokenStatus | null>(null);
@@ -167,6 +169,12 @@ export default function SettingsScreen({ settingsRepository, tokenStore }: Setti
     setErrorText('');
     const settingKeys = Object.keys(nextSettings) as (keyof AppSettings)[];
     const rollbackSettings = pickSettings(currentSettings, settingKeys);
+    settingsSaveRequestIdRef.current += 1;
+    const requestId = settingsSaveRequestIdRef.current;
+    for (const settingKey of settingKeys) {
+      latestSettingRequestIdsRef.current[settingKey] = requestId;
+    }
+
     const optimisticSettings = { ...currentSettings, ...nextSettings };
     settingsRef.current = optimisticSettings;
     setSettings(optimisticSettings);
@@ -176,8 +184,15 @@ export default function SettingsScreen({ settingsRepository, tokenStore }: Setti
       setMessageText('Default settings saved');
     } catch {
       const latestSettings = settingsRef.current;
-      if (latestSettings) {
-        const rolledBackSettings = { ...latestSettings, ...rollbackSettings };
+      const rollbackKeys = settingKeys.filter(
+        (settingKey) => latestSettingRequestIdsRef.current[settingKey] === requestId,
+      );
+
+      if (latestSettings && rollbackKeys.length > 0) {
+        const rolledBackSettings = { ...latestSettings };
+        for (const settingKey of rollbackKeys) {
+          Object.assign(rolledBackSettings, { [settingKey]: rollbackSettings[settingKey] });
+        }
         settingsRef.current = rolledBackSettings;
         setSettings(rolledBackSettings);
       }
