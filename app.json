@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "Tarek Wisper",
+    "slug": "tarek-wisper",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.tarekalaaddin.tarekwisper"
+    },
+    "plugins": [
+      "expo-audio",
+      "expo-secure-store",
+      "expo-sqlite",
+      "expo-asset"
+    ]
+  }
+}
