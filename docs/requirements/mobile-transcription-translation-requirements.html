@@ -111,6 +111,7 @@
       <li>The initial platform preference is iOS first, with Android later if useful.</li>
       <li>The pragmatic default under consideration is an Expo/React Native app with cloud transcription and translation providers.</li>
       <li>The likely backend for a later synced-history version is Supabase, because it is fast for auth, database, storage, and React Native/Expo integration.</li>
+      <li class="decision">V1 should store transcription and translation history locally on the device. Database sync is deferred to v2.</li>
       <li class="decision">All durable project artifacts should live in this project folder and be written as HTML unless the user explicitly requests otherwise.</li>
       <li class="decision">This project folder has been initialized as a new Git repository on <code>main</code>.</li>
     </ul>
@@ -122,12 +123,17 @@
     <p><strong>Asked:</strong> Should this folder be initialized as the project Git repository, and should all artifacts be HTML?</p>
     <p><strong>Captured:</strong> The user confirmed that the folder should be initialized as a Git repository. The user also requested that all artifacts be HTML and that this rule be recorded in <code>AGENTS.md</code>.</p>
     <p><strong>Flags:</strong> A remote has not been configured yet, so upstream sync is not applicable until a remote is added.</p>
+
+    <h3>Q2 - Accounts and History Storage</h3>
+    <p><strong>Asked:</strong> Should v1 require accounts and synced history from day one, or should it start account-free with local-only history and add Supabase sync later?</p>
+    <p><strong>Captured:</strong> V1 should store history locally on the device. Account-based database sync can be considered for v2.</p>
+    <p><strong>Flags:</strong> V2 backend choice remains open, with Supabase currently the likely default.</p>
   </section>
 
   <section>
     <h2>Open Flags</h2>
     <ul>
-      <li>Decide whether v1 requires user accounts and synced history or starts account-free with local-only history.</li>
+      <li>For v2, decide whether synced history uses Supabase, Neon plus custom auth/API, or another backend.</li>
       <li>Select the app name or confirm a working placeholder.</li>
       <li>Confirm provider choices for transcription and translation.</li>
       <li>Confirm the first set of MVP screens.</li>
