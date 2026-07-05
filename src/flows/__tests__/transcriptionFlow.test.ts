@@ -65,8 +65,6 @@ describe('runTranscriptionFlow', () => {
     });
     expect(temporaryAudio.cleanup).toHaveBeenCalledWith({
       uri: 'file:///tmp/recording.m4a',
-      base64Audio: 'base64-audio',
-      format: 'm4a',
     });
     expect(result).toEqual({
       status: 'success',
@@ -133,8 +131,6 @@ describe('runTranscriptionFlow', () => {
     });
     expect(temporaryAudio.cleanup).toHaveBeenCalledWith({
       uri: 'file:///tmp/raw-recording.m4a',
-      base64Audio: 'raw-base64-audio',
-      format: 'm4a',
     });
     expect(result).toEqual({
       status: 'cleanup_failed',
@@ -190,8 +186,6 @@ describe('runTranscriptionFlow', () => {
     expect(historyRepository.createHistoryItem).not.toHaveBeenCalled();
     expect(temporaryAudio.cleanup).toHaveBeenCalledWith({
       uri: 'file:///tmp/missing-token.m4a',
-      base64Audio: 'sensitive-base64-audio',
-      format: 'm4a',
     });
     expect(sanitizedError).toEqual({
       category: 'missing_token',
@@ -236,6 +230,8 @@ describe('runTranscriptionFlow', () => {
     ).rejects.toBe(providerError);
 
     expect(historyRepository.createHistoryItem).not.toHaveBeenCalled();
-    expect(temporaryAudio.cleanup).toHaveBeenCalledWith(audio);
+    expect(temporaryAudio.cleanup).toHaveBeenCalledWith({
+      uri: 'file:///tmp/auth-error.m4a',
+    });
   });
 });

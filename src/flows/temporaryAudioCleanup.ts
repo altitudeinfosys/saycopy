@@ -5,7 +5,9 @@ export async function cleanupTemporaryAudio(
   audio: FlowAudioInput,
 ): Promise<void> {
   try {
-    await temporaryAudio?.cleanup(audio);
+    await temporaryAudio?.cleanup({
+      uri: audio.uri,
+    });
   } catch {
     // Temporary-file cleanup is best-effort and must not replace the primary flow outcome.
   }

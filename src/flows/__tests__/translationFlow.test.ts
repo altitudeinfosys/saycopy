@@ -73,8 +73,6 @@ describe('runTranslationFlow', () => {
     });
     expect(temporaryAudio.cleanup).toHaveBeenCalledWith({
       uri: 'file:///tmp/translate-voice.m4a',
-      base64Audio: 'voice-base64',
-      format: 'm4a',
     });
     expect(result).toEqual({
       status: 'success',
@@ -210,8 +208,6 @@ describe('runTranslationFlow', () => {
     expect(historyRepository.createHistoryItem).not.toHaveBeenCalled();
     expect(temporaryAudio.cleanup).toHaveBeenCalledWith({
       uri: 'file:///tmp/failed-translation.m4a',
-      base64Audio: 'failed-translation-base64',
-      format: 'm4a',
     });
     expect(result).toEqual({
       status: 'translation_failed',
@@ -270,7 +266,9 @@ describe('runTranslationFlow', () => {
     );
 
     expect(historyRepository.createHistoryItem).not.toHaveBeenCalled();
-    expect(temporaryAudio.cleanup).toHaveBeenCalledWith(audio);
+    expect(temporaryAudio.cleanup).toHaveBeenCalledWith({
+      uri: 'file:///tmp/translation-cleanup-fails.m4a',
+    });
     expect(result).toEqual({
       status: 'translation_failed',
       sourceType: 'voice',

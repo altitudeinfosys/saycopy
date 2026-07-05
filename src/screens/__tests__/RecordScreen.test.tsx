@@ -1,7 +1,65 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 
+import type {
+  AudioRecordingController,
+  AudioRecordingState,
+} from '../../audio/audioRecorder';
 import RecordScreen from '../RecordScreen';
+
+function createInjectedRecordingController(input: {
+  readonly startError?: Error;
+} = {}): AudioRecordingController & {
+  readonly start: jest.Mock;
+  readonly stop: jest.Mock;
+  readonly processStoppedAudio: jest.Mock;
+} {
+  const listeners = new Set<(state: AudioRecordingState) => void>();
+  const audio = {
+    uri: 'file:///tmp/screen-recording.m4a',
+    base64Audio: 'screen-base64-audio',
+    format: 'm4a' as const,
+    durationMs: 1800,
+  };
+  let state: AudioRecordingState = { status: 'idle' };
+
+  function setState(nextState: AudioRecordingState) {
+    state = nextState;
+    listeners.forEach((listener) => listener(state));
+  }
+
+  return {
+    cancel: jest.fn(async () => {
+      setState({ status: 'idle' });
+    }),
+    getState: () => state,
+    processStoppedAudio: jest.fn(async (processor: (recordedAudio: typeof audio) => Promise<void>) => {
+      setState({ audio, status: 'processing' });
+      await processor(audio);
+      setState({ status: 'stopped' });
+    }),
+    start: jest.fn(async () => {
+      setState({ status: 'requesting_permission' });
+      if (input.startError) {
+        setState({ error: input.startError, status: 'failed' });
+        throw input.startError;
+      }
+
+      setState({ status: 'recording' });
+    }),
+    stop: jest.fn(async () => {
+      setState({ status: 'stopping' });
+      setState({ audio, status: 'stopped' });
+      return audio;
+    }),
+    subscribe: (listener: (nextState: AudioRecordingState) => void) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+  };
+}
 
 describe('RecordScreen', () => {
   it('starts in transcribe mode with cleanup wording and a large tap-to-record control', () => {
@@ -26,10 +84,16 @@ describe('RecordScreen', () => {
     expect(screen.getByRole('button', { name: 'Translate text' })).toBeTruthy();
   });
 
-  it('shows warm active recording treatment before producing an editable saved result', () => {
-    render(<RecordScreen />);
+  it('shows warm active recording treatment before producing an editable saved result', async () => {
+    const recordingController = createInjectedRecordingController();
+
+    render(<RecordScreen recordingController={recordingController} />);
 
     fireEvent.press(screen.getByRole('button', { name: 'Tap to record' }));
+
+    await waitFor(() => {
+      expect(recordingController.start).toHaveBeenCalledTimes(1);
+    });
 
     expect(screen.getByText('Recording in progress')).toBeTruthy();
     expect(screen.getByText('00:00 / 60s max')).toBeTruthy();
@@ -40,6 +104,11 @@ describe('RecordScreen', () => {
     });
 
     fireEvent.press(screen.getByRole('button', { name: 'Stop recording' }));
+
+    await waitFor(() => {
+      expect(recordingController.stop).toHaveBeenCalledTimes(1);
+      expect(recordingController.processStoppedAudio).toHaveBeenCalledTimes(1);
+    });
 
     expect(screen.getByText('Saved to history')).toBeTruthy();
     expect(screen.getByText('Copy')).toBeTruthy();
@@ -52,6 +121,21 @@ describe('RecordScreen', () => {
     fireEvent.changeText(resultEditor, 'Edited transcript text');
 
     expect(screen.getByTestId('result-editor').props.value).toBe('Edited transcript text');
+  });
+
+  it('shows a recorder failure cue without creating a result', async () => {
+    const recordingController = createInjectedRecordingController({
+      startError: Object.assign(new Error('Microphone permission is required to record.'), {
+        code: 'permission_denied',
+      }),
+    });
+
+    render(<RecordScreen recordingController={recordingController} />);
+
+    fireEvent.press(screen.getByRole('button', { name: 'Tap to record' }));
+
+    expect(await screen.findByText('Microphone permission is required to record.')).toBeTruthy();
+    expect(screen.queryByText('Saved to history')).toBeNull();
   });
 
   it('creates a mocked translation result with emphasized translated output and original text', () => {

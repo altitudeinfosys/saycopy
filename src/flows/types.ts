@@ -1,6 +1,10 @@
 import type { HistoryItem, HistorySourceType } from '../domain/history';
 import type { ConcreteLanguageId, LanguageId } from '../domain/languages';
 import type { ModelPresetId } from '../domain/modelPresets';
+import type {
+  TemporaryAudioFileCleanup,
+  TemporaryAudioFileReference,
+} from '../audio/fileCleanup';
 
 export type FlowAudioFormat = 'm4a';
 
@@ -78,6 +82,6 @@ export type FlowHistoryRepository = {
   readonly createHistoryItem: (input: FlowCreateHistoryItemInput) => Promise<HistoryItem>;
 };
 
-export type TemporaryAudioCleanup = {
-  readonly cleanup: (audio: FlowAudioInput) => Promise<void>;
-};
+export type FlowTemporaryAudioReference = TemporaryAudioFileReference;
+
+export type TemporaryAudioCleanup = TemporaryAudioFileCleanup;

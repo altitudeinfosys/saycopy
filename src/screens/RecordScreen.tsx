@@ -1,6 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import {
+  createAudioRecordingController,
+  type AudioRecordingController,
+  type AudioRecordingState,
+} from '../audio/audioRecorder';
 import LanguageSelect from '../components/LanguageSelect';
 import ModeSegmentedControl, { type RecordMode } from '../components/ModeSegmentedControl';
 import ModelPresetSelect from '../components/ModelPresetSelect';
@@ -10,6 +15,10 @@ import { LANGUAGE_OPTIONS, type ConcreteLanguageId, type LanguageId } from '../d
 import { DEFAULT_MODEL_PRESET_ID, type ModelPresetId } from '../domain/modelPresets';
 
 const DEFAULT_TARGET_LANGUAGE_ID = 'spanish' satisfies ConcreteLanguageId;
+
+type RecordScreenProps = {
+  readonly recordingController?: AudioRecordingController;
+};
 
 function getLanguageLabel(languageId: LanguageId) {
   return LANGUAGE_OPTIONS.find((language) => language.id === languageId)?.label ?? 'Selected language';
@@ -26,9 +35,24 @@ function buildTranslationResult(sourceText: string, targetLanguageId: ConcreteLa
   return `${getLanguageLabel(targetLanguageId)} translation: ${sourceText}`;
 }
 
-export default function RecordScreen() {
+function getRecorderFailureMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'Recording failed. Try again.';
+}
+
+function isRecordButtonBusy(state: AudioRecordingState) {
+  return (
+    state.status === 'requesting_permission' ||
+    state.status === 'stopping' ||
+    state.status === 'processing'
+  );
+}
+
+function isRecordButtonActive(state: AudioRecordingState) {
+  return state.status === 'recording' || state.status === 'stopping';
+}
+
+export default function RecordScreen({ recordingController }: RecordScreenProps = {}) {
   const [mode, setMode] = useState<RecordMode>('transcribe');
-  const [isRecording, setIsRecording] = useState(false);
   const [targetLanguageId, setTargetLanguageId] = useState<ConcreteLanguageId>(
     DEFAULT_TARGET_LANGUAGE_ID,
   );
@@ -38,6 +62,13 @@ export default function RecordScreen() {
   const [resultText, setResultText] = useState('');
   const [originalText, setOriginalText] = useState('');
   const [savedHistoryCount, setSavedHistoryCount] = useState(0);
+  const [defaultRecordingController] = useState(createAudioRecordingController);
+  const activeRecordingController = recordingController ?? defaultRecordingController;
+  const recordingState = useSyncExternalStore(
+    activeRecordingController.subscribe,
+    activeRecordingController.getState,
+    activeRecordingController.getState,
+  );
 
   const hasResult = resultText.length > 0;
   const trimmedManualText = manualText.trim();
@@ -45,6 +76,22 @@ export default function RecordScreen() {
     () => getLanguageLabel(targetLanguageId),
     [targetLanguageId],
   );
+  const isRecording = isRecordButtonActive(recordingState);
+  const isRecorderBusy = isRecordButtonBusy(recordingState);
+  const recorderCue =
+    recordingState.status === 'requesting_permission'
+      ? 'Requesting microphone permission'
+      : recordingState.status === 'processing'
+        ? 'Creating result'
+        : recordingState.status === 'failed'
+          ? getRecorderFailureMessage(recordingState.error)
+          : '';
+
+  useEffect(() => {
+    return () => {
+      void activeRecordingController.cancel();
+    };
+  }, [activeRecordingController]);
 
   function saveMockedResult(nextMode: RecordMode, nextResultText: string, nextOriginalText = '') {
     setResultMode(nextMode);
@@ -55,27 +102,44 @@ export default function RecordScreen() {
 
   function handleModeChange(nextMode: RecordMode) {
     setMode(nextMode);
-    setIsRecording(false);
+    void activeRecordingController?.cancel();
     setResultText('');
     setOriginalText('');
     setSavedHistoryCount(0);
   }
 
-  function handleRecordPress() {
+  async function handleRecordPress() {
+    if (isRecorderBusy) {
+      return;
+    }
+
     if (!isRecording) {
-      setIsRecording(true);
+      try {
+        await activeRecordingController.start();
+      } catch {
+        // Failure details are surfaced through recorder state.
+      }
       return;
     }
 
-    setIsRecording(false);
+    try {
+      await activeRecordingController.stop();
+      await activeRecordingController.processStoppedAudio(async () => {
+        if (mode === 'translate') {
+          const sourceText = trimmedManualText || 'Recorded source text for translation.';
+          saveMockedResult(
+            'translate',
+            buildTranslationResult(sourceText, targetLanguageId),
+            sourceText,
+          );
+          return;
+        }
 
-    if (mode === 'translate') {
-      const sourceText = trimmedManualText || 'Recorded source text for translation.';
-      saveMockedResult('translate', buildTranslationResult(sourceText, targetLanguageId), sourceText);
-      return;
+        saveMockedResult('transcribe', buildTranscriptResult());
+      });
+    } catch {
+      // Failure details are surfaced through recorder state.
     }
-
-    saveMockedResult('transcribe', buildTranscriptResult());
   }
 
   function handleTargetLanguageChange(languageId: LanguageId) {
@@ -138,6 +202,17 @@ export default function RecordScreen() {
       <ModelPresetSelect value={modelPresetId} onChange={setModelPresetId} />
 
       <RecordingPanel isRecording={isRecording} onRecordPress={handleRecordPress} />
+
+      {recorderCue ? (
+        <Text
+          style={[
+            styles.recorderCue,
+            recordingState.status === 'failed' ? styles.recorderCueError : null,
+          ]}
+        >
+          {recorderCue}
+        </Text>
+      ) : null}
 
       {savedHistoryCount > 0 ? (
         <View style={styles.savedRow}>
@@ -261,6 +336,15 @@ const styles = StyleSheet.create({
     color: '#15803D',
     fontSize: 12,
     fontWeight: '700',
+  },
+  recorderCue: {
+    color: '#64748B',
+    fontSize: 13,
+    fontWeight: '700',
+    marginTop: -8,
+  },
+  recorderCueError: {
+    color: '#B91C1C',
   },
   targetHint: {
     color: '#64748B',
