@@ -118,6 +118,7 @@
       <li class="decision">V1 should show English, Spanish, Arabic, and Auto-detect as first-class language choices.</li>
       <li class="decision">V1 should use OpenRouter as the primary provider for speech-to-text, translation, and any cleanup/formatting because it centralizes API keys, model access, cost tracking, and dashboard visibility.</li>
       <li class="decision">The app should recommend suitable OpenRouter models for translation, balancing translation quality, speed, latency, and cost.</li>
+      <li class="decision">V1 model selection should use simple presets such as Fast, Balanced, and Best Quality instead of exposing a full OpenRouter model picker in the primary UI.</li>
       <li class="decision">The working product name is <code>Tarek-Wisper</code>, with final naming still open to alternatives.</li>
       <li>OpenRouter currently documents a dedicated speech-to-text endpoint, <code>/api/v1/audio/transcriptions</code>, with base64 audio input and support for 99+ languages including English, Spanish, and Arabic.</li>
       <li class="decision">All durable project artifacts should live in this project folder and be written as HTML unless the user explicitly requests otherwise.</li>
@@ -166,6 +167,11 @@
     <p><strong>Asked:</strong> Which languages should be shown as first-class choices in v1?</p>
     <p><strong>Captured:</strong> V1 should show English, Spanish, Arabic, and Auto-detect as first-class language choices. The user also wants the app to offer model suggestions for translation tasks, with a preference for efficient, easy, fast, low-latency choices.</p>
     <p><strong>Flags:</strong> Exact OpenRouter model recommendations are time-sensitive and should be verified against current OpenRouter model availability, pricing, and latency data during design and implementation.</p>
+
+    <h3>Q9 - Model Selection UI</h3>
+    <p><strong>Asked:</strong> Should model selection be exposed as simple presets like Fast, Balanced, and Best Quality, or should users choose from a full OpenRouter model picker?</p>
+    <p><strong>Captured:</strong> The user agreed with simple v1 presets such as Fast, Balanced, and Best Quality.</p>
+    <p><strong>Flags:</strong> A full OpenRouter model picker can be considered later as an advanced setting.</p>
   </section>
 
   <section>
@@ -176,6 +182,7 @@
       <li>Future enhancement: add conversation mode for two-person back-and-forth translation.</li>
       <li>Benchmark OpenRouter speech-to-text quality and latency on real English, Spanish, and Arabic samples during implementation.</li>
       <li>Verify current OpenRouter model options before finalizing default translation model recommendations.</li>
+      <li>Future enhancement: consider an advanced OpenRouter model picker after the preset flow is working.</li>
       <li>Confirm the first set of MVP screens.</li>
       <li>Add a Git remote before future implementation work that depends on upstream sync.</li>
     </ul>
