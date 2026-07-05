@@ -14,7 +14,7 @@ describe('language domain', () => {
 
   it('exposes UI labels for first-class languages', () => {
     expect(LANGUAGE_OPTIONS).toEqual([
-      { id: 'auto', label: 'English (Auto)' },
+      { id: 'auto', label: 'Auto-detect' },
       { id: 'english', label: 'English', openRouterLanguageCode: 'en' },
       { id: 'spanish', label: 'Spanish', openRouterLanguageCode: 'es' },
       { id: 'arabic', label: 'Arabic', openRouterLanguageCode: 'ar' },

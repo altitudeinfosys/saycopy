@@ -5,6 +5,7 @@ import {
   type HistoryItem,
   type HistoryMode,
   type HistorySourceType,
+  type TranslateHistoryItem,
   type Tag,
 } from '../history';
 
@@ -45,6 +46,15 @@ describe('history domain', () => {
     };
 
     expect(getHistoryPrimaryText(item)).toBe('Hello');
+  });
+
+  it('prevents auto-detect as a translate target language', () => {
+    const concreteTargetLanguageId: TranslateHistoryItem['targetLanguageId'] = 'arabic';
+    // @ts-expect-error translate targets must be concrete languages
+    const invalidTargetLanguageId: TranslateHistoryItem['targetLanguageId'] = 'auto';
+
+    expect(concreteTargetLanguageId).toBe('arabic');
+    expect(invalidTargetLanguageId).toBe('auto');
   });
 
   it('defines reusable tag shape', () => {

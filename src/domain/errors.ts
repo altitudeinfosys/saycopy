@@ -35,8 +35,8 @@ export function createAppError(
   options: AppErrorOptions = {},
 ): AppError {
   return {
+    ...options,
     category,
     message,
-    ...options,
   };
 }

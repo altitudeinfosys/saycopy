@@ -36,6 +36,14 @@ export const DEFAULT_MODEL_PRESET_ID = 'balanced' satisfies ModelPresetId;
 
 export const DEFAULT_MODEL_PRESET = getModelPreset(DEFAULT_MODEL_PRESET_ID);
 
+const MODEL_PRESET_ID_SET: ReadonlySet<string> = new Set(
+  MODEL_PRESETS.map((modelPreset) => modelPreset.id),
+);
+
+export function isModelPresetId(value: string): value is ModelPresetId {
+  return MODEL_PRESET_ID_SET.has(value);
+}
+
 export function getModelPreset(presetId: ModelPresetId): ModelPreset {
   const preset = MODEL_PRESETS.find((modelPreset) => modelPreset.id === presetId);
 

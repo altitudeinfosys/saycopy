@@ -3,6 +3,7 @@ import {
   DEFAULT_MODEL_PRESET_ID,
   MODEL_PRESETS,
   getModelPreset,
+  isModelPresetId,
   type ModelPresetId,
 } from '../modelPresets';
 
@@ -43,5 +44,12 @@ describe('model preset domain', () => {
     const expectedIds: ModelPresetId[] = ['fast', 'balanced', 'best_quality'];
 
     expect(ids).toEqual(expectedIds);
+  });
+
+  it('checks whether persisted string values are model preset ids', () => {
+    expect(isModelPresetId('fast')).toBe(true);
+    expect(isModelPresetId('balanced')).toBe(true);
+    expect(isModelPresetId('best_quality')).toBe(true);
+    expect(isModelPresetId('ultra')).toBe(false);
   });
 });

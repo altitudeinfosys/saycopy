@@ -37,6 +37,26 @@ describe('error domain', () => {
     });
   });
 
+  it('keeps explicit category and message authoritative over runtime options', () => {
+    const runtimeOptions = {
+      category: 'timeout',
+      message: 'Overridden by untrusted runtime data.',
+      provider: 'openrouter',
+    };
+
+    expect(
+      createAppError(
+        'malformed_response',
+        'Provider response could not be parsed.',
+        runtimeOptions,
+      ),
+    ).toEqual({
+      category: 'malformed_response',
+      message: 'Provider response could not be parsed.',
+      provider: 'openrouter',
+    });
+  });
+
   it('checks whether a value is an app error category', () => {
     expect(isAppErrorCategory('timeout')).toBe(true);
     expect(isAppErrorCategory('not_a_real_category')).toBe(false);

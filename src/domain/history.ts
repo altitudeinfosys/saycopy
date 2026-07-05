@@ -1,4 +1,4 @@
-import type { LanguageId } from './languages';
+import type { ConcreteLanguageId, LanguageId } from './languages';
 
 export type HistoryMode = 'transcribe' | 'translate';
 
@@ -28,7 +28,7 @@ export type TranslateHistoryItem = BaseHistoryItem & {
   readonly mode: 'translate';
   readonly transcript: string;
   readonly translatedText: string;
-  readonly targetLanguageId: LanguageId;
+  readonly targetLanguageId: ConcreteLanguageId;
 };
 
 export type HistoryItem = TranscribeHistoryItem | TranslateHistoryItem;

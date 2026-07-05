@@ -1,5 +1,7 @@
 export type LanguageId = 'auto' | 'english' | 'spanish' | 'arabic';
 
+export type ConcreteLanguageId = Exclude<LanguageId, 'auto'>;
+
 export type OpenRouterLanguageCode = 'en' | 'es' | 'ar';
 
 export type LanguageOption = {
@@ -9,7 +11,7 @@ export type LanguageOption = {
 };
 
 export const LANGUAGE_OPTIONS: readonly LanguageOption[] = [
-  { id: 'auto', label: 'English (Auto)' },
+  { id: 'auto', label: 'Auto-detect' },
   { id: 'english', label: 'English', openRouterLanguageCode: 'en' },
   { id: 'spanish', label: 'Spanish', openRouterLanguageCode: 'es' },
   { id: 'arabic', label: 'Arabic', openRouterLanguageCode: 'ar' },
