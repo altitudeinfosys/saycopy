@@ -3,7 +3,7 @@ import { InMemoryLocalSqliteDatabase } from '../../test/InMemoryLocalSqliteDatab
 import { createHistoryRepository } from '../historyRepository';
 import { migrateSqliteSchema } from '../schema';
 
-async function createRepository() {
+async function createRepositoryWithDatabase() {
   const database = new InMemoryLocalSqliteDatabase();
   await migrateSqliteSchema(database);
 
@@ -22,7 +22,7 @@ async function createRepository() {
     '2026-07-05T12:09:00.000Z',
   ];
 
-  return createHistoryRepository(database, {
+  const repository = createHistoryRepository(database, {
     createId: (entity) => {
       if (entity === 'tag') {
         tagIdCount += 1;
@@ -41,6 +41,14 @@ async function createRepository() {
       return timestamp;
     },
   });
+
+  return { database, repository };
+}
+
+async function createRepository() {
+  const { repository } = await createRepositoryWithDatabase();
+
+  return repository;
 }
 
 describe('history repository', () => {
@@ -68,6 +76,34 @@ describe('history repository', () => {
     expect(second.mode).toBe('translate');
     expect(getHistoryPrimaryText(second)).toBe('Hello');
     await expect(repository.listHistoryItems()).resolves.toEqual([second, first]);
+  });
+
+  it('stores translated output as primary text for translate history items', async () => {
+    const { database, repository } = await createRepositoryWithDatabase();
+
+    const item = await repository.createHistoryItem({
+      mode: 'translate',
+      primaryText: 'caller supplied source text',
+      sourceText: 'Hola Tarek',
+      translatedText: 'Hello Tarek',
+      sourceLanguageId: 'spanish',
+      targetLanguageId: 'english',
+    });
+
+    expect(getHistoryPrimaryText(item)).toBe('Hello Tarek');
+    expect(database.historyItems.get(item.id)).toMatchObject({
+      primary_text: 'Hello Tarek',
+      source_text: 'Hola Tarek',
+      translated_text: 'Hello Tarek',
+    });
+    await expect(repository.listHistoryItems()).resolves.toMatchObject([
+      {
+        id: item.id,
+        mode: 'translate',
+        transcript: 'Hola Tarek',
+        translatedText: 'Hello Tarek',
+      },
+    ]);
   });
 
   it('updates visible text fields without changing hidden provider data', async () => {
@@ -141,18 +177,30 @@ describe('history repository', () => {
     await expect(repository.listHistoryItems({ tag: 'work' })).resolves.toEqual([work]);
   });
 
-  it('searches normalized text, language ids, and tag names', async () => {
+  it('searches required stored fields and tag names', async () => {
     const repository = await createRepository();
-    await repository.createHistoryItem({ primaryText: 'Meeting with Tarek', tags: ['work'] });
     await repository.createHistoryItem({
-      primaryText: 'Spanish translation',
+      primaryText: 'Meeting with Tarek',
+      sourceText: 'raw transcript text',
+      sourceLanguageId: 'english',
+      tags: ['work'],
+    });
+    await repository.createHistoryItem({
+      mode: 'translate',
+      primaryText: 'caller text must not hide translated output',
+      sourceText: 'frase de viaje',
+      translatedText: 'Travel phrase',
       sourceLanguageId: 'spanish',
+      targetLanguageId: 'arabic',
       tags: ['travel'],
     });
 
     await expect(repository.searchHistory({ query: 'tarek' })).resolves.toHaveLength(1);
-    await expect(repository.searchHistory({ query: 'TRAVEL' })).resolves.toHaveLength(1);
+    await expect(repository.searchHistory({ query: 'raw transcript' })).resolves.toHaveLength(1);
+    await expect(repository.searchHistory({ query: 'travel phrase' })).resolves.toHaveLength(1);
     await expect(repository.searchHistory({ query: 'spanish' })).resolves.toHaveLength(1);
+    await expect(repository.searchHistory({ query: 'arabic' })).resolves.toHaveLength(1);
+    await expect(repository.searchHistory({ query: 'TRAVEL' })).resolves.toHaveLength(1);
     await expect(repository.searchHistory({ tag: 'travel' })).resolves.toHaveLength(1);
   });
 });

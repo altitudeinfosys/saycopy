@@ -140,14 +140,34 @@ function getTagsForHistoryItem(
   tags: readonly TagRow[],
   joins: readonly HistoryItemTagRow[],
 ): Tag[] {
+  return getTagRowsForHistoryItem(historyItemId, tags, joins)
+    .sort((left, right) => left.created_at.localeCompare(right.created_at))
+    .map(toDomainTag);
+}
+
+function getTagRowsForHistoryItem(
+  historyItemId: string,
+  tags: readonly TagRow[],
+  joins: readonly HistoryItemTagRow[],
+): TagRow[] {
   const tagIds = new Set(
     joins.filter((join) => join.history_item_id === historyItemId).map((join) => join.tag_id),
   );
 
-  return tags
-    .filter((tag) => tagIds.has(tag.id))
-    .sort((left, right) => left.created_at.localeCompare(right.created_at))
-    .map(toDomainTag);
+  return tags.filter((tag) => tagIds.has(tag.id));
+}
+
+function rowHasTag(
+  row: HistoryItemRow,
+  normalizedTag: string,
+  tags: readonly TagRow[],
+  joins: readonly HistoryItemTagRow[],
+): boolean {
+  const rowTagIds = joins
+    .filter((join) => join.history_item_id === row.id)
+    .map((join) => join.tag_id);
+
+  return tags.some((tag) => rowTagIds.includes(tag.id) && tag.normalized_name === normalizedTag);
 }
 
 function toHistoryItem(
@@ -215,14 +235,7 @@ export function createHistoryRepository(
     const { historyRows, tagRows, joinRows } = await loadRows();
     const normalizedTag = options?.tag ? normalizeTagName(options.tag) : undefined;
     const filteredRows = normalizedTag
-      ? historyRows.filter((row) => {
-          const rowTagIds = joinRows
-            .filter((join) => join.history_item_id === row.id)
-            .map((join) => join.tag_id);
-          return tagRows.some(
-            (tag) => rowTagIds.includes(tag.id) && tag.normalized_name === normalizedTag,
-          );
-        })
+      ? historyRows.filter((row) => rowHasTag(row, normalizedTag, tagRows, joinRows))
       : historyRows;
 
     return filteredRows
@@ -303,10 +316,10 @@ export function createHistoryRepository(
     const mode = input.mode ?? 'transcribe';
     const id = input.id ?? createId('history');
     const timestamp = now();
-    const primaryText = input.primaryText;
     const sourceText = mode === 'translate' ? input.sourceText ?? '' : input.sourceText ?? null;
     const translatedText =
       mode === 'translate' ? input.translatedText ?? input.primaryText : input.translatedText ?? null;
+    const primaryText = mode === 'translate' ? translatedText : input.primaryText;
 
     await database.execute(
       `INSERT INTO history_items (
@@ -363,14 +376,15 @@ export function createHistoryRepository(
       return null;
     }
 
-    const nextPrimaryText = input.primaryText ?? input.translatedText ?? existing.primary_text;
+    const nextTranslatedText =
+      existing.mode === 'translate'
+        ? input.translatedText ?? input.primaryText ?? existing.translated_text ?? existing.primary_text
+        : input.translatedText ?? existing.translated_text;
+    const nextPrimaryText =
+      existing.mode === 'translate' ? nextTranslatedText : input.primaryText ?? existing.primary_text;
     const nextSourceText =
       input.sourceText ??
       (existing.mode === 'translate' ? existing.source_text ?? '' : existing.source_text);
-    const nextTranslatedText =
-      existing.mode === 'translate'
-        ? input.translatedText ?? input.primaryText ?? existing.translated_text ?? nextPrimaryText
-        : input.translatedText ?? existing.translated_text;
 
     await database.execute(
       `UPDATE history_items
@@ -391,28 +405,37 @@ export function createHistoryRepository(
   }
 
   async function searchHistory(options: HistorySearchOptions): Promise<HistoryItem[]> {
-    const listedItems = await listHistoryItems(options.tag ? { tag: options.tag } : undefined);
+    const { historyRows, tagRows, joinRows } = await loadRows();
     const normalizedQuery = options.query ? normalizeSearchValue(options.query) : '';
+    const normalizedTag = options.tag ? normalizeTagName(options.tag) : undefined;
+    const filteredRows = normalizedTag
+      ? historyRows.filter((row) => rowHasTag(row, normalizedTag, tagRows, joinRows))
+      : historyRows;
 
     if (!normalizedQuery) {
-      return listedItems;
+      return filteredRows
+        .toSorted(sortNewestFirst)
+        .map((row) => toHistoryItem(row, tagRows, joinRows));
     }
 
-    return listedItems.filter((item) => {
-      const tagText = (item.tags ?? []).map((tag) => tag.label).join(' ');
-      const searchableText =
-        item.mode === 'translate'
-          ? [
-              item.transcript,
-              item.translatedText,
-              item.sourceLanguageId,
-              item.targetLanguageId,
-              tagText,
-            ].join(' ')
-          : [item.transcript, item.sourceLanguageId, tagText].join(' ');
+    return filteredRows
+      .filter((row) => {
+        const tagText = getTagRowsForHistoryItem(row.id, tagRows, joinRows)
+          .map((tag) => tag.name)
+          .join(' ');
+        const searchableText = [
+          row.primary_text,
+          row.source_text ?? '',
+          row.translated_text ?? '',
+          row.source_language,
+          row.target_language ?? '',
+          tagText,
+        ].join(' ');
 
-      return normalizeSearchValue(searchableText).includes(normalizedQuery);
-    });
+        return normalizeSearchValue(searchableText).includes(normalizedQuery);
+      })
+      .toSorted(sortNewestFirst)
+      .map((row) => toHistoryItem(row, tagRows, joinRows));
   }
 
   return {
