@@ -128,6 +128,7 @@
       <li class="decision">Result text should be editable before copy/share, and saved history should reflect the user's edited text.</li>
       <li class="decision">Translate mode should show both the original transcription and the translated output, with the translation emphasized.</li>
       <li class="decision">V1 should include both Copy and native Share actions for result text.</li>
+      <li class="decision">Translate mode should support simple manual text input in addition to voice-to-translation.</li>
       <li class="decision">The working product name is <code>Tarek-Wisper</code>, with final naming still open to alternatives.</li>
       <li>OpenRouter currently documents a dedicated speech-to-text endpoint, <code>/api/v1/audio/transcriptions</code>, with base64 audio input and support for 99+ languages including English, Spanish, and Arabic.</li>
       <li class="decision">All durable project artifacts should live in this project folder and be written as HTML unless the user explicitly requests otherwise.</li>
@@ -226,6 +227,11 @@
     <p><strong>Asked:</strong> Should v1 include Share using the native iOS share sheet in addition to Copy?</p>
     <p><strong>Captured:</strong> V1 should include both Copy and native Share actions for result text.</p>
     <p><strong>Flags:</strong> None.</p>
+
+    <h3>Q19 - Manual Text Translation</h3>
+    <p><strong>Asked:</strong> Should v1 support manual text input for translation too, or only voice-to-translation?</p>
+    <p><strong>Captured:</strong> V1 should support simple manual text input in Translate mode, in addition to voice-to-translation.</p>
+    <p><strong>Flags:</strong> Keep this lightweight in v1; it should not become a separate document editor.</p>
   </section>
 
   <section>
