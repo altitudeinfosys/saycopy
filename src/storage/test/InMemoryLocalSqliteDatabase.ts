@@ -117,13 +117,11 @@ export class InMemoryLocalSqliteDatabase implements LocalSqliteDatabase {
     if (normalizedSql.startsWith('DELETE FROM HISTORY_ITEMS WHERE ID = ?')) {
       const id = requireString(params[0], 'history item id');
       this.historyItems.delete(id);
-      this.removeTagAssignmentsForHistoryItem(id);
       return;
     }
 
     if (normalizedSql === 'DELETE FROM HISTORY_ITEMS') {
       this.historyItems.clear();
-      this.historyItemTags.splice(0);
       return;
     }
 
@@ -141,15 +139,30 @@ export class InMemoryLocalSqliteDatabase implements LocalSqliteDatabase {
       return;
     }
 
-    if (normalizedSql.startsWith('INSERT INTO HISTORY_ITEM_TAGS')) {
+    if (
+      normalizedSql.startsWith('INSERT INTO HISTORY_ITEM_TAGS') ||
+      normalizedSql.startsWith('INSERT OR IGNORE INTO HISTORY_ITEM_TAGS')
+    ) {
       const historyItemId = requireString(params[0], 'history item id');
       const tagId = requireString(params[1], 'tag id');
       const exists = this.historyItemTags.some(
         (row) => row.history_item_id === historyItemId && row.tag_id === tagId,
       );
+      if (exists && !normalizedSql.startsWith('INSERT OR IGNORE')) {
+        throw new Error(`Duplicate history item tag: ${historyItemId}:${tagId}`);
+      }
+
       if (!exists) {
         this.historyItemTags.push({ history_item_id: historyItemId, tag_id: tagId });
       }
+      return;
+    }
+
+    if (
+      normalizedSql.startsWith('DELETE FROM HISTORY_ITEM_TAGS WHERE HISTORY_ITEM_ID = ?') &&
+      params.length === 1
+    ) {
+      this.removeTagAssignmentsForHistoryItem(requireString(params[0], 'history item id'));
       return;
     }
 
@@ -160,6 +173,11 @@ export class InMemoryLocalSqliteDatabase implements LocalSqliteDatabase {
         (row) => row.history_item_id !== historyItemId || row.tag_id !== tagId,
       );
       this.historyItemTags.splice(0, this.historyItemTags.length, ...remainingRows);
+      return;
+    }
+
+    if (normalizedSql === 'DELETE FROM HISTORY_ITEM_TAGS') {
+      this.historyItemTags.splice(0);
       return;
     }
 

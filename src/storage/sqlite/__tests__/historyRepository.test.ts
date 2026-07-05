@@ -203,6 +203,31 @@ describe('history repository', () => {
     await expect(repository.listHistoryItems()).resolves.toEqual([]);
   });
 
+  it('explicitly removes tag joins when deleting one item', async () => {
+    const { database, repository } = await createRepositoryWithDatabase();
+    const first = await repository.createHistoryItem({ primaryText: 'Tagged item', tags: ['work'] });
+    const second = await repository.createHistoryItem({ primaryText: 'Other item', tags: ['travel'] });
+
+    await repository.deleteHistoryItem(first.id);
+
+    expect(database.historyItemTags).toEqual([
+      {
+        history_item_id: second.id,
+        tag_id: 'tag-2',
+      },
+    ]);
+  });
+
+  it('explicitly removes all tag joins when deleting all history', async () => {
+    const { database, repository } = await createRepositoryWithDatabase();
+    await repository.createHistoryItem({ primaryText: 'Tagged item', tags: ['work'] });
+    await repository.createHistoryItem({ primaryText: 'Other item', tags: ['travel'] });
+
+    await repository.deleteAllHistoryItems();
+
+    expect(database.historyItemTags).toEqual([]);
+  });
+
   it('creates, finds, assigns, and removes normalized tags', async () => {
     const repository = await createRepository();
     const item = await repository.createHistoryItem({ primaryText: 'Tagged note' });
@@ -222,6 +247,33 @@ describe('history repository', () => {
 
     await expect(repository.getHistoryItem(item.id)).resolves.toMatchObject({
       tags: [],
+    });
+  });
+
+  it('ignores duplicate tag assignments for the same item', async () => {
+    const { database, repository } = await createRepositoryWithDatabase();
+    const item = await repository.createHistoryItem({ primaryText: 'Tagged note' });
+
+    await repository.assignTag(item.id, 'Work');
+    await repository.assignTag(item.id, 'work');
+
+    expect(database.historyItemTags).toEqual([{ history_item_id: item.id, tag_id: 'tag-1' }]);
+    await expect(repository.getHistoryItem(item.id)).resolves.toMatchObject({
+      tags: [{ id: 'tag-1', label: 'Work' }],
+    });
+  });
+
+  it('ignores duplicate input tags with different casing', async () => {
+    const { database, repository } = await createRepositoryWithDatabase();
+
+    const item = await repository.createHistoryItem({
+      primaryText: 'Tagged note',
+      tags: ['Work', 'work'],
+    });
+
+    expect(database.historyItemTags).toEqual([{ history_item_id: item.id, tag_id: 'tag-1' }]);
+    await expect(repository.getHistoryItem(item.id)).resolves.toMatchObject({
+      tags: [{ id: 'tag-1', label: 'Work' }],
     });
   });
 

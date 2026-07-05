@@ -74,4 +74,15 @@ describe('settings repository', () => {
 
     await expect(repository.getSettings()).resolves.toEqual(DEFAULT_APP_SETTINGS);
   });
+
+  it('falls back to defaults for malformed persisted JSON values', async () => {
+    const { database, repository } = await createRepository();
+
+    await database.execute(
+      'INSERT OR REPLACE INTO app_settings (key, value_json, updated_at) VALUES (?, ?, ?)',
+      ['defaultMode', '{bad json', '2026-07-05T12:00:00.000Z'],
+    );
+
+    await expect(repository.getSettings()).resolves.toEqual(DEFAULT_APP_SETTINGS);
+  });
 });

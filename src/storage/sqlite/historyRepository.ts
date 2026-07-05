@@ -116,7 +116,7 @@ function defaultNow(): string {
 }
 
 function normalizeSearchValue(value: string): string {
-  return value.trim().toLocaleLowerCase().replace(/\s+/gu, ' ');
+  return value.trim().toLowerCase().replace(/\s+/gu, ' ');
 }
 
 function normalizeTagName(name: string): string {
@@ -306,7 +306,7 @@ export function createHistoryRepository(
     const tag = await createTag(tagName);
 
     await database.execute(
-      `INSERT INTO history_item_tags (history_item_id, tag_id)
+      `INSERT OR IGNORE INTO history_item_tags (history_item_id, tag_id)
        VALUES (?, ?)`,
       [historyItemId, tag.id],
     );
@@ -411,10 +411,12 @@ export function createHistoryRepository(
   }
 
   async function deleteHistoryItem(id: string): Promise<void> {
+    await database.execute('DELETE FROM history_item_tags WHERE history_item_id = ?', [id]);
     await database.execute('DELETE FROM history_items WHERE id = ?', [id]);
   }
 
   async function deleteAllHistoryItems(): Promise<void> {
+    await database.execute('DELETE FROM history_item_tags');
     await database.execute('DELETE FROM history_items');
   }
 
