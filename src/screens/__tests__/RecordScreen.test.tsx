@@ -11,6 +11,21 @@ import {
 } from '../../audio/audioRecorder';
 import RecordScreen from '../RecordScreen';
 
+function createDeferred<T>() {
+  let reject!: (reason?: unknown) => void;
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  const promise = new Promise<T>((nextResolve, nextReject) => {
+    resolve = nextResolve;
+    reject = nextReject;
+  });
+
+  return {
+    promise,
+    reject,
+    resolve,
+  };
+}
+
 function createManualTimer(): AudioRecordingControllerTimer & {
   readonly clearTimeout: jest.Mock;
   readonly setTimeout: jest.Mock;
@@ -129,6 +144,32 @@ describe('RecordScreen', () => {
     expect(screen.getByText('Tap to record')).toBeTruthy();
     expect(screen.getByText('60 second max')).toBeTruthy();
     expect(screen.queryByPlaceholderText('Type or paste text to translate')).toBeNull();
+  });
+
+  it('disables the recording control while microphone permission is pending', async () => {
+    const permissionDeferred = createDeferred<{ readonly granted: boolean }>();
+    const nativeRecorder: AudioRecorderNativeAdapter = {
+      requestRecordingPermission: jest.fn().mockReturnValue(permissionDeferred.promise),
+      startRecording: jest.fn(),
+    };
+    const recordingController = createAudioRecordingController({
+      audioFileReader: { readBase64: jest.fn() },
+      nativeRecorder,
+      temporaryAudio: { cleanup: jest.fn() },
+    });
+
+    render(<RecordScreen recordingController={recordingController} />);
+
+    fireEvent.press(screen.getByRole('button', { name: 'Tap to record' }));
+
+    const busyButton = await screen.findByRole('button', { name: 'Preparing recorder' });
+    expect(busyButton.props.accessibilityState).toMatchObject({ disabled: true });
+
+    fireEvent.press(busyButton);
+    expect(nativeRecorder.requestRecordingPermission).toHaveBeenCalledTimes(1);
+
+    permissionDeferred.resolve({ granted: false });
+    expect(await screen.findByText('Microphone permission is required to record.')).toBeTruthy();
   });
 
   it('shows manual input and a target language selector in translate mode', () => {

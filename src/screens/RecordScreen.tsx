@@ -79,6 +79,14 @@ export default function RecordScreen({ recordingController }: RecordScreenProps 
   );
   const isRecording = isRecordButtonActive(recordingState);
   const isRecorderBusy = isRecordButtonBusy(recordingState);
+  const recordingBusyLabel =
+    recordingState.status === 'requesting_permission'
+      ? 'Preparing recorder'
+      : recordingState.status === 'stopping'
+        ? 'Stopping recording'
+        : recordingState.status === 'processing'
+          ? 'Creating result'
+          : undefined;
   const recorderCue =
     recordingState.status === 'requesting_permission'
       ? 'Requesting microphone permission'
@@ -243,7 +251,12 @@ export default function RecordScreen({ recordingController }: RecordScreenProps 
 
       <ModelPresetSelect value={modelPresetId} onChange={setModelPresetId} />
 
-      <RecordingPanel isRecording={isRecording} onRecordPress={handleRecordPress} />
+      <RecordingPanel
+        busyLabel={recordingBusyLabel}
+        isDisabled={isRecorderBusy}
+        isRecording={isRecording}
+        onRecordPress={handleRecordPress}
+      />
 
       {recorderCue ? (
         <Text

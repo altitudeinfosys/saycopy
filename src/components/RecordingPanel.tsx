@@ -1,13 +1,22 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 type RecordingPanelProps = {
+  readonly busyLabel?: string;
+  readonly isDisabled?: boolean;
   readonly isRecording: boolean;
   readonly onRecordPress: () => void;
 };
 
 const WAVEFORM_BARS = [20, 34, 26, 44, 30, 52, 24, 40, 28, 46, 22] as const;
 
-export default function RecordingPanel({ isRecording, onRecordPress }: RecordingPanelProps) {
+export default function RecordingPanel({
+  busyLabel,
+  isDisabled = false,
+  isRecording,
+  onRecordPress,
+}: RecordingPanelProps) {
+  const buttonLabel = busyLabel ?? (isRecording ? 'Stop recording' : 'Tap to record');
+
   return (
     <View
       testID="recording-panel"
@@ -35,16 +44,34 @@ export default function RecordingPanel({ isRecording, onRecordPress }: Recording
       </View>
 
       <Pressable
-        accessibilityLabel={isRecording ? 'Stop recording' : 'Tap to record'}
+        accessibilityLabel={buttonLabel}
         accessibilityRole="button"
+        accessibilityState={{ disabled: isDisabled }}
+        disabled={isDisabled}
         onPress={onRecordPress}
-        style={[styles.recordButton, isRecording && styles.recordButtonActive]}
+        style={[
+          styles.recordButton,
+          isRecording && styles.recordButtonActive,
+          isDisabled && styles.recordButtonDisabled,
+        ]}
       >
-        <Text style={[styles.recordButtonIcon, isRecording && styles.recordButtonIconActive]}>
-          {isRecording ? 'Stop' : 'Rec'}
+        <Text
+          style={[
+            styles.recordButtonIcon,
+            isRecording && styles.recordButtonIconActive,
+            isDisabled && styles.recordButtonTextDisabled,
+          ]}
+        >
+          {busyLabel ? 'Wait' : isRecording ? 'Stop' : 'Rec'}
         </Text>
-        <Text style={[styles.recordButtonText, isRecording && styles.recordButtonTextActive]}>
-          {isRecording ? 'Stop recording' : 'Tap to record'}
+        <Text
+          style={[
+            styles.recordButtonText,
+            isRecording && styles.recordButtonTextActive,
+            isDisabled && styles.recordButtonTextDisabled,
+          ]}
+        >
+          {buttonLabel}
         </Text>
       </Pressable>
     </View>
@@ -123,6 +150,9 @@ const styles = StyleSheet.create({
   recordButtonActive: {
     backgroundColor: '#EA580C',
   },
+  recordButtonDisabled: {
+    backgroundColor: '#64748B',
+  },
   recordButtonIcon: {
     color: '#FFFFFF',
     fontSize: 28,
@@ -139,5 +169,8 @@ const styles = StyleSheet.create({
   },
   recordButtonTextActive: {
     color: '#FFF7ED',
+  },
+  recordButtonTextDisabled: {
+    color: '#E2E8F0',
   },
 });

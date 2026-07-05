@@ -39,6 +39,21 @@ const mockRecordingPreset = {
   },
 };
 
+function createDeferred<T>() {
+  let reject!: (reason?: unknown) => void;
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  const promise = new Promise<T>((nextResolve, nextReject) => {
+    resolve = nextResolve;
+    reject = nextReject;
+  });
+
+  return {
+    promise,
+    reject,
+    resolve,
+  };
+}
+
 function createManualTimer(): AudioRecordingControllerTimer & {
   readonly setTimeout: jest.Mock;
   readonly clearTimeout: jest.Mock;
@@ -164,6 +179,33 @@ describe('createAudioRecordingController', () => {
     expect(nativeRecorder.startRecording).not.toHaveBeenCalled();
   });
 
+  it('serializes concurrent start calls into one native session and one timer', async () => {
+    const session = createSession();
+    const startDeferred = createDeferred<NativeAudioRecordingSession>();
+    const nativeRecorder: AudioRecorderNativeAdapter = {
+      requestRecordingPermission: jest.fn().mockResolvedValue({ granted: true }),
+      startRecording: jest.fn().mockReturnValue(startDeferred.promise),
+    };
+    const timer = createManualTimer();
+    const controller = createAudioRecordingController({
+      audioFileReader: { readBase64: jest.fn().mockResolvedValue('serialized-start-base64') },
+      nativeRecorder,
+      temporaryAudio: { cleanup: jest.fn() },
+      timer,
+    });
+
+    const firstStart = controller.start();
+    const secondStart = controller.start();
+    startDeferred.resolve(session);
+    await Promise.all([firstStart, secondStart]);
+
+    expect(nativeRecorder.requestRecordingPermission).toHaveBeenCalledTimes(1);
+    expect(nativeRecorder.startRecording).toHaveBeenCalledTimes(1);
+    expect(timer.setTimeout).toHaveBeenCalledTimes(1);
+
+    await controller.cancel();
+  });
+
   it('auto-stops recording at the 60 second cap', async () => {
     const session = createSession({ durationMs: 60000 });
     const nativeRecorder = createNativeAdapter(session);
@@ -272,6 +314,43 @@ describe('createAudioRecordingController', () => {
 
     expect(session.stop).toHaveBeenCalledTimes(1);
     expect(cleanup.cleanup).toHaveBeenCalledWith({ uri: 'file:///tmp/recording.m4a' });
+    expect(controller.getState()).toEqual({ status: 'idle' });
+  });
+
+  it('cancels during an in-flight stop by cleaning the stopped audio and staying idle', async () => {
+    const stopDeferred = createDeferred<{
+      readonly durationMs: number;
+      readonly uri: string;
+    }>();
+    const readDeferred = createDeferred<string>();
+    const session: NativeAudioRecordingSession = {
+      getTemporaryFileReference: jest.fn(() => ({ uri: 'file:///tmp/cancel-during-stop.m4a' })),
+      stop: jest.fn().mockReturnValue(stopDeferred.promise),
+    };
+    const cleanup = {
+      cleanup: jest.fn().mockResolvedValue(undefined),
+    };
+    const controller = createAudioRecordingController({
+      audioFileReader: { readBase64: jest.fn().mockReturnValue(readDeferred.promise) },
+      nativeRecorder: createNativeAdapter(session),
+      temporaryAudio: cleanup,
+    });
+
+    await controller.start();
+    const stopPromise = controller.stop();
+    const cancelPromise = controller.cancel();
+
+    stopDeferred.resolve({
+      durationMs: 987,
+      uri: 'file:///tmp/cancel-during-stop.m4a',
+    });
+    readDeferred.resolve('cancel-during-stop-base64');
+
+    await Promise.all([stopPromise, cancelPromise]);
+
+    expect(cleanup.cleanup).toHaveBeenCalledWith({
+      uri: 'file:///tmp/cancel-during-stop.m4a',
+    });
     expect(controller.getState()).toEqual({ status: 'idle' });
   });
 

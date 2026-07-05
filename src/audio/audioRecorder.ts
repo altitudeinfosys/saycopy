@@ -169,7 +169,9 @@ export function createAudioRecordingController({
   let state: AudioRecordingState = { status: 'idle' };
   let session: NativeAudioRecordingSession | undefined;
   let maxDurationTimer: ReturnType<typeof setTimeout> | undefined;
+  let startPromise: Promise<void> | undefined;
   let stopPromise: Promise<FlowAudioInput> | undefined;
+  let transitionGeneration = 0;
   const listeners = new Set<AudioRecordingStateListener>();
 
   function emit(nextState: AudioRecordingState) {
@@ -194,6 +196,7 @@ export function createAudioRecordingController({
     }
 
     stopPromise = (async () => {
+      const operationGeneration = transitionGeneration;
       const activeSession = session;
       const fallbackReference = activeSession.getTemporaryFileReference?.();
       clearMaxDurationTimer();
@@ -217,13 +220,21 @@ export function createAudioRecordingController({
         };
 
         session = undefined;
+        if (operationGeneration !== transitionGeneration) {
+          return audio;
+        }
+
         emit({ audio, status: 'stopped', stopReason });
         return audio;
       } catch (error) {
         session = undefined;
         const primaryError = normalizeRecordingError(error);
         await cleanupReference(temporaryAudio, fallbackReference);
-        emit({ error: primaryError, status: 'failed' });
+
+        if (operationGeneration === transitionGeneration) {
+          emit({ error: primaryError, status: 'failed' });
+        }
+
         throw primaryError;
       } finally {
         stopPromise = undefined;
@@ -237,24 +248,49 @@ export function createAudioRecordingController({
     await cleanupReference(temporaryAudio, audio);
   }
 
+  async function stopAndCleanupSession(activeSession: NativeAudioRecordingSession) {
+    const fallbackReference = activeSession.getTemporaryFileReference?.();
+
+    try {
+      const stoppedRecording = await activeSession.stop();
+      await cleanupReference(
+        temporaryAudio,
+        stoppedRecording.uri ? stoppedRecording : fallbackReference,
+      );
+    } catch {
+      await cleanupReference(temporaryAudio, fallbackReference);
+    }
+  }
+
   return {
     async cancel() {
+      transitionGeneration += 1;
+      const cancelGeneration = transitionGeneration;
       clearMaxDurationTimer();
 
-      if (state.status === 'recording' && session) {
-        const activeSession = session;
-        const fallbackReference = activeSession.getTemporaryFileReference?.();
-
+      if (stopPromise) {
         try {
-          const stoppedRecording = await activeSession.stop();
-          await cleanupReference(temporaryAudio, stoppedRecording.uri ? stoppedRecording : fallbackReference);
+          const audio = await stopPromise;
+          await cleanupStoppedAudio(audio);
         } catch {
-          await cleanupReference(temporaryAudio, fallbackReference);
+          // The stop path already performs best-effort fallback cleanup.
         } finally {
           session = undefined;
           stopPromise = undefined;
-          emit({ status: 'idle' });
+
+          if (transitionGeneration === cancelGeneration) {
+            emit({ status: 'idle' });
+          }
         }
+        return;
+      }
+
+      if (state.status === 'recording' && session) {
+        const activeSession = session;
+        await stopAndCleanupSession(activeSession);
+        session = undefined;
+        stopPromise = undefined;
+        emit({ status: 'idle' });
         return;
       }
 
@@ -289,35 +325,61 @@ export function createAudioRecordingController({
       }
     },
     async start() {
-      clearMaxDurationTimer();
-
-      if (state.status === 'stopped' && state.audio) {
-        await cleanupStoppedAudio(state.audio);
+      if (startPromise) {
+        return startPromise;
       }
 
-      emit({ status: 'requesting_permission' });
+      startPromise = (async () => {
+        const operationGeneration = transitionGeneration;
+        clearMaxDurationTimer();
 
-      try {
-        const permission = await nativeRecorder.requestRecordingPermission();
-
-        if (!permission.granted) {
-          throw new AudioRecorderError(
-            'permission_denied',
-            'Microphone permission is required to record.',
-          );
+        if (state.status === 'recording' || state.status === 'stopping' || state.status === 'processing') {
+          return;
         }
 
-        session = await nativeRecorder.startRecording();
-        emit({ status: 'recording' });
-        maxDurationTimer = timer.setTimeout(() => {
-          void stopRecording('max_duration');
-        }, MAX_RECORDING_DURATION_MS);
-      } catch (error) {
-        const primaryError = normalizeRecordingError(error);
-        session = undefined;
-        emit({ error: primaryError, status: 'failed' });
-        throw primaryError;
-      }
+        if (state.status === 'stopped' && state.audio) {
+          await cleanupStoppedAudio(state.audio);
+        }
+
+        emit({ status: 'requesting_permission' });
+
+        try {
+          const permission = await nativeRecorder.requestRecordingPermission();
+
+          if (!permission.granted) {
+            throw new AudioRecorderError(
+              'permission_denied',
+              'Microphone permission is required to record.',
+            );
+          }
+
+          const startedSession = await nativeRecorder.startRecording();
+
+          if (operationGeneration !== transitionGeneration) {
+            await stopAndCleanupSession(startedSession);
+            return;
+          }
+
+          session = startedSession;
+          emit({ status: 'recording' });
+          maxDurationTimer = timer.setTimeout(() => {
+            void stopRecording('max_duration');
+          }, MAX_RECORDING_DURATION_MS);
+        } catch (error) {
+          const primaryError = normalizeRecordingError(error);
+          session = undefined;
+
+          if (operationGeneration === transitionGeneration) {
+            emit({ error: primaryError, status: 'failed' });
+          }
+
+          throw primaryError;
+        } finally {
+          startPromise = undefined;
+        }
+      })();
+
+      return startPromise;
     },
     stop: stopRecording,
     subscribe(listener) {
