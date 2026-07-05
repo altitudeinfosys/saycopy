@@ -114,6 +114,7 @@
       <li>The likely backend for a later synced-history version is Supabase, because it is fast for auth, database, storage, and React Native/Expo integration.</li>
       <li class="decision">V1 should store transcription and translation history locally on the device. Database sync is deferred to v2.</li>
       <li class="decision">V1 should include both Transcribe mode and Translate mode.</li>
+      <li class="decision">V1 Translate mode should support single-speaker translation only. Conversation mode is a future enhancement.</li>
       <li class="decision">V1 should use OpenRouter as the primary provider for speech-to-text, translation, and any cleanup/formatting because it centralizes API keys, model access, cost tracking, and dashboard visibility.</li>
       <li class="decision">The working product name is <code>Tarek-Wisper</code>, with final naming still open to alternatives.</li>
       <li>OpenRouter currently documents a dedicated speech-to-text endpoint, <code>/api/v1/audio/transcriptions</code>, with base64 audio input and support for 99+ languages including English, Spanish, and Arabic.</li>
@@ -153,6 +154,11 @@
     <p><strong>Asked:</strong> What working app name should be used in the docs and design?</p>
     <p><strong>Captured:</strong> The working product name is <code>Tarek-Wisper</code>. The user is also open to other name suggestions, so final branding can be revisited later.</p>
     <p><strong>Flags:</strong> Include a short naming options section in the design doc or a later branding note.</p>
+
+    <h3>Q7 - Translation Interaction Scope</h3>
+    <p><strong>Asked:</strong> In Translate mode, should v1 support only single-speaker translation or also a conversation mode where two people speak back and forth?</p>
+    <p><strong>Captured:</strong> V1 should support single-speaker translation only. Conversation mode should be documented as a future enhancement.</p>
+    <p><strong>Flags:</strong> Conversation mode belongs in the future roadmap, not the v1 MVP.</p>
   </section>
 
   <section>
@@ -160,6 +166,7 @@
     <ul>
       <li>For v2, decide whether synced history uses Supabase, Neon plus custom auth/API, or another backend.</li>
       <li>Revisit final product naming; <code>Tarek-Wisper</code> is the working name for now.</li>
+      <li>Future enhancement: add conversation mode for two-person back-and-forth translation.</li>
       <li>Benchmark OpenRouter speech-to-text quality and latency on real English, Spanish, and Arabic samples during implementation.</li>
       <li>Confirm the first set of MVP screens.</li>
       <li>Add a Git remote before future implementation work that depends on upstream sync.</li>
