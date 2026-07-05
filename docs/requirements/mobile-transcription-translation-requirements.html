@@ -122,7 +122,7 @@
       <li class="decision">Transcribe mode should apply light cleanup by default, including punctuation, capitalization, and modest filler-word cleanup.</li>
       <li class="decision">V1 should include a Settings page where the user can enter an OpenRouter API token, stored locally and securely on the device. The app should not embed a shared production API token.</li>
       <li class="decision">V1 should save text outputs in history, not audio recordings. Audio should be temporary during recording/transcription and deleted after the text result is created.</li>
-      <li>The user wants tagging or categorization for saved history items so transcripts and translations can be retrieved quickly later.</li>
+      <li class="decision">V1 should include simple optional tags for saved history items, with History filtering by tag.</li>
       <li class="decision">The working product name is <code>Tarek-Wisper</code>, with final naming still open to alternatives.</li>
       <li>OpenRouter currently documents a dedicated speech-to-text endpoint, <code>/api/v1/audio/transcriptions</code>, with base64 audio input and support for 99+ languages including English, Spanish, and Arabic.</li>
       <li class="decision">All durable project artifacts should live in this project folder and be written as HTML unless the user explicitly requests otherwise.</li>
@@ -191,6 +191,11 @@
     <p><strong>Asked:</strong> Should v1 save audio recordings in history, or only save the text outputs?</p>
     <p><strong>Captured:</strong> The user agreed with saving text only. Audio should be temporary during recording/transcription and deleted after the result is created. The user also wants the ability to add tags or categories to saved items so history can be retrieved quickly and easily later.</p>
     <p><strong>Flags:</strong> Decide whether tagging belongs in v1 or v2.</p>
+
+    <h3>Q13 - V1 Tagging Scope</h3>
+    <p><strong>Asked:</strong> Should simple tags be included in v1?</p>
+    <p><strong>Captured:</strong> The user confirmed that simple tags should be part of v1. Scope should stay lightweight: optional user-defined tags on saved transcript and translation items, plus filtering by tag in History.</p>
+    <p><strong>Flags:</strong> Do not include nested folders, complex category management, or AI auto-tagging in the first pass unless later approved.</p>
   </section>
 
   <section>
@@ -204,7 +209,7 @@
       <li>Future enhancement: consider an advanced OpenRouter model picker after the preset flow is working.</li>
       <li>Decide whether v1 stores raw transcript text internally when available, or only the cleaned output shown to the user.</li>
       <li>Specify the Expo/React Native secure local storage mechanism for the OpenRouter token.</li>
-      <li>Decide whether simple tags/categories are part of v1 or deferred to v2.</li>
+      <li>Future enhancement: consider nested folders, complex category management, or AI auto-tagging after simple manual tags are working.</li>
       <li>Confirm the first set of MVP screens.</li>
       <li>Add a Git remote before future implementation work that depends on upstream sync.</li>
     </ul>
