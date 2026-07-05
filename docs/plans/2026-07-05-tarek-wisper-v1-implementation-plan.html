@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tarek-Wisper V1 Implementation Plan</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f6f8fb;
+      --panel: #ffffff;
+      --panel-2: #eef3f8;
+      --text: #152033;
+      --muted: #5b6878;
+      --line: #d9e1eb;
+      --accent: #0d6bcb;
+      --good: #0b7f6d;
+      --warn: #8a5a00;
+      --bad: #ad2d1f;
+      --code: #edf2f7;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f131a;
+        --panel: #171d27;
+        --panel-2: #202838;
+        --text: #edf3fb;
+        --muted: #a9b4c3;
+        --line: #30394a;
+        --accent: #75b8ff;
+        --good: #5dd0bd;
+        --warn: #f0c36a;
+        --bad: #ff8c7c;
+        --code: #242c3b;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+    main {
+      width: min(1120px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 32px 0 56px;
+    }
+    header, section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+    h1, h2, h3, h4 {
+      margin: 0;
+      line-height: 1.16;
+      letter-spacing: 0;
+    }
+    h1 { font-size: clamp(32px, 4vw, 48px); }
+    h2 { font-size: 24px; margin-bottom: 12px; }
+    h3 { font-size: 18px; margin: 20px 0 8px; }
+    h4 { font-size: 16px; margin: 16px 0 6px; }
+    p { margin: 9px 0; }
+    ul, ol { margin: 9px 0; padding-left: 22px; }
+    li { margin: 6px 0; }
+    a { color: var(--accent); }
+    code, pre {
+      background: var(--code);
+      border-radius: 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.92em;
+    }
+    code { padding: 2px 5px; }
+    pre {
+      padding: 14px;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      line-height: 1.45;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      margin: 14px 0;
+      font-size: 14px;
+    }
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    tr:last-child td { border-bottom: 0; }
+    th {
+      color: var(--muted);
+      background: var(--panel-2);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .muted { color: var(--muted); }
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 3px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .callout {
+      border-left: 4px solid var(--accent);
+      background: var(--panel-2);
+      border-radius: 0 8px 8px 0;
+      padding: 12px 15px;
+      margin: 14px 0;
+    }
+    .good { border-left-color: var(--good); }
+    .warn { border-left-color: var(--warn); }
+    .bad { border-left-color: var(--bad); }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li::before {
+      content: "[ ]";
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      margin-right: 8px;
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="muted">Implementation plan for approval</p>
+    <h1>Tarek-Wisper V1 Implementation Plan</h1>
+    <p>
+      This plan builds the approved Focused Cloud MVP: an iOS-first Expo/React Native app for short
+      cloud transcription, single-speaker translation, local text history, search, tags, copy/share,
+      and secure user-provided OpenRouter token storage.
+    </p>
+    <div class="meta">
+      <span class="tag">Date: 2026-07-05</span>
+      <span class="tag">Status: Awaiting user plan approval</span>
+      <span class="tag">Design: 2026-07-05-tarek-wisper-v1-design.html</span>
+      <span class="tag">Execution: builder/verifier subagents after approval</span>
+      <span class="tag">Artifact: HTML</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>Gate</h2>
+    <div class="callout bad">
+      <p>
+        No app scaffold, package install, source code, external preview build, EAS build, TestFlight
+        build, or similar external build step should start until the user approves this implementation
+        plan. Before implementation begins, run <code>git fetch origin main</code> and fast-forward local
+        <code>main</code> from <code>origin/main</code> per <code>AGENTS.md</code>.
+      </p>
+    </div>
+    <p>
+      For agentic workers: required sub-skill during execution is
+      <code>superpowers:subagent-driven-development</code>. The execution loop is builder subagent,
+      verifier subagent, fix subagent, verifier subagent, repeated until all critical and high issues
+      are resolved or a true external blocker is reached.
+    </p>
+  </section>
+
+  <section>
+    <h2>How You Will Test It Once Built</h2>
+    <p>
+      The fastest practical path is local Expo development first, then a physical iPhone smoke test.
+      This does not require an Expo preview build if the selected Expo modules run in Expo Go.
+    </p>
+    <ol>
+      <li>Run the automated suite: <code>npm test</code>, <code>npm run typecheck</code>, <code>npm run lint</code>, and <code>npx expo-doctor</code>.</li>
+      <li>Start the local dev server: <code>npx expo start</code>.</li>
+      <li>Open in the iOS simulator from the Expo CLI with <code>i</code>, or run <code>npx expo start --ios</code>.</li>
+      <li>For real microphone testing, install Expo Go on your iPhone, run <code>npx expo start --tunnel</code> or LAN mode, scan the QR code, and enter your OpenRouter token in Settings.</li>
+      <li>Run acceptance flows: Transcribe English, Translate manual text, Translate voice to Spanish/Arabic/English, edit result, Copy, Share, tag, search, delete.</li>
+      <li>Before any EAS preview build, TestFlight build, or external installable build, stop and ask the user for approval.</li>
+    </ol>
+    <p>
+      If Expo Go cannot run a required native module or configuration, the next option is a development
+      build. That is an external build step, so the agent must stop and ask first.
+    </p>
+  </section>
+
+  <section>
+    <h2>UI Direction</h2>
+    <p>
+      Build the agreed Option 1.5: the clean native light layout from the first mockup, with the
+      stronger active-recording panel and saved-history status treatment from the third mockup.
+    </p>
+    <ul>
+      <li>Default theme: light, calm, iOS-native, utility-first.</li>
+      <li>Record tab: simple segmented mode switch, language and preset controls, large tap-to-record control, editable result card.</li>
+      <li>Borrow from warm premium mockup: active recording panel with timer/waveform/progress feel, saved-to-history row, slightly stronger button polish.</li>
+      <li>Do not use the immersive dark assistant look as V1 default. It can become a future theme.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Target File Structure</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Path</th>
+          <th>Responsibility</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code>package.json</code></td><td>Expo scripts, test scripts, lint/typecheck commands.</td></tr>
+        <tr><td><code>app.json</code></td><td>Expo config, app name, microphone permission text, audio plugin settings.</td></tr>
+        <tr><td><code>tsconfig.json</code></td><td>Strict TypeScript config for app and tests.</td></tr>
+        <tr><td><code>jest.config.js</code></td><td>Jest config for TypeScript unit tests.</td></tr>
+        <tr><td><code>babel.config.js</code></td><td>Expo Babel config.</td></tr>
+        <tr><td><code>src/App.tsx</code></td><td>App shell, tabs, providers, bootstrapping.</td></tr>
+        <tr><td><code>src/domain/languages.ts</code></td><td>Language IDs, labels, OpenRouter language-code mapping.</td></tr>
+        <tr><td><code>src/domain/modelPresets.ts</code></td><td>Fast, Balanced, Best Quality preset registry.</td></tr>
+        <tr><td><code>src/domain/history.ts</code></td><td>History item, tag, mode, source type, and repository interfaces.</td></tr>
+        <tr><td><code>src/domain/errors.ts</code></td><td>Typed app and provider error categories.</td></tr>
+        <tr><td><code>src/providers/openRouter/client.ts</code></td><td>Fetch wrapper, auth header, JSON parsing, timeout handling.</td></tr>
+        <tr><td><code>src/providers/openRouter/requests.ts</code></td><td>Pure request builders for STT, cleanup, and translation.</td></tr>
+        <tr><td><code>src/providers/openRouter/errors.ts</code></td><td>HTTP/network/malformed-response error mapping.</td></tr>
+        <tr><td><code>src/storage/secureTokenStore.ts</code></td><td>SecureStore wrapper for OpenRouter token.</td></tr>
+        <tr><td><code>src/storage/sqlite/schema.ts</code></td><td>SQLite schema and migrations.</td></tr>
+        <tr><td><code>src/storage/sqlite/historyRepository.ts</code></td><td>History CRUD, search, tags, delete-all.</td></tr>
+        <tr><td><code>src/storage/settingsRepository.ts</code></td><td>Non-secret app defaults stored in SQLite.</td></tr>
+        <tr><td><code>src/audio/audioRecorder.ts</code></td><td>Audio adapter around <code>expo-audio</code>.</td></tr>
+        <tr><td><code>src/audio/fileCleanup.ts</code></td><td>Temporary recording deletion through Expo file APIs.</td></tr>
+        <tr><td><code>src/flows/transcriptionFlow.ts</code></td><td>Record-to-transcript orchestration and cleanup fallback.</td></tr>
+        <tr><td><code>src/flows/translationFlow.ts</code></td><td>Voice/manual translation orchestration.</td></tr>
+        <tr><td><code>src/screens/RecordScreen.tsx</code></td><td>Main recording, translation, result editing, copy/share/tag controls.</td></tr>
+        <tr><td><code>src/screens/HistoryScreen.tsx</code></td><td>Search, tag filter, chronological local history list.</td></tr>
+        <tr><td><code>src/screens/HistoryDetailScreen.tsx</code></td><td>Edit/delete/tag/copy/share for saved item.</td></tr>
+        <tr><td><code>src/screens/SettingsScreen.tsx</code></td><td>OpenRouter token, defaults, local-only/privacy controls.</td></tr>
+        <tr><td><code>src/components/*</code></td><td>Focused presentational components for controls, cards, rows, and status panels.</td></tr>
+        <tr><td><code>src/test/*</code></td><td>Mocks, fixture data, test helpers.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Execution Protocol</h2>
+    <h3>Severity Rules</h3>
+    <ul>
+      <li>Critical: app cannot launch, secrets leak, audio persists against policy, destructive history bug, or live provider flow unusable.</li>
+      <li>High: required V1 flow broken, tests missing for shared logic, no-token/error states misleading, major layout overlap, Arabic unusable.</li>
+      <li>Medium: polish issue, non-blocking UX friction, missing nonessential empty state, minor code organization concern.</li>
+      <li>Low: wording, visual tuning, cleanup suggestions that do not affect correctness.</li>
+    </ul>
+
+    <h3>Builder/Verifier Loop</h3>
+    <ol>
+      <li>Builder subagent gets exactly one task slice and the relevant source files only.</li>
+      <li>Builder writes or updates tests first where the slice includes logic.</li>
+      <li>Builder implements the smallest complete slice and reports commands run.</li>
+      <li>Verifier subagent independently reviews the slice against this plan and the design doc.</li>
+      <li>Verifier classifies issues by severity and requests fixes for all critical/high issues.</li>
+      <li>Fix builder handles only verifier findings, then verifier rechecks.</li>
+      <li>Main agent accepts the slice only after critical/high issues are resolved and tests for that slice pass.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Task 1: Scaffold Expo App and Tooling</h2>
+    <p><strong>Goal:</strong> Create the Expo/React Native TypeScript app foundation and test tooling without adding product logic.</p>
+    <p><strong>Files:</strong> create root Expo files, <code>src/App.tsx</code>, <code>src/test/setup.ts</code>, and base config files.</p>
+    <ul class="checklist">
+      <li>Run <code>git status --short --branch</code>; expected result is a clean branch based on updated <code>main</code>.</li>
+      <li>Create an implementation branch such as <code>feature/tarek-wisper-v1</code> from updated local <code>main</code>.</li>
+      <li>Use the current Expo TypeScript template, then move generated app code under the planned <code>src/</code> structure if needed.</li>
+      <li>Install baseline dependencies: Expo, React Native, TypeScript, Jest, React Native Testing Library, Expo Audio, SecureStore, SQLite, Clipboard, and safe-area/navigation packages.</li>
+      <li>Add scripts: <code>start</code>, <code>ios</code>, <code>test</code>, <code>test:watch</code>, <code>typecheck</code>, <code>lint</code>, and <code>doctor</code>.</li>
+      <li>Create a smoke test that renders the app shell with Record, History, and Settings tab labels.</li>
+      <li>Run <code>npm test</code>, <code>npm run typecheck</code>, and <code>npx expo-doctor</code>.</li>
+      <li>Commit with message <code>chore: scaffold expo app</code>.</li>
+    </ul>
+    <pre><code>Expected first smoke test shape:
+
+render(&lt;App /&gt;);
+expect(screen.getByText("Record")).toBeTruthy();
+expect(screen.getByText("History")).toBeTruthy();
+expect(screen.getByText("Settings")).toBeTruthy();</code></pre>
+  </section>
+
+  <section>
+    <h2>Task 2: Domain Types and Preset Registry</h2>
+    <p><strong>Goal:</strong> Define stable pure TypeScript contracts for languages, modes, presets, history, and errors.</p>
+    <p><strong>Files:</strong> <code>src/domain/languages.ts</code>, <code>src/domain/modelPresets.ts</code>, <code>src/domain/history.ts</code>, <code>src/domain/errors.ts</code>, matching tests under <code>src/domain/__tests__/</code>.</p>
+    <ul class="checklist">
+      <li>Write tests for English, Spanish, Arabic, and Auto-detect language mapping.</li>
+      <li>Write tests for preset IDs, current model candidates, fallback candidates, and default preset.</li>
+      <li>Write tests for history item shape: Transcribe primary text equals transcript; Translate primary text equals translated output.</li>
+      <li>Implement the domain modules with no React or Expo imports.</li>
+      <li>Run <code>npm test -- src/domain</code> and <code>npm run typecheck</code>.</li>
+      <li>Commit with message <code>feat: add domain contracts</code>.</li>
+    </ul>
+    <pre><code>Required language expectations:
+
+expect(toOpenRouterLanguageCode("english")).toBe("en");
+expect(toOpenRouterLanguageCode("spanish")).toBe("es");
+expect(toOpenRouterLanguageCode("arabic")).toBe("ar");
+expect(toOpenRouterLanguageCode("auto")).toBeUndefined();</code></pre>
+  </section>
+
+  <section>
+    <h2>Task 3: OpenRouter Request Builders and Error Mapping</h2>
+    <p><strong>Goal:</strong> Build provider logic as pure/tested functions before any live network UI.</p>
+    <p><strong>Files:</strong> <code>src/providers/openRouter/requests.ts</code>, <code>src/providers/openRouter/errors.ts</code>, <code>src/providers/openRouter/client.ts</code>, tests under <code>src/providers/openRouter/__tests__/</code>.</p>
+    <ul class="checklist">
+      <li>Write failing tests for STT request body with language included for English, Spanish, and Arabic.</li>
+      <li>Write failing test that Auto-detect omits the <code>language</code> field.</li>
+      <li>Write failing tests for cleanup prompt preserving meaning and translation prompt requiring target language.</li>
+      <li>Write failing tests mapping 401, 402, 429, 502, 503, 524, 529, timeout, network failure, and malformed JSON.</li>
+      <li>Implement request builders and error mapper.</li>
+      <li>Implement fetch client with injected <code>fetch</code>, injected token getter, timeout, and no token logging.</li>
+      <li>Run <code>npm test -- src/providers/openRouter</code> and <code>npm run typecheck</code>.</li>
+      <li>Commit with message <code>feat: add openrouter provider core</code>.</li>
+    </ul>
+    <pre><code>Required STT body shape:
+
+{
+  model: "openai/whisper-large-v3",
+  input_audio: {
+    data: "BASE64_AUDIO",
+    format: "m4a"
+  },
+  language: "en"
+}</code></pre>
+  </section>
+
+  <section>
+    <h2>Task 4: Local Storage, Settings, and Secure Token Store</h2>
+    <p><strong>Goal:</strong> Implement local-only persistence with SQLite for text data and SecureStore for the OpenRouter token.</p>
+    <p><strong>Files:</strong> <code>src/storage/sqlite/schema.ts</code>, <code>src/storage/sqlite/historyRepository.ts</code>, <code>src/storage/settingsRepository.ts</code>, <code>src/storage/secureTokenStore.ts</code>, storage tests.</p>
+    <ul class="checklist">
+      <li>Write migration tests that create <code>history_items</code>, <code>tags</code>, <code>history_item_tags</code>, <code>app_settings</code>, and <code>schema_migrations</code>.</li>
+      <li>Write repository tests for insert, update text, delete item, delete all, create tag, assign tag, remove tag, filter by tag, and search.</li>
+      <li>Write settings tests for default mode, languages, preset, and cleanup enabled.</li>
+      <li>Write SecureStore wrapper tests using a mock store; verify token is never returned in status text helpers.</li>
+      <li>Implement repositories with async methods and explicit result types.</li>
+      <li>Run <code>npm test -- src/storage</code> and <code>npm run typecheck</code>.</li>
+      <li>Commit with message <code>feat: add local persistence</code>.</li>
+    </ul>
+    <pre><code>Required search behavior:
+
+await repository.createHistoryItem({ primaryText: "Meeting with Tarek", tags: ["work"] });
+await repository.createHistoryItem({ primaryText: "Spanish translation", tags: ["travel"] });
+expect(await repository.searchHistory({ query: "tarek" })).toHaveLength(1);
+expect(await repository.searchHistory({ tag: "travel" })).toHaveLength(1);</code></pre>
+  </section>
+
+  <section>
+    <h2>Task 5: Flow Orchestration with Mocks</h2>
+    <p><strong>Goal:</strong> Prove transcribe, cleanup, translate, save, and partial-failure behavior without live audio or network.</p>
+    <p><strong>Files:</strong> <code>src/flows/transcriptionFlow.ts</code>, <code>src/flows/translationFlow.ts</code>, <code>src/flows/__tests__/*</code>.</p>
+    <ul class="checklist">
+      <li>Write tests for Transcribe success: audio URI to STT to cleanup to auto-save to history.</li>
+      <li>Write tests for cleanup failure: raw transcript becomes visible editable result and can be saved.</li>
+      <li>Write tests for Translate voice success: STT source text plus translated primary text saved.</li>
+      <li>Write tests for Translate manual success: manual source text to translated primary text saved.</li>
+      <li>Write tests for translation failure after STT success: original text remains in memory and no translation item auto-saves.</li>
+      <li>Implement flows using injected provider, history repository, settings repository, and cleanup adapters.</li>
+      <li>Run <code>npm test -- src/flows</code> and <code>npm run typecheck</code>.</li>
+      <li>Commit with message <code>feat: add transcription and translation flows</code>.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Task 6: Record Screen Mocked UI</h2>
+    <p><strong>Goal:</strong> Build the primary UI with mocked flows, matching Option 1.5 before live audio integration.</p>
+    <p><strong>Files:</strong> <code>src/screens/RecordScreen.tsx</code>, <code>src/components/ModeSegmentedControl.tsx</code>, <code>src/components/LanguageSelect.tsx</code>, <code>src/components/ModelPresetSelect.tsx</code>, <code>src/components/RecordingPanel.tsx</code>, <code>src/components/ResultCard.tsx</code>, component tests.</p>
+    <ul class="checklist">
+      <li>Write tests for mode switching between Transcribe and Translate.</li>
+      <li>Write tests that Translate mode shows manual input and target language selector.</li>
+      <li>Write tests that result text is editable and Copy/Share/Tags controls are visible.</li>
+      <li>Implement clean light layout with large tap-to-record control and warm-style active recording panel.</li>
+      <li>Implement saved-to-history row after mocked successful result.</li>
+      <li>Run <code>npm test -- src/screens/RecordScreen</code>, <code>npm run typecheck</code>, and simulator visual smoke check.</li>
+      <li>Commit with message <code>feat: build record screen UI</code>.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Task 7: History and Settings Screens</h2>
+    <p><strong>Goal:</strong> Complete local history management and settings surfaces against repositories.</p>
+    <p><strong>Files:</strong> <code>src/screens/HistoryScreen.tsx</code>, <code>src/screens/HistoryDetailScreen.tsx</code>, <code>src/screens/SettingsScreen.tsx</code>, supporting components, tests.</p>
+    <ul class="checklist">
+      <li>Write tests for History empty state, populated list, search, tag filter, and delete.</li>
+      <li>Write tests for detail editing and saved edited text becoming the source of truth.</li>
+      <li>Write tests for Settings token present/missing state, save token, clear token, and default preset/language controls.</li>
+      <li>Implement History list and detail flows with repository injection.</li>
+      <li>Implement Settings with SecureStore wrapper and non-secret default settings.</li>
+      <li>Run <code>npm test -- src/screens</code> and <code>npm run typecheck</code>.</li>
+      <li>Commit with message <code>feat: add history and settings screens</code>.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Task 8: Audio Adapter and Temporary File Cleanup</h2>
+    <p><strong>Goal:</strong> Connect recording to <code>expo-audio</code>, enforce the 60-second cap, and prove temporary audio cleanup behavior.</p>
+    <p><strong>Files:</strong> <code>src/audio/audioRecorder.ts</code>, <code>src/audio/fileCleanup.ts</code>, audio tests, Record screen integration update.</p>
+    <ul class="checklist">
+      <li>Write tests for recorder state transitions: idle, requesting permission, recording, stopping, stopped, processing, failed.</li>
+      <li>Write tests that max duration triggers stop at 60 seconds.</li>
+      <li>Write tests that success, cancel, and unrecoverable error call file cleanup.</li>
+      <li>Implement <code>expo-audio</code> adapter and file cleanup wrapper.</li>
+      <li>Integrate adapter into Record screen and flows.</li>
+      <li>Run <code>npm test -- src/audio src/flows src/screens/RecordScreen</code> and <code>npm run typecheck</code>.</li>
+      <li>Run local simulator smoke check for permission and UI states.</li>
+      <li>Commit with message <code>feat: connect audio recording</code>.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Task 9: Live OpenRouter Integration</h2>
+    <p><strong>Goal:</strong> Wire the real OpenRouter provider into the app while keeping token entry user-controlled.</p>
+    <p><strong>Files:</strong> provider client, settings integration, flow integration, manual live test notes in <code>docs/testing/2026-07-05-v1-live-test-notes.html</code>.</p>
+    <ul class="checklist">
+      <li>Write integration-style tests with mocked fetch for successful STT, cleanup, translation, auth failure, rate limit, and malformed responses.</li>
+      <li>Ensure no token or provider payload is logged in production paths.</li>
+      <li>Connect real provider client to flows using token from SecureStore.</li>
+      <li>Run <code>npm test -- src/providers src/flows</code>, <code>npm run typecheck</code>, and <code>npm run lint</code>.</li>
+      <li>Manually test with a user-entered OpenRouter token in local Expo runtime.</li>
+      <li>Create the HTML live test notes artifact with model IDs used, sample languages tested, latency observations, and provider issues found.</li>
+      <li>Commit with message <code>feat: integrate openrouter live flows</code>.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Task 10: Copy, Share, Tags, and Result Editing Polish</h2>
+    <p><strong>Goal:</strong> Finish expected user actions across Record and History.</p>
+    <p><strong>Files:</strong> <code>src/components/ActionBar.tsx</code>, tag editor components, Record/History screens, tests.</p>
+    <ul class="checklist">
+      <li>Write tests for Copy action receiving the current edited primary text.</li>
+      <li>Write tests for Share action receiving current edited result text.</li>
+      <li>Write tests that tags added from the result card appear in History filters.</li>
+      <li>Write tests that editing a saved item updates history list preview.</li>
+      <li>Implement actions using Expo/React Native clipboard and native share APIs.</li>
+      <li>Run <code>npm test</code>, <code>npm run typecheck</code>, and simulator smoke check.</li>
+      <li>Commit with message <code>feat: finish result actions</code>.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Task 11: Error States, Accessibility, and Layout Verification</h2>
+    <p><strong>Goal:</strong> Resolve high-risk user trust and mobile layout issues before readiness review.</p>
+    <p><strong>Files:</strong> screen components, shared status components, tests, possible style files.</p>
+    <ul class="checklist">
+      <li>Write tests for no-token, denied microphone permission, offline/network failure, provider auth error, provider payment error, and retryable overload states.</li>
+      <li>Verify large text does not overlap in Record, History, and Settings.</li>
+      <li>Verify Arabic text is readable in result editor, history list, and detail view.</li>
+      <li>Verify touch targets are usable and controls have accessibility labels.</li>
+      <li>Run <code>npm test</code>, <code>npm run typecheck</code>, <code>npm run lint</code>, and simulator visual smoke checks.</li>
+      <li>Commit with message <code>fix: harden app states and accessibility</code>.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Task 12: Final Verifier Pass and Stopping Point</h2>
+    <p><strong>Goal:</strong> Reach a clean internal-build stopping point with critical/high issues resolved.</p>
+    <p><strong>Files:</strong> final testing artifact under <code>docs/testing/</code>, any code fixes required by verifier.</p>
+    <ul class="checklist">
+      <li>Run full automated suite: <code>npm test</code>, <code>npm run typecheck</code>, <code>npm run lint</code>, and <code>npx expo-doctor</code>.</li>
+      <li>Run iOS simulator smoke test from <code>npx expo start --ios</code>.</li>
+      <li>Run physical iPhone Expo Go test if the user can provide device access and Expo Go supports the module set.</li>
+      <li>Verifier subagent performs independent code review for critical/high issues.</li>
+      <li>Fix all critical/high findings and rerun the affected tests.</li>
+      <li>Create HTML testing guide/handoff under <code>docs/testing/</code> with exact test commands, manual flows, known medium/low issues, and build restrictions.</li>
+      <li>Stop before EAS preview build, TestFlight, or external distribution and ask the user.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Plan Self-Review</h2>
+    <ul>
+      <li>Spec coverage: covers Expo iOS-first app, OpenRouter STT/chat flows, secure token storage, local SQLite history, search, tags, copy/share, editable results, short audio, no accounts, no backend, no offline mode, and build gate.</li>
+      <li>UI coverage: records the approved Option 1.5 visual direction.</li>
+      <li>Testing coverage: establishes unit tests before readiness, provider/storage/flow tests, simulator checks, and physical iPhone checks.</li>
+      <li>Subagent coverage: defines independent builder/verifier alternation and severity stop rules.</li>
+      <li>Artifact coverage: durable plan and later testing notes are HTML under <code>docs/</code>.</li>
+      <li>Placeholder scan: no unresolved placeholders or deferred implementation blanks are intentionally left in this plan.</li>
+      <li>Process gate: implementation still requires explicit user approval of this plan.</li>
+    </ul>
+  </section>
+</main>
+</body>
+</html>
