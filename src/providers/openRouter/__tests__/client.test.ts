@@ -24,6 +24,38 @@ function createFetchMock(response: MockResponse): jest.MockedFunction<OpenRouter
   return jest.fn<ReturnType<OpenRouterFetch>, Parameters<OpenRouterFetch>>(async () => response);
 }
 
+async function captureSettledState<T>(
+  promise: Promise<T>,
+): Promise<
+  | { readonly state: 'fulfilled'; readonly value: T }
+  | { readonly state: 'rejected'; readonly reason: unknown }
+  | { readonly state: 'pending' }
+> {
+  return Promise.race([
+    promise.then(
+      (value) => ({ state: 'fulfilled', value }) as const,
+      (reason: unknown) => ({ state: 'rejected', reason }) as const,
+    ),
+    Promise.resolve().then(() => ({ state: 'pending' }) as const),
+  ]);
+}
+
+async function flushMicrotasks(count = 10): Promise<void> {
+  for (let index = 0; index < count; index += 1) {
+    await Promise.resolve();
+  }
+}
+
+function expectSerializedErrorToBeSanitized(error: unknown): void {
+  const serialized = JSON.stringify(error);
+
+  expect(serialized).not.toContain('sk-test-token');
+  expect(serialized).not.toContain('Bearer');
+  expect(serialized).not.toContain('BASE64_AUDIO_PAYLOAD');
+  expect(serialized).not.toContain('private transcript text');
+  expect(serialized).not.toContain('raw provider payload');
+}
+
 describe('OpenRouter client', () => {
   const transcriptionRequest = buildTranscriptionRequest({
     base64Audio: 'BASE64_AUDIO',
@@ -121,6 +153,41 @@ describe('OpenRouter client', () => {
     );
   });
 
+  it.each([
+    [429, 'rate_limited'],
+    [503, 'provider_unavailable'],
+  ] as const)('maps non-JSON HTTP %i responses by status', async (status, category) => {
+    const fetchImpl = createFetchMock({
+      ok: false,
+      status,
+      json: async () => {
+        throw new SyntaxError(
+          'raw provider payload Bearer sk-test-token BASE64_AUDIO_PAYLOAD private transcript text',
+        );
+      },
+    });
+    const client = createOpenRouterClient({
+      fetch: fetchImpl,
+      getToken: async () => 'sk-test-token',
+    });
+
+    let caughtError: unknown;
+    try {
+      await client.requestTranscription(transcriptionRequest);
+    } catch (error) {
+      caughtError = error;
+    }
+
+    expect(caughtError).toEqual(
+      expect.objectContaining({
+        category,
+        provider: 'openrouter',
+        retryable: true,
+      }),
+    );
+    expectSerializedErrorToBeSanitized(caughtError);
+  });
+
   it('maps network failures through the OpenRouter error mapper', async () => {
     const fetchImpl = jest.fn(async () => {
       throw new TypeError('Network request failed with sk-test-token');
@@ -193,6 +260,74 @@ describe('OpenRouter client', () => {
           retryable: true,
         }),
       );
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('rejects with timeout when fetch never settles and ignores abort signals', async () => {
+    jest.useFakeTimers();
+
+    try {
+      const fetchImpl: jest.MockedFunction<OpenRouterFetch> = jest.fn<
+        ReturnType<OpenRouterFetch>,
+        Parameters<OpenRouterFetch>
+      >(async () => new Promise(() => undefined));
+      const client = createOpenRouterClient({
+        fetch: fetchImpl,
+        getToken: async () => 'sk-test-token',
+        timeoutMs: 50,
+      });
+
+      const result = client.requestTranscription(transcriptionRequest);
+      await flushMicrotasks();
+      expect(fetchImpl).toHaveBeenCalled();
+      jest.advanceTimersByTime(50);
+      await flushMicrotasks();
+
+      await expect(captureSettledState(result)).resolves.toEqual({
+        state: 'rejected',
+        reason: expect.objectContaining({
+          category: 'timeout',
+          provider: 'openrouter',
+          retryable: true,
+        }),
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('rejects with timeout when response JSON parsing never settles', async () => {
+    jest.useFakeTimers();
+
+    try {
+      const jsonMock = jest.fn(async () => new Promise(() => undefined));
+      const fetchImpl = createFetchMock({
+        ok: true,
+        status: 200,
+        json: jsonMock,
+      });
+      const client = createOpenRouterClient({
+        fetch: fetchImpl,
+        getToken: async () => 'sk-test-token',
+        timeoutMs: 50,
+      });
+
+      const result = client.requestTranscription(transcriptionRequest);
+      await flushMicrotasks();
+      expect(jsonMock).toHaveBeenCalled();
+      jest.advanceTimersByTime(50);
+      await flushMicrotasks();
+
+      await expect(captureSettledState(result)).resolves.toEqual({
+        state: 'rejected',
+        reason: expect.objectContaining({
+          category: 'timeout',
+          provider: 'openrouter',
+          retryable: true,
+        }),
+      });
     } finally {
       jest.useRealTimers();
     }

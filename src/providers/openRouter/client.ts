@@ -112,10 +112,44 @@ async function executeJsonRequest({
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => {
-    controller.abort();
-  }, timeoutMs);
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_resolve, reject) => {
+    timeoutId = setTimeout(() => {
+      controller.abort();
+      reject(mapOpenRouterTimeoutError());
+    }, timeoutMs);
+  });
 
+  const operationPromise = fetchAndParseJson({
+    request,
+    fetch,
+    baseUrl,
+    token,
+    signal: controller.signal,
+  });
+
+  try {
+    return await Promise.race([operationPromise, timeoutPromise]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
+
+async function fetchAndParseJson({
+  request,
+  fetch,
+  baseUrl,
+  token,
+  signal,
+}: {
+  readonly request: OpenRouterRequestDescriptor<unknown>;
+  readonly fetch: OpenRouterFetch;
+  readonly baseUrl: string;
+  readonly token: string;
+  readonly signal: AbortSignal;
+}): Promise<unknown> {
   let response: OpenRouterFetchResponse;
 
   try {
@@ -126,31 +160,38 @@ async function executeJsonRequest({
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(request.body),
-      signal: controller.signal,
+      signal,
     });
   } catch (cause) {
-    if (controller.signal.aborted || isAbortError(cause)) {
-      throw mapOpenRouterTimeoutError(cause);
+    if (signal.aborted || isAbortError(cause)) {
+      throw mapOpenRouterTimeoutError();
     }
 
-    throw mapOpenRouterNetworkError(cause);
-  } finally {
-    clearTimeout(timeoutId);
-  }
-
-  let payload: unknown;
-
-  try {
-    payload = await response.json();
-  } catch (cause) {
-    throw mapOpenRouterMalformedResponseError(cause);
+    throw mapOpenRouterNetworkError();
   }
 
   if (!response.ok) {
+    const payload = await parseOptionalErrorPayload(response);
     throw mapOpenRouterHttpError(response.status, payload);
   }
 
-  return payload;
+  try {
+    return await response.json();
+  } catch (cause) {
+    if (signal.aborted || isAbortError(cause)) {
+      throw mapOpenRouterTimeoutError();
+    }
+
+    throw mapOpenRouterMalformedResponseError();
+  }
+}
+
+async function parseOptionalErrorPayload(response: OpenRouterFetchResponse): Promise<unknown> {
+  try {
+    return await response.json();
+  } catch {
+    return undefined;
+  }
 }
 
 function parseTranscriptionResponse(payload: unknown): OpenRouterTranscriptionResult {
