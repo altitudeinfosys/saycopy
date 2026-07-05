@@ -110,10 +110,12 @@
       <li>The new product is a separate mobile transcription and translation app.</li>
       <li>The initial platform preference is iOS first, with Android later if useful.</li>
       <li class="decision">V1 should be built with Expo/React Native, not native Swift-only.</li>
-      <li>The pragmatic default is an Expo/React Native app with cloud transcription and translation providers.</li>
+      <li>The pragmatic default is an Expo/React Native app with OpenRouter as the primary cloud AI provider.</li>
       <li>The likely backend for a later synced-history version is Supabase, because it is fast for auth, database, storage, and React Native/Expo integration.</li>
       <li class="decision">V1 should store transcription and translation history locally on the device. Database sync is deferred to v2.</li>
       <li class="decision">V1 should include both Transcribe mode and Translate mode.</li>
+      <li class="decision">V1 should use OpenRouter as the primary provider for speech-to-text, translation, and any cleanup/formatting because it centralizes API keys, model access, cost tracking, and dashboard visibility.</li>
+      <li>OpenRouter currently documents a dedicated speech-to-text endpoint, <code>/api/v1/audio/transcriptions</code>, with base64 audio input and support for 99+ languages including English, Spanish, and Arabic.</li>
       <li class="decision">All durable project artifacts should live in this project folder and be written as HTML unless the user explicitly requests otherwise.</li>
       <li class="decision">This project folder has been initialized as a new Git repository on <code>main</code>.</li>
     </ul>
@@ -140,6 +142,11 @@
     <p><strong>Asked:</strong> Should v1 be built as Expo/React Native so Android is easier later, or as native Swift iOS for the most iOS-specific app first?</p>
     <p><strong>Captured:</strong> V1 should use Expo/React Native.</p>
     <p><strong>Flags:</strong> None.</p>
+
+    <h3>Q5 - Primary AI Provider</h3>
+    <p><strong>Asked:</strong> Should v1 use one cloud AI provider wherever possible for simplicity, or separate best-in-class providers for transcription and translation?</p>
+    <p><strong>Captured:</strong> The user prefers OpenRouter as the primary provider because it gives access to many AI models and keeps tracking in one dashboard. Current OpenRouter documentation supports this direction: it documents speech-to-text via <code>/api/v1/audio/transcriptions</code>, base64 audio input, auto language detection when the language parameter is omitted, and speech-to-text support across 99+ languages including English, Spanish, and Arabic. Translation can be handled through OpenRouter text models.</p>
+    <p><strong>Flags:</strong> Keep a small provider abstraction so a later fallback provider can be added if OpenRouter transcription quality, latency, file limits, or pricing is not good enough for real mobile use.</p>
   </section>
 
   <section>
@@ -147,7 +154,7 @@
     <ul>
       <li>For v2, decide whether synced history uses Supabase, Neon plus custom auth/API, or another backend.</li>
       <li>Select the app name or confirm a working placeholder.</li>
-      <li>Confirm provider choices for transcription and translation.</li>
+      <li>Benchmark OpenRouter speech-to-text quality and latency on real English, Spanish, and Arabic samples during implementation.</li>
       <li>Confirm the first set of MVP screens.</li>
       <li>Add a Git remote before future implementation work that depends on upstream sync.</li>
     </ul>
