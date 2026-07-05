@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import {
@@ -62,6 +62,7 @@ export default function RecordScreen({ recordingController }: RecordScreenProps 
   const [resultText, setResultText] = useState('');
   const [originalText, setOriginalText] = useState('');
   const [savedHistoryCount, setSavedHistoryCount] = useState(0);
+  const autoProcessedAudioUriRef = useRef<string | null>(null);
   const [defaultRecordingController] = useState(createAudioRecordingController);
   const activeRecordingController = recordingController ?? defaultRecordingController;
   const recordingState = useSyncExternalStore(
@@ -93,16 +94,74 @@ export default function RecordScreen({ recordingController }: RecordScreenProps 
     };
   }, [activeRecordingController]);
 
-  function saveMockedResult(nextMode: RecordMode, nextResultText: string, nextOriginalText = '') {
-    setResultMode(nextMode);
-    setResultText(nextResultText);
-    setOriginalText(nextOriginalText);
-    setSavedHistoryCount((currentCount) => currentCount + 1);
+  const saveMockedResult = useCallback(
+    (nextMode: RecordMode, nextResultText: string, nextOriginalText = '') => {
+      setResultMode(nextMode);
+      setResultText(nextResultText);
+      setOriginalText(nextOriginalText);
+      setSavedHistoryCount((currentCount) => currentCount + 1);
+    },
+    [],
+  );
+
+  const processStoppedRecording = useCallback(async () => {
+    try {
+      await activeRecordingController.processStoppedAudio(async () => {
+        if (mode === 'translate') {
+          const sourceText = trimmedManualText || 'Recorded source text for translation.';
+          saveMockedResult(
+            'translate',
+            buildTranslationResult(sourceText, targetLanguageId),
+            sourceText,
+          );
+          return;
+        }
+
+        saveMockedResult('transcribe', buildTranscriptResult());
+      });
+    } catch {
+      // Failure details are surfaced through recorder state.
+    }
+  }, [
+    activeRecordingController,
+    mode,
+    saveMockedResult,
+    targetLanguageId,
+    trimmedManualText,
+  ]);
+
+  useEffect(() => {
+    if (recordingState.status === 'recording') {
+      autoProcessedAudioUriRef.current = null;
+    }
+  }, [recordingState.status]);
+
+  useEffect(() => {
+    if (
+      recordingState.status !== 'stopped' ||
+      recordingState.stopReason !== 'max_duration' ||
+      !recordingState.audio
+    ) {
+      return;
+    }
+
+    const audioUri = recordingState.audio.uri ?? null;
+    if (autoProcessedAudioUriRef.current === audioUri) {
+      return;
+    }
+
+    autoProcessedAudioUriRef.current = audioUri;
+    void processStoppedRecording();
+  }, [processStoppedRecording, recordingState]);
+
+  function handleTranslateText() {
+    const sourceText = trimmedManualText || 'Meet me at the office at noon.';
+    saveMockedResult('translate', buildTranslationResult(sourceText, targetLanguageId), sourceText);
   }
 
   function handleModeChange(nextMode: RecordMode) {
     setMode(nextMode);
-    void activeRecordingController?.cancel();
+    void activeRecordingController.cancel();
     setResultText('');
     setOriginalText('');
     setSavedHistoryCount(0);
@@ -124,19 +183,7 @@ export default function RecordScreen({ recordingController }: RecordScreenProps 
 
     try {
       await activeRecordingController.stop();
-      await activeRecordingController.processStoppedAudio(async () => {
-        if (mode === 'translate') {
-          const sourceText = trimmedManualText || 'Recorded source text for translation.';
-          saveMockedResult(
-            'translate',
-            buildTranslationResult(sourceText, targetLanguageId),
-            sourceText,
-          );
-          return;
-        }
-
-        saveMockedResult('transcribe', buildTranscriptResult());
-      });
+      await processStoppedRecording();
     } catch {
       // Failure details are surfaced through recorder state.
     }
@@ -146,11 +193,6 @@ export default function RecordScreen({ recordingController }: RecordScreenProps 
     if (languageId !== 'auto') {
       setTargetLanguageId(languageId);
     }
-  }
-
-  function handleTranslateText() {
-    const sourceText = trimmedManualText || 'Meet me at the office at noon.';
-    saveMockedResult('translate', buildTranslationResult(sourceText, targetLanguageId), sourceText);
   }
 
   return (

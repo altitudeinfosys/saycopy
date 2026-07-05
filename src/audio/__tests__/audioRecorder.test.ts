@@ -1,11 +1,43 @@
 import type { FlowAudioInput } from '../../flows/types';
 import {
-  MAX_RECORDING_DURATION_MS,
   createAudioRecordingController,
+  createExpoAudioRecorderAdapter,
   type AudioRecorderNativeAdapter,
   type AudioRecordingControllerTimer,
   type NativeAudioRecordingSession,
 } from '../audioRecorder';
+
+const mockExpoRecorder = {
+  getStatus: jest.fn(() => ({
+    durationMillis: 1000,
+    url: 'file:///tmp/expo-recording.m4a',
+  })),
+  prepareToRecordAsync: jest.fn().mockResolvedValue(undefined),
+  record: jest.fn(),
+  stop: jest.fn().mockResolvedValue(undefined),
+  uri: 'file:///tmp/expo-recording.m4a',
+};
+const mockExpoAudioRecorderConstructor = jest.fn(() => mockExpoRecorder);
+const mockRequestRecordingPermissionsAsync = jest.fn().mockResolvedValue({ granted: true });
+const mockSetAudioModeAsync = jest.fn().mockResolvedValue(undefined);
+const mockRecordingPreset = {
+  android: {
+    audioEncoder: 'aac',
+    outputFormat: 'mpeg4',
+  },
+  bitRate: 128000,
+  extension: '.m4a',
+  ios: {
+    audioQuality: 127,
+    outputFormat: 'aac ',
+  },
+  numberOfChannels: 2,
+  sampleRate: 44100,
+  web: {
+    bitsPerSecond: 128000,
+    mimeType: 'audio/mp4',
+  },
+};
 
 function createManualTimer(): AudioRecordingControllerTimer & {
   readonly setTimeout: jest.Mock;
@@ -67,6 +99,10 @@ function createNativeAdapter(session: NativeAudioRecordingSession): AudioRecorde
 }
 
 describe('createAudioRecordingController', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('moves through permission, recording, stopping, stopped, and processing states', async () => {
     const session = createSession({ durationMs: 2345 });
     const nativeRecorder = createNativeAdapter(session);
@@ -98,9 +134,7 @@ describe('createAudioRecordingController', () => {
       'processing',
       'stopped',
     ]);
-    expect(nativeRecorder.startRecording).toHaveBeenCalledWith({
-      maxDurationMs: MAX_RECORDING_DURATION_MS,
-    });
+    expect(nativeRecorder.startRecording).toHaveBeenCalledWith();
     expect(audio).toEqual({
       uri: 'file:///tmp/recording.m4a',
       base64Audio: 'base64-audio',
@@ -151,8 +185,57 @@ describe('createAudioRecordingController', () => {
         durationMs: 60000,
         uri: 'file:///tmp/recording.m4a',
       },
+      stopReason: 'max_duration',
       status: 'stopped',
     });
+  });
+
+  it('cleans abandoned stopped audio before starting a new recording', async () => {
+    const firstSession = createSession({ uri: 'file:///tmp/abandoned-recording.m4a' });
+    const secondSession = createSession({ uri: 'file:///tmp/next-recording.m4a' });
+    const nativeRecorder: AudioRecorderNativeAdapter = {
+      requestRecordingPermission: jest.fn().mockResolvedValue({ granted: true }),
+      startRecording: jest.fn().mockResolvedValueOnce(firstSession).mockResolvedValueOnce(secondSession),
+    };
+    const cleanup = {
+      cleanup: jest.fn().mockResolvedValue(undefined),
+    };
+    const timer = createManualTimer();
+    const controller = createAudioRecordingController({
+      audioFileReader: { readBase64: jest.fn().mockResolvedValue('abandoned-base64') },
+      nativeRecorder,
+      temporaryAudio: cleanup,
+      timer,
+    });
+
+    await controller.start();
+    await controller.stop();
+    await controller.start();
+
+    expect(cleanup.cleanup).toHaveBeenCalledWith({
+      uri: 'file:///tmp/abandoned-recording.m4a',
+    });
+    expect(nativeRecorder.startRecording).toHaveBeenCalledTimes(2);
+    expect(controller.getState()).toEqual({ status: 'recording' });
+
+    await controller.cancel();
+  });
+
+  it('lets the controller own the duration cap instead of passing forDuration to Expo', async () => {
+    const adapter = createExpoAudioRecorderAdapter({
+      AudioModule: {
+        AudioRecorder: mockExpoAudioRecorderConstructor,
+      },
+      RecordingPresets: {
+        HIGH_QUALITY: mockRecordingPreset,
+      },
+      requestRecordingPermissionsAsync: mockRequestRecordingPermissionsAsync,
+      setAudioModeAsync: mockSetAudioModeAsync,
+    });
+
+    await adapter.startRecording();
+
+    expect(mockExpoRecorder.record).toHaveBeenCalledWith();
   });
 
   it('cleans temporary audio after successful result creation', async () => {

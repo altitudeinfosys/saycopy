@@ -18,12 +18,15 @@ export type AudioRecordingStatus =
   | 'processing'
   | 'failed';
 
+export type AudioRecordingStopReason = 'manual' | 'max_duration';
+
 export type AudioRecordingState =
   | {
       readonly status: 'idle' | 'requesting_permission' | 'recording' | 'stopping';
     }
   | {
       readonly audio?: FlowAudioInput;
+      readonly stopReason?: AudioRecordingStopReason;
       readonly status: 'stopped' | 'processing';
     }
   | {
@@ -59,9 +62,7 @@ export type NativeAudioRecordingSession = {
 
 export type AudioRecorderNativeAdapter = {
   readonly requestRecordingPermission: () => Promise<{ readonly granted: boolean }>;
-  readonly startRecording: (input: {
-    readonly maxDurationMs: number;
-  }) => Promise<NativeAudioRecordingSession>;
+  readonly startRecording: () => Promise<NativeAudioRecordingSession>;
 };
 
 export type AudioFileReader = {
@@ -84,6 +85,31 @@ export type AudioRecordingController = {
   readonly start: () => Promise<void>;
   readonly stop: () => Promise<FlowAudioInput>;
   readonly subscribe: (listener: AudioRecordingStateListener) => () => void;
+};
+
+type ExpoAudioRecorder = {
+  readonly getStatus: () => {
+    readonly durationMillis?: number;
+    readonly url?: string | null;
+  };
+  readonly prepareToRecordAsync: () => Promise<void>;
+  readonly record: () => void;
+  readonly stop: () => Promise<void>;
+  readonly uri?: string | null;
+};
+
+type ExpoAudioModule = {
+  readonly AudioModule: {
+    readonly AudioRecorder: new (options: Record<string, unknown>) => ExpoAudioRecorder;
+  };
+  readonly RecordingPresets: {
+    readonly HIGH_QUALITY: Record<string, unknown>;
+  };
+  readonly requestRecordingPermissionsAsync: () => Promise<{ readonly granted: boolean }>;
+  readonly setAudioModeAsync: (mode: {
+    readonly allowsRecording: boolean;
+    readonly playsInSilentMode: boolean;
+  }) => Promise<void>;
 };
 
 const defaultTimer: AudioRecordingControllerTimer = {
@@ -125,6 +151,10 @@ function normalizeRecordingError(error: unknown) {
   return new AudioRecorderError('recording_unavailable', 'Recording failed.');
 }
 
+async function loadExpoAudioModule(): Promise<ExpoAudioModule> {
+  return import('expo-audio') as Promise<ExpoAudioModule>;
+}
+
 export function createAudioRecordingController({
   audioFileReader = expoAudioFileReader,
   nativeRecorder = createExpoAudioRecorderAdapter(),
@@ -154,7 +184,7 @@ export function createAudioRecordingController({
     }
   }
 
-  async function stopRecording() {
+  async function stopRecording(stopReason: AudioRecordingStopReason = 'manual') {
     if (stopPromise) {
       return stopPromise;
     }
@@ -187,7 +217,7 @@ export function createAudioRecordingController({
         };
 
         session = undefined;
-        emit({ audio, status: 'stopped' });
+        emit({ audio, status: 'stopped', stopReason });
         return audio;
       } catch (error) {
         session = undefined;
@@ -245,7 +275,8 @@ export function createAudioRecordingController({
       }
 
       const audio = state.audio;
-      emit({ audio, status: 'processing' });
+      const stopReason = state.stopReason;
+      emit({ audio, status: 'processing', stopReason });
 
       try {
         await processor(audio);
@@ -259,6 +290,11 @@ export function createAudioRecordingController({
     },
     async start() {
       clearMaxDurationTimer();
+
+      if (state.status === 'stopped' && state.audio) {
+        await cleanupStoppedAudio(state.audio);
+      }
+
       emit({ status: 'requesting_permission' });
 
       try {
@@ -271,12 +307,10 @@ export function createAudioRecordingController({
           );
         }
 
-        session = await nativeRecorder.startRecording({
-          maxDurationMs: MAX_RECORDING_DURATION_MS,
-        });
+        session = await nativeRecorder.startRecording();
         emit({ status: 'recording' });
         maxDurationTimer = timer.setTimeout(() => {
-          void stopRecording();
+          void stopRecording('max_duration');
         }, MAX_RECORDING_DURATION_MS);
       } catch (error) {
         const primaryError = normalizeRecordingError(error);
@@ -296,15 +330,21 @@ export function createAudioRecordingController({
   };
 }
 
-export function createExpoAudioRecorderAdapter(): AudioRecorderNativeAdapter {
+export function createExpoAudioRecorderAdapter(
+  expoAudioModule?: ExpoAudioModule,
+): AudioRecorderNativeAdapter {
+  async function getExpoAudioModule() {
+    return expoAudioModule ?? loadExpoAudioModule();
+  }
+
   return {
     async requestRecordingPermission() {
-      const { requestRecordingPermissionsAsync } = await import('expo-audio');
+      const { requestRecordingPermissionsAsync } = await getExpoAudioModule();
       const permission = await requestRecordingPermissionsAsync();
       return { granted: permission.granted };
     },
-    async startRecording({ maxDurationMs }) {
-      const { AudioModule, RecordingPresets, setAudioModeAsync } = await import('expo-audio');
+    async startRecording() {
+      const { AudioModule, RecordingPresets, setAudioModeAsync } = await getExpoAudioModule();
 
       await setAudioModeAsync({
         allowsRecording: true,
@@ -318,7 +358,7 @@ export function createExpoAudioRecorderAdapter(): AudioRecorderNativeAdapter {
       });
 
       await recorder.prepareToRecordAsync();
-      recorder.record({ forDuration: maxDurationMs / 1000 });
+      recorder.record();
 
       return {
         async stop() {

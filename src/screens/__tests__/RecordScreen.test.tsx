@@ -1,11 +1,69 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 
-import type {
+import {
+  createAudioRecordingController,
+  type AudioRecorderNativeAdapter,
   AudioRecordingController,
+  type AudioRecordingControllerTimer,
   AudioRecordingState,
+  type NativeAudioRecordingSession,
 } from '../../audio/audioRecorder';
 import RecordScreen from '../RecordScreen';
+
+function createManualTimer(): AudioRecordingControllerTimer & {
+  readonly clearTimeout: jest.Mock;
+  readonly setTimeout: jest.Mock;
+  fireNext: () => Promise<void>;
+} {
+  const callbacks = new Map<number, () => void>();
+  let nextId = 1;
+
+  return {
+    clearTimeout: jest.fn((id: number) => {
+      callbacks.delete(id);
+    }),
+    setTimeout: jest.fn((callback: () => void, _delayMs: number) => {
+      const id = nextId;
+      nextId += 1;
+      callbacks.set(id, callback);
+      return id;
+    }),
+    async fireNext() {
+      const [id, callback] = callbacks.entries().next().value ?? [];
+      if (id === undefined || callback === undefined) {
+        return;
+      }
+
+      callbacks.delete(id);
+      callback();
+      await Promise.resolve();
+      await Promise.resolve();
+    },
+  };
+}
+
+function createNativeSession(input: {
+  readonly durationMs?: number;
+  readonly uri?: string;
+} = {}): NativeAudioRecordingSession {
+  const uri = input.uri ?? 'file:///tmp/screen-recording.m4a';
+
+  return {
+    getTemporaryFileReference: jest.fn(() => ({ uri })),
+    stop: jest.fn().mockResolvedValue({
+      durationMs: input.durationMs ?? 1800,
+      uri,
+    }),
+  };
+}
+
+function createNativeAdapter(session: NativeAudioRecordingSession): AudioRecorderNativeAdapter {
+  return {
+    requestRecordingPermission: jest.fn().mockResolvedValue({ granted: true }),
+    startRecording: jest.fn().mockResolvedValue(session),
+  };
+}
 
 function createInjectedRecordingController(input: {
   readonly startError?: Error;
@@ -121,6 +179,43 @@ describe('RecordScreen', () => {
     fireEvent.changeText(resultEditor, 'Edited transcript text');
 
     expect(screen.getByTestId('result-editor').props.value).toBe('Edited transcript text');
+  });
+
+  it('processes a max-duration stopped recording into a result and cleans up without another tap', async () => {
+    const timer = createManualTimer();
+    const cleanup = {
+      cleanup: jest.fn().mockResolvedValue(undefined),
+    };
+    const recordingController = createAudioRecordingController({
+      audioFileReader: { readBase64: jest.fn().mockResolvedValue('screen-capped-base64') },
+      nativeRecorder: createNativeAdapter(
+        createNativeSession({
+          durationMs: 60000,
+          uri: 'file:///tmp/screen-capped-recording.m4a',
+        }),
+      ),
+      temporaryAudio: cleanup,
+      timer,
+    });
+
+    render(<RecordScreen recordingController={recordingController} />);
+
+    fireEvent.press(screen.getByRole('button', { name: 'Tap to record' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Recording in progress')).toBeTruthy();
+    });
+
+    await act(async () => {
+      await timer.fireNext();
+    });
+
+    expect(await screen.findByText('Saved to history')).toBeTruthy();
+    expect(screen.getByTestId('result-editor').props.value).toContain('Cleaned transcript');
+    expect(screen.getByText('Tap to record')).toBeTruthy();
+    expect(cleanup.cleanup).toHaveBeenCalledWith({
+      uri: 'file:///tmp/screen-capped-recording.m4a',
+    });
   });
 
   it('shows a recorder failure cue without creating a result', async () => {
