@@ -132,6 +132,7 @@
       <li class="decision">Translate mode should support simple manual text input in addition to voice-to-translation.</li>
       <li class="decision">Voice recording should use tap once to start and tap again to stop for v1.</li>
       <li class="decision">V1 should be cloud-only for transcription, translation, and cleanup. Offline/local speech models are deferred.</li>
+      <li class="decision">V1 should optimize for short recording clips, around 60 seconds max, rather than long dictation with audio chunking.</li>
       <li class="decision">The working product name is <code>Tarek-Wisper</code>, with final naming still open to alternatives.</li>
       <li>OpenRouter currently documents a dedicated speech-to-text endpoint, <code>/api/v1/audio/transcriptions</code>, with base64 audio input and support for 99+ languages including English, Spanish, and Arabic.</li>
       <li class="decision">All durable project artifacts should live in this project folder and be written as HTML unless the user explicitly requests otherwise.</li>
@@ -250,6 +251,11 @@
     <p><strong>Asked:</strong> Should v1 include search in History, or only tag filtering and chronological browsing?</p>
     <p><strong>Captured:</strong> V1 should include basic text search in History, in addition to tag filtering and chronological browsing.</p>
     <p><strong>Flags:</strong> None.</p>
+
+    <h3>Q23 - Recording Length</h3>
+    <p><strong>Asked:</strong> Should v1 keep recordings to short clips, around 60 seconds max, or support longer dictation by splitting audio into chunks?</p>
+    <p><strong>Captured:</strong> V1 should optimize for short recording clips, around 60 seconds max.</p>
+    <p><strong>Flags:</strong> Longer dictation with audio chunking belongs in the future roadmap.</p>
   </section>
 
   <section>
@@ -266,6 +272,7 @@
       <li>Future enhancement: consider nested folders, complex category management, or AI auto-tagging after simple manual tags are working.</li>
       <li>Decide whether raw/original AI output is stored separately for troubleshooting or omitted in v1.</li>
       <li>Include offline and provider-error states in the design.</li>
+      <li>Future enhancement: support longer dictation by splitting audio into chunks and merging results.</li>
       <li>Add a Git remote before future implementation work that depends on upstream sync.</li>
     </ul>
   </section>
