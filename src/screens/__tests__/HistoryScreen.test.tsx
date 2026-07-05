@@ -174,6 +174,28 @@ describe('HistoryScreen', () => {
     expect(repository.searchHistory).toHaveBeenLastCalledWith({ query: 'pricing', tag: undefined });
   });
 
+  it('shows a filtered empty state when search has no matches but history exists', async () => {
+    const repository = new MemoryHistoryRepository([
+      createHistoryItem({
+        id: 'history-1',
+        text: 'Pricing discussion with the client',
+        createdAt: '2026-07-05T12:00:00.000Z',
+        tags: [workTag],
+      }),
+    ]);
+
+    render(<HistoryScreen repository={repository} />);
+    expect(await screen.findByText('Pricing discussion with the client')).toBeTruthy();
+
+    fireEvent.changeText(screen.getByPlaceholderText('Search history'), 'no matching result');
+
+    await waitFor(() => {
+      expect(screen.getByText('No matching history')).toBeTruthy();
+      expect(screen.getByText('Try a different search or tag filter.')).toBeTruthy();
+      expect(screen.queryByText('No saved history yet')).toBeNull();
+    });
+  });
+
   it('filters history by tag', async () => {
     const repository = new MemoryHistoryRepository([
       createHistoryItem({

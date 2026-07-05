@@ -72,6 +72,13 @@ export default function HistoryScreen({ repository, onOpenItem }: HistoryScreenP
   const [errorText, setErrorText] = useState('');
 
   const tags = useMemo(() => getUniqueTags(allItems), [allItems]);
+  const hasActiveFilter = query.trim().length > 0 || selectedTag !== undefined;
+  const emptyTitle =
+    allItems.length > 0 && hasActiveFilter ? 'No matching history' : 'No saved history yet';
+  const emptyCopy =
+    allItems.length > 0 && hasActiveFilter
+      ? 'Try a different search or tag filter.'
+      : 'Record or translate something to see it here.';
 
   const loadHistoryItems = useCallback(async () => {
     setErrorText('');
@@ -221,8 +228,8 @@ export default function HistoryScreen({ repository, onOpenItem }: HistoryScreenP
 
       {!isLoading && visibleItems.length === 0 ? (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyTitle}>No saved history yet</Text>
-          <Text style={styles.emptyCopy}>Record or translate something to see it here.</Text>
+          <Text style={styles.emptyTitle}>{emptyTitle}</Text>
+          <Text style={styles.emptyCopy}>{emptyCopy}</Text>
         </View>
       ) : null}
 

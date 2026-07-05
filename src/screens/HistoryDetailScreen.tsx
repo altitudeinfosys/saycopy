@@ -81,6 +81,8 @@ export default function HistoryDetailScreen({
       });
 
       if (!updatedItem) {
+        setHistoryItem(null);
+        setEditedText('');
         setErrorText('This history item no longer exists.');
         return;
       }

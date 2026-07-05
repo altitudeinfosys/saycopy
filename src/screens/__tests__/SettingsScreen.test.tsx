@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import type { SecureTokenStore, TokenStatus } from '../../storage/secureTokenStore';
 import {
@@ -18,6 +18,16 @@ class MemorySettingsRepository implements SettingsRepository {
   getSettings = jest.fn(async (): Promise<AppSettings> => this.settings);
 
   saveSettings = jest.fn(async (settings: Partial<AppSettings>): Promise<void> => {
+    this.settings = { ...this.settings, ...settings };
+  });
+}
+
+class RejectingSourceLanguageSettingsRepository extends MemorySettingsRepository {
+  saveSettings = jest.fn(async (settings: Partial<AppSettings>): Promise<void> => {
+    if (settings.sourceLanguageId) {
+      throw new Error('Source language save failed');
+    }
+
     this.settings = { ...this.settings, ...settings };
   });
 }
@@ -46,6 +56,25 @@ class MemoryTokenStore implements SecureTokenStore {
     hasToken: this.token !== null,
     statusText: this.token !== null ? 'OpenRouter token saved' : 'OpenRouter token missing',
   }));
+}
+
+function createDeferred() {
+  let resolve!: () => void;
+  const promise = new Promise<void>((nextResolve) => {
+    resolve = nextResolve;
+  });
+
+  return { promise, resolve };
+}
+
+class DeferredSetTokenStore extends MemoryTokenStore {
+  readonly setDeferred = createDeferred();
+
+  setToken = jest.fn(async (token: string): Promise<void> => {
+    await this.setDeferred.promise;
+    const trimmedToken = token.trim();
+    this.token = trimmedToken ? trimmedToken : null;
+  });
 }
 
 function renderSettingsScreen({
@@ -89,6 +118,40 @@ describe('SettingsScreen', () => {
     });
   });
 
+  it('disables token controls while a token save is pending', async () => {
+    const tokenStore = new DeferredSetTokenStore();
+    renderSettingsScreen({ tokenStore });
+
+    await screen.findByText('OpenRouter token missing');
+
+    fireEvent.changeText(screen.getByLabelText('OpenRouter API token'), 'sk-or-v1-test-token');
+    fireEvent.press(screen.getByRole('button', { name: 'Save token' }));
+
+    await waitFor(() => {
+      expect(tokenStore.setToken).toHaveBeenCalledWith('sk-or-v1-test-token');
+      expect(screen.getByRole('button', { name: 'Save token' }).props.accessibilityState).toMatchObject({
+        disabled: true,
+      });
+      expect(screen.getByRole('button', { name: 'Clear token' }).props.accessibilityState).toMatchObject({
+        disabled: true,
+      });
+      expect(screen.getByLabelText('OpenRouter API token').props.editable).toBe(false);
+    });
+
+    fireEvent.press(screen.getByRole('button', { name: 'Clear token' }));
+
+    expect(tokenStore.clearToken).not.toHaveBeenCalled();
+
+    await act(async () => {
+      tokenStore.setDeferred.resolve();
+      await tokenStore.setDeferred.promise;
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('OpenRouter token saved')).toBeTruthy();
+    });
+  });
+
   it('clears a saved token through the injected token store', async () => {
     const { tokenStore } = renderSettingsScreen({
       tokenStore: new MemoryTokenStore('sk-or-v1-secret-token'),
@@ -127,5 +190,29 @@ describe('SettingsScreen', () => {
     expect(settingsRepository.saveSettings).toHaveBeenCalledWith({ sourceLanguageId: 'spanish' });
     expect(settingsRepository.saveSettings).toHaveBeenCalledWith({ targetLanguageId: 'arabic' });
     expect(settingsRepository.saveSettings).toHaveBeenCalledWith({ modelPresetId: 'fast' });
+  });
+
+  it('does not roll back an unrelated saved default when a later default save fails', async () => {
+    const settingsRepository = new RejectingSourceLanguageSettingsRepository();
+    renderSettingsScreen({ settingsRepository });
+
+    await screen.findByText('Defaults');
+
+    await act(async () => {
+      fireEvent.press(screen.getByRole('button', { name: 'Default mode Translate' }));
+      fireEvent.press(screen.getByRole('button', { name: 'Default source language Spanish' }));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Could not save settings.')).toBeTruthy();
+      expect(settingsRepository.settings.defaultMode).toBe('translate');
+      expect(
+        screen.getByRole('button', { name: 'Default mode Translate' }).props.accessibilityState,
+      ).toMatchObject({ selected: true });
+      expect(
+        screen.getByRole('button', { name: 'Default source language Auto-detect' }).props
+          .accessibilityState,
+      ).toMatchObject({ selected: true });
+    });
   });
 });

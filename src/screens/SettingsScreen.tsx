@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { HISTORY_MODES, type HistoryMode } from '../domain/history';
@@ -57,11 +57,27 @@ function isConcreteLanguageOption(
   return language.id !== 'auto';
 }
 
+function pickSettings(
+  settings: AppSettings,
+  settingKeys: readonly (keyof AppSettings)[],
+): Partial<AppSettings> {
+  const pickedSettings: Partial<AppSettings> = {};
+
+  for (const settingKey of settingKeys) {
+    Object.assign(pickedSettings, { [settingKey]: settings[settingKey] });
+  }
+
+  return pickedSettings;
+}
+
 export default function SettingsScreen({ settingsRepository, tokenStore }: SettingsScreenProps) {
+  const settingsRef = useRef<AppSettings | null>(null);
+  const tokenUpdateInFlightRef = useRef(false);
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [tokenStatus, setTokenStatus] = useState<TokenStatus | null>(null);
   const [tokenInput, setTokenInput] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isTokenUpdatePending, setIsTokenUpdatePending] = useState(false);
   const [messageText, setMessageText] = useState('');
   const [errorText, setErrorText] = useState('');
 
@@ -79,6 +95,7 @@ export default function SettingsScreen({ settingsRepository, tokenStore }: Setti
         }
 
         setSettings(loadedSettings);
+        settingsRef.current = loadedSettings;
         setTokenStatus(loadedTokenStatus);
         setErrorText('');
       } catch {
@@ -103,50 +120,67 @@ export default function SettingsScreen({ settingsRepository, tokenStore }: Setti
     setTokenStatus(await tokenStore.getTokenStatus());
   }
 
-  async function handleSaveToken() {
+  async function runTokenOperation(operation: () => Promise<void>, successMessage: string) {
+    if (tokenUpdateInFlightRef.current) {
+      return;
+    }
+
+    tokenUpdateInFlightRef.current = true;
+    setIsTokenUpdatePending(true);
     setMessageText('');
     setErrorText('');
 
     try {
+      await operation();
+      setMessageText(successMessage);
+    } catch {
+      setErrorText('Could not update token.');
+    } finally {
+      tokenUpdateInFlightRef.current = false;
+      setIsTokenUpdatePending(false);
+    }
+  }
+
+  async function handleSaveToken() {
+    await runTokenOperation(async () => {
       await tokenStore.setToken(tokenInput);
       setTokenInput('');
       await refreshTokenStatus();
-      setMessageText('Token settings saved');
-    } catch {
-      setErrorText('Could not save token.');
-    }
+    }, 'Token settings saved');
   }
 
   async function handleClearToken() {
-    setMessageText('');
-    setErrorText('');
-
-    try {
+    await runTokenOperation(async () => {
       await tokenStore.clearToken();
       setTokenInput('');
       await refreshTokenStatus();
-      setMessageText('Token cleared');
-    } catch {
-      setErrorText('Could not clear token.');
-    }
+    }, 'Token cleared');
   }
 
   async function saveSetting(nextSettings: Partial<AppSettings>) {
-    if (!settings) {
+    const currentSettings = settingsRef.current;
+    if (!currentSettings) {
       return;
     }
 
     setMessageText('');
     setErrorText('');
-    const previousSettings = settings;
-    const optimisticSettings = { ...settings, ...nextSettings };
+    const settingKeys = Object.keys(nextSettings) as (keyof AppSettings)[];
+    const rollbackSettings = pickSettings(currentSettings, settingKeys);
+    const optimisticSettings = { ...currentSettings, ...nextSettings };
+    settingsRef.current = optimisticSettings;
     setSettings(optimisticSettings);
 
     try {
       await settingsRepository.saveSettings(nextSettings);
       setMessageText('Default settings saved');
     } catch {
-      setSettings(previousSettings);
+      const latestSettings = settingsRef.current;
+      if (latestSettings) {
+        const rolledBackSettings = { ...latestSettings, ...rollbackSettings };
+        settingsRef.current = rolledBackSettings;
+        setSettings(rolledBackSettings);
+      }
       setErrorText('Could not save settings.');
     }
   }
@@ -178,8 +212,10 @@ export default function SettingsScreen({ settingsRepository, tokenStore }: Setti
 
         <TextInput
           accessibilityLabel="OpenRouter API token"
+          accessibilityState={{ disabled: isTokenUpdatePending }}
           autoCapitalize="none"
           autoCorrect={false}
+          editable={!isTokenUpdatePending}
           onChangeText={setTokenInput}
           placeholder="Paste token"
           placeholderTextColor="#94A3B8"
@@ -192,16 +228,20 @@ export default function SettingsScreen({ settingsRepository, tokenStore }: Setti
           <Pressable
             accessibilityLabel="Save token"
             accessibilityRole="button"
+            accessibilityState={{ disabled: isTokenUpdatePending }}
+            disabled={isTokenUpdatePending}
             onPress={() => void handleSaveToken()}
-            style={styles.primaryButton}
+            style={[styles.primaryButton, isTokenUpdatePending && styles.buttonDisabled]}
           >
             <Text style={styles.primaryButtonText}>Save token</Text>
           </Pressable>
           <Pressable
             accessibilityLabel="Clear token"
             accessibilityRole="button"
+            accessibilityState={{ disabled: isTokenUpdatePending }}
+            disabled={isTokenUpdatePending}
             onPress={() => void handleClearToken()}
-            style={styles.secondaryButton}
+            style={[styles.secondaryButton, isTokenUpdatePending && styles.buttonDisabled]}
           >
             <Text style={styles.secondaryButtonText}>Clear token</Text>
           </Pressable>
@@ -318,6 +358,7 @@ const styles = StyleSheet.create({
   sectionHeader: {
     alignItems: 'center',
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
     justifyContent: 'space-between',
   },
@@ -327,6 +368,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   statusPill: {
+    alignSelf: 'flex-start',
     backgroundColor: '#FEF2F2',
     borderColor: '#FECACA',
     borderRadius: 999,
@@ -386,6 +428,9 @@ const styles = StyleSheet.create({
     color: '#334155',
     fontSize: 15,
     fontWeight: '800',
+  },
+  buttonDisabled: {
+    opacity: 0.55,
   },
   controlGroup: {
     gap: 10,

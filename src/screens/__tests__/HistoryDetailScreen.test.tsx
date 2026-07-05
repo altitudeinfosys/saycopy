@@ -17,6 +17,10 @@ class MemoryHistoryRepository implements HistoryRepository {
     this.items = [...items];
   }
 
+  removeItem(id: string): void {
+    this.items = this.items.filter((item) => item.id !== id);
+  }
+
   createHistoryItem = jest.fn(async (_input: CreateHistoryItemInput): Promise<HistoryItem> => {
     throw new Error('Not needed in detail tests');
   });
@@ -106,6 +110,36 @@ describe('HistoryDetailScreen', () => {
       });
       expect(screen.getByLabelText('History text').props.value).toBe('Hello Tarek, edited');
       expect(screen.getByText('Saved changes')).toBeTruthy();
+    });
+  });
+
+  it('renders the not-found state when saving an item that was deleted', async () => {
+    const repository = new MemoryHistoryRepository([
+      {
+        id: 'history-1',
+        mode: 'transcribe',
+        sourceType: 'manual',
+        sourceLanguageId: 'auto',
+        transcript: 'Soon to be deleted',
+        createdAt: '2026-07-05T12:00:00.000Z',
+        updatedAt: '2026-07-05T12:00:00.000Z',
+        tags: [],
+      },
+    ]);
+
+    render(<HistoryDetailScreen repository={repository} historyItemId="history-1" />);
+
+    const editor = await screen.findByLabelText('History text');
+    expect(editor.props.value).toBe('Soon to be deleted');
+
+    repository.removeItem('history-1');
+    fireEvent.changeText(editor, 'Edited after delete');
+    fireEvent.press(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('History item not found')).toBeTruthy();
+      expect(screen.getByText('This history item no longer exists.')).toBeTruthy();
+      expect(screen.queryByLabelText('History text')).toBeNull();
     });
   });
 });
