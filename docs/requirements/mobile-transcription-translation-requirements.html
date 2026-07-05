@@ -121,6 +121,8 @@
       <li class="decision">V1 model selection should use simple presets such as Fast, Balanced, and Best Quality instead of exposing a full OpenRouter model picker in the primary UI.</li>
       <li class="decision">Transcribe mode should apply light cleanup by default, including punctuation, capitalization, and modest filler-word cleanup.</li>
       <li class="decision">V1 should include a Settings page where the user can enter an OpenRouter API token, stored locally and securely on the device. The app should not embed a shared production API token.</li>
+      <li class="decision">V1 should save text outputs in history, not audio recordings. Audio should be temporary during recording/transcription and deleted after the text result is created.</li>
+      <li>The user wants tagging or categorization for saved history items so transcripts and translations can be retrieved quickly later.</li>
       <li class="decision">The working product name is <code>Tarek-Wisper</code>, with final naming still open to alternatives.</li>
       <li>OpenRouter currently documents a dedicated speech-to-text endpoint, <code>/api/v1/audio/transcriptions</code>, with base64 audio input and support for 99+ languages including English, Spanish, and Arabic.</li>
       <li class="decision">All durable project artifacts should live in this project folder and be written as HTML unless the user explicitly requests otherwise.</li>
@@ -184,6 +186,11 @@
     <p><strong>Asked:</strong> Is v1 a personal app using the user's own OpenRouter API key, or should it be designed for multiple users with each user bringing their own key?</p>
     <p><strong>Captured:</strong> V1 should include a Settings page where the user can enter an OpenRouter token. The token should be stored locally and securely on the device. The app should not embed a shared production OpenRouter token in the shipped mobile app.</p>
     <p><strong>Flags:</strong> The design should specify the secure local token storage mechanism for Expo/React Native.</p>
+
+    <h3>Q12 - Audio Retention and Tags</h3>
+    <p><strong>Asked:</strong> Should v1 save audio recordings in history, or only save the text outputs?</p>
+    <p><strong>Captured:</strong> The user agreed with saving text only. Audio should be temporary during recording/transcription and deleted after the result is created. The user also wants the ability to add tags or categories to saved items so history can be retrieved quickly and easily later.</p>
+    <p><strong>Flags:</strong> Decide whether tagging belongs in v1 or v2.</p>
   </section>
 
   <section>
@@ -197,6 +204,7 @@
       <li>Future enhancement: consider an advanced OpenRouter model picker after the preset flow is working.</li>
       <li>Decide whether v1 stores raw transcript text internally when available, or only the cleaned output shown to the user.</li>
       <li>Specify the Expo/React Native secure local storage mechanism for the OpenRouter token.</li>
+      <li>Decide whether simple tags/categories are part of v1 or deferred to v2.</li>
       <li>Confirm the first set of MVP screens.</li>
       <li>Add a Git remote before future implementation work that depends on upstream sync.</li>
     </ul>
