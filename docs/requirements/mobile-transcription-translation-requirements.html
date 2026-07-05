@@ -125,6 +125,7 @@
       <li class="decision">V1 should include simple optional tags for saved history items, with History filtering by tag.</li>
       <li class="decision">V1 should use three main tabs: Record, History, and Settings.</li>
       <li class="decision">Successful transcription and translation results should auto-save to History by default, and history items should be deletable.</li>
+      <li class="decision">Result text should be editable before copy/share, and saved history should reflect the user's edited text.</li>
       <li class="decision">The working product name is <code>Tarek-Wisper</code>, with final naming still open to alternatives.</li>
       <li>OpenRouter currently documents a dedicated speech-to-text endpoint, <code>/api/v1/audio/transcriptions</code>, with base64 audio input and support for 99+ languages including English, Spanish, and Arabic.</li>
       <li class="decision">All durable project artifacts should live in this project folder and be written as HTML unless the user explicitly requests otherwise.</li>
@@ -208,6 +209,11 @@
     <p><strong>Asked:</strong> After a successful transcription or translation, should the app auto-save the result to History, or should saving be manual?</p>
     <p><strong>Captured:</strong> Successful transcription and translation results should auto-save to History by default. History items should also support deletion.</p>
     <p><strong>Flags:</strong> None.</p>
+
+    <h3>Q16 - Result Editing</h3>
+    <p><strong>Asked:</strong> Should the result text be editable before copy/share, or should v1 show read-only output with copy/share only?</p>
+    <p><strong>Captured:</strong> Result text should be editable before copy/share. Saved history should reflect the user's edited text.</p>
+    <p><strong>Flags:</strong> Decide whether raw/original AI output is stored separately for troubleshooting or omitted in v1.</p>
   </section>
 
   <section>
@@ -222,7 +228,7 @@
       <li>Decide whether v1 stores raw transcript text internally when available, or only the cleaned output shown to the user.</li>
       <li>Specify the Expo/React Native secure local storage mechanism for the OpenRouter token.</li>
       <li>Future enhancement: consider nested folders, complex category management, or AI auto-tagging after simple manual tags are working.</li>
-      <li>Confirm result editing behavior before copy/share/save finalization.</li>
+      <li>Decide whether raw/original AI output is stored separately for troubleshooting or omitted in v1.</li>
       <li>Add a Git remote before future implementation work that depends on upstream sync.</li>
     </ul>
   </section>
