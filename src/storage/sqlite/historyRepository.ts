@@ -38,20 +38,35 @@ type HistoryItemTagRow = {
   readonly tag_id: string;
 };
 
-export type CreateHistoryItemInput = {
+type BaseCreateHistoryItemInput = {
   readonly id?: string;
-  readonly mode?: HistoryMode;
   readonly sourceType?: HistorySourceType;
   readonly sourceLanguageId?: LanguageId;
-  readonly targetLanguageId?: ConcreteLanguageId;
   readonly primaryText: string;
-  readonly sourceText?: string;
-  readonly translatedText?: string;
   readonly modelPresetId?: ModelPresetId;
   readonly sttModelId?: string;
-  readonly textModelId?: string;
   readonly tags?: readonly string[];
 };
+
+export type CreateTranscribeHistoryItemInput = BaseCreateHistoryItemInput & {
+  readonly mode?: 'transcribe';
+  readonly targetLanguageId?: never;
+  readonly sourceText?: never;
+  readonly translatedText?: never;
+  readonly textModelId?: never;
+};
+
+export type CreateTranslateHistoryItemInput = BaseCreateHistoryItemInput & {
+  readonly mode: 'translate';
+  readonly targetLanguageId?: ConcreteLanguageId;
+  readonly sourceText?: string;
+  readonly translatedText?: string;
+  readonly textModelId?: string;
+};
+
+export type CreateHistoryItemInput =
+  | CreateTranscribeHistoryItemInput
+  | CreateTranslateHistoryItemInput;
 
 export type UpdateHistoryTextInput = {
   readonly primaryText?: string;
@@ -316,9 +331,9 @@ export function createHistoryRepository(
     const mode = input.mode ?? 'transcribe';
     const id = input.id ?? createId('history');
     const timestamp = now();
-    const sourceText = mode === 'translate' ? input.sourceText ?? '' : input.sourceText ?? null;
+    const sourceText = mode === 'translate' ? input.sourceText ?? '' : null;
     const translatedText =
-      mode === 'translate' ? input.translatedText ?? input.primaryText : input.translatedText ?? null;
+      mode === 'translate' ? input.translatedText ?? input.primaryText : null;
     const primaryText = mode === 'translate' ? translatedText : input.primaryText;
 
     await database.execute(
@@ -379,12 +394,11 @@ export function createHistoryRepository(
     const nextTranslatedText =
       existing.mode === 'translate'
         ? input.translatedText ?? input.primaryText ?? existing.translated_text ?? existing.primary_text
-        : input.translatedText ?? existing.translated_text;
+        : null;
     const nextPrimaryText =
       existing.mode === 'translate' ? nextTranslatedText : input.primaryText ?? existing.primary_text;
     const nextSourceText =
-      input.sourceText ??
-      (existing.mode === 'translate' ? existing.source_text ?? '' : existing.source_text);
+      existing.mode === 'translate' ? input.sourceText ?? existing.source_text ?? '' : null;
 
     await database.execute(
       `UPDATE history_items

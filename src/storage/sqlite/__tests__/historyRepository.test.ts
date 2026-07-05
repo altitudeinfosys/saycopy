@@ -106,6 +106,62 @@ describe('history repository', () => {
     ]);
   });
 
+  it('does not persist or search hidden transcribe create fields', async () => {
+    const { database, repository } = await createRepositoryWithDatabase();
+
+    const item = await repository.createHistoryItem(
+      {
+        primaryText: 'Visible transcript',
+        sourceText: 'hidden source provider output',
+        translatedText: 'hidden translated provider output',
+      } as Parameters<typeof repository.createHistoryItem>[0],
+    );
+
+    expect(database.historyItems.get(item.id)).toMatchObject({
+      primary_text: 'Visible transcript',
+      source_text: null,
+      translated_text: null,
+    });
+    await expect(repository.searchHistory({ query: 'visible transcript' })).resolves.toHaveLength(1);
+    await expect(repository.searchHistory({ query: 'hidden source provider' })).resolves.toEqual([]);
+    await expect(repository.searchHistory({ query: 'hidden translated provider' })).resolves.toEqual(
+      [],
+    );
+  });
+
+  it('does not persist or search hidden transcribe update fields', async () => {
+    const { database, repository } = await createRepositoryWithDatabase();
+    const item = await repository.createHistoryItem(
+      {
+        primaryText: 'Original transcript',
+        sourceText: 'hidden create source',
+        translatedText: 'hidden create translated',
+      } as Parameters<typeof repository.createHistoryItem>[0],
+    );
+
+    const updated = await repository.updateHistoryText(item.id, {
+      primaryText: 'Updated transcript',
+      sourceText: 'hidden update source',
+      translatedText: 'hidden update translated',
+    });
+
+    expect(updated).toMatchObject({
+      id: item.id,
+      mode: 'transcribe',
+      transcript: 'Updated transcript',
+    });
+    expect(database.historyItems.get(item.id)).toMatchObject({
+      primary_text: 'Updated transcript',
+      source_text: null,
+      translated_text: null,
+    });
+    await expect(repository.searchHistory({ query: 'updated transcript' })).resolves.toHaveLength(1);
+    await expect(repository.searchHistory({ query: 'hidden update source' })).resolves.toEqual([]);
+    await expect(repository.searchHistory({ query: 'hidden update translated' })).resolves.toEqual(
+      [],
+    );
+  });
+
   it('updates visible text fields without changing hidden provider data', async () => {
     const repository = await createRepository();
     const item = await repository.createHistoryItem({
@@ -181,7 +237,6 @@ describe('history repository', () => {
     const repository = await createRepository();
     await repository.createHistoryItem({
       primaryText: 'Meeting with Tarek',
-      sourceText: 'raw transcript text',
       sourceLanguageId: 'english',
       tags: ['work'],
     });
@@ -196,7 +251,7 @@ describe('history repository', () => {
     });
 
     await expect(repository.searchHistory({ query: 'tarek' })).resolves.toHaveLength(1);
-    await expect(repository.searchHistory({ query: 'raw transcript' })).resolves.toHaveLength(1);
+    await expect(repository.searchHistory({ query: 'frase de viaje' })).resolves.toHaveLength(1);
     await expect(repository.searchHistory({ query: 'travel phrase' })).resolves.toHaveLength(1);
     await expect(repository.searchHistory({ query: 'spanish' })).resolves.toHaveLength(1);
     await expect(repository.searchHistory({ query: 'arabic' })).resolves.toHaveLength(1);
