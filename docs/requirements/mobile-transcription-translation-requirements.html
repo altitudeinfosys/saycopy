@@ -124,6 +124,7 @@
       <li class="decision">V1 should save text outputs in history, not audio recordings. Audio should be temporary during recording/transcription and deleted after the text result is created.</li>
       <li class="decision">V1 should include simple optional tags for saved history items, with History filtering by tag.</li>
       <li class="decision">V1 should use three main tabs: Record, History, and Settings.</li>
+      <li class="decision">Successful transcription and translation results should auto-save to History by default, and history items should be deletable.</li>
       <li class="decision">The working product name is <code>Tarek-Wisper</code>, with final naming still open to alternatives.</li>
       <li>OpenRouter currently documents a dedicated speech-to-text endpoint, <code>/api/v1/audio/transcriptions</code>, with base64 audio input and support for 99+ languages including English, Spanish, and Arabic.</li>
       <li class="decision">All durable project artifacts should live in this project folder and be written as HTML unless the user explicitly requests otherwise.</li>
@@ -202,6 +203,11 @@
     <p><strong>Asked:</strong> Should the main app navigation be three tabs: Record, History, and Settings?</p>
     <p><strong>Captured:</strong> The user agreed with three main tabs. Transcribe and Translate should live inside Record, saved text and tags should live in History, and API token/model/language defaults should live in Settings.</p>
     <p><strong>Flags:</strong> None.</p>
+
+    <h3>Q15 - History Save and Delete Behavior</h3>
+    <p><strong>Asked:</strong> After a successful transcription or translation, should the app auto-save the result to History, or should saving be manual?</p>
+    <p><strong>Captured:</strong> Successful transcription and translation results should auto-save to History by default. History items should also support deletion.</p>
+    <p><strong>Flags:</strong> None.</p>
   </section>
 
   <section>
@@ -216,7 +222,7 @@
       <li>Decide whether v1 stores raw transcript text internally when available, or only the cleaned output shown to the user.</li>
       <li>Specify the Expo/React Native secure local storage mechanism for the OpenRouter token.</li>
       <li>Future enhancement: consider nested folders, complex category management, or AI auto-tagging after simple manual tags are working.</li>
-      <li>Confirm result save behavior and result editing behavior.</li>
+      <li>Confirm result editing behavior before copy/share/save finalization.</li>
       <li>Add a Git remote before future implementation work that depends on upstream sync.</li>
     </ul>
   </section>
