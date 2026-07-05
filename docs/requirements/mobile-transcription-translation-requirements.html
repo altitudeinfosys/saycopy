@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mobile Transcription and Translation App - Requirements Interview</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f7f8fb;
+      --panel: #ffffff;
+      --text: #172033;
+      --muted: #5d687a;
+      --line: #d9e0ea;
+      --accent: #0b6bcb;
+      --code: #eef2f7;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1218;
+        --panel: #171b24;
+        --text: #edf2f8;
+        --muted: #a7b0bf;
+        --line: #2f3748;
+        --accent: #7cb7ff;
+        --code: #242b3a;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+    main {
+      width: min(960px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 32px 0 56px;
+    }
+    header, section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 22px;
+      margin-bottom: 16px;
+    }
+    h1, h2, h3 { line-height: 1.15; margin: 0; letter-spacing: 0; }
+    h1 { font-size: 34px; }
+    h2 { font-size: 22px; margin-bottom: 10px; }
+    h3 { font-size: 17px; margin: 18px 0 6px; }
+    p { margin: 8px 0; }
+    ul { margin: 8px 0; padding-left: 22px; }
+    li { margin: 5px 0; }
+    code {
+      background: var(--code);
+      border-radius: 6px;
+      padding: 2px 5px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.92em;
+    }
+    .muted { color: var(--muted); }
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .tag {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .decision {
+      border-left: 3px solid var(--accent);
+      padding-left: 12px;
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="muted">Requirements interview</p>
+    <h1>Mobile Transcription and Translation App</h1>
+    <p>
+      Durable capture for the product/design requirements interview. This file is the working source of truth for decisions that will later feed the MVP design doc and implementation plan.
+    </p>
+    <div class="meta">
+      <span class="tag">Date: 2026-07-05</span>
+      <span class="tag">Status: In progress</span>
+      <span class="tag">Artifact format: HTML</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>Goal</h2>
+    <p>
+      Define the MVP requirements for a separate mobile app, starting with iOS and later Android, that records speech, transcribes it, optionally translates it, and lets the user copy or share the result into other apps.
+    </p>
+  </section>
+
+  <section>
+    <h2>Summary / Key Decisions</h2>
+    <ul>
+      <li>The desktop VoiceInk/FlowLocal fork is no longer the primary product path; the user bought official VoiceInk for Mac.</li>
+      <li>The new product is a separate mobile transcription and translation app.</li>
+      <li>The initial platform preference is iOS first, with Android later if useful.</li>
+      <li>The pragmatic default under consideration is an Expo/React Native app with cloud transcription and translation providers.</li>
+      <li>The likely backend for a later synced-history version is Supabase, because it is fast for auth, database, storage, and React Native/Expo integration.</li>
+      <li class="decision">All durable project artifacts should live in this project folder and be written as HTML unless the user explicitly requests otherwise.</li>
+      <li class="decision">This project folder has been initialized as a new Git repository on <code>main</code>.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Q&amp;A Log</h2>
+    <h3>Q1 - Project Setup and Artifact Format</h3>
+    <p><strong>Asked:</strong> Should this folder be initialized as the project Git repository, and should all artifacts be HTML?</p>
+    <p><strong>Captured:</strong> The user confirmed that the folder should be initialized as a Git repository. The user also requested that all artifacts be HTML and that this rule be recorded in <code>AGENTS.md</code>.</p>
+    <p><strong>Flags:</strong> A remote has not been configured yet, so upstream sync is not applicable until a remote is added.</p>
+  </section>
+
+  <section>
+    <h2>Open Flags</h2>
+    <ul>
+      <li>Decide whether v1 requires user accounts and synced history or starts account-free with local-only history.</li>
+      <li>Select the app name or confirm a working placeholder.</li>
+      <li>Confirm provider choices for transcription and translation.</li>
+      <li>Confirm the first set of MVP screens.</li>
+      <li>Add a Git remote before future implementation work that depends on upstream sync.</li>
+    </ul>
+  </section>
+</main>
+</body>
+</html>
