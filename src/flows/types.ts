@@ -45,19 +45,34 @@ export type TranslationProvider = {
   readonly translateText: (input: FlowTranslateTextInput) => Promise<FlowTextResult>;
 };
 
-export type FlowCreateHistoryItemInput = {
-  readonly mode?: 'transcribe' | 'translate';
+type BaseFlowCreateHistoryItemInput = {
   readonly sourceType?: HistorySourceType;
   readonly sourceLanguageId?: LanguageId;
-  readonly targetLanguageId?: ConcreteLanguageId;
   readonly primaryText: string;
-  readonly sourceText?: string;
-  readonly translatedText?: string;
   readonly modelPresetId?: ModelPresetId;
   readonly sttModelId?: string;
-  readonly textModelId?: string;
   readonly tags?: readonly string[];
 };
+
+export type FlowCreateTranscribeHistoryItemInput = BaseFlowCreateHistoryItemInput & {
+  readonly mode?: 'transcribe';
+  readonly targetLanguageId?: never;
+  readonly sourceText?: never;
+  readonly translatedText?: never;
+  readonly textModelId?: never;
+};
+
+export type FlowCreateTranslateHistoryItemInput = BaseFlowCreateHistoryItemInput & {
+  readonly mode: 'translate';
+  readonly targetLanguageId: ConcreteLanguageId;
+  readonly sourceText: string;
+  readonly translatedText: string;
+  readonly textModelId?: string;
+};
+
+export type FlowCreateHistoryItemInput =
+  | FlowCreateTranscribeHistoryItemInput
+  | FlowCreateTranslateHistoryItemInput;
 
 export type FlowHistoryRepository = {
   readonly createHistoryItem: (input: FlowCreateHistoryItemInput) => Promise<HistoryItem>;

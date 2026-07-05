@@ -7,6 +7,7 @@ import type {
   TemporaryAudioCleanup,
   TranscriptionProvider,
 } from './types';
+import { cleanupTemporaryAudio } from './temporaryAudioCleanup';
 
 export type RunTranscriptionFlowInput = {
   readonly audio: FlowAudioInput;
@@ -95,6 +96,6 @@ export async function runTranscriptionFlow(
       historyItem,
     };
   } finally {
-    await dependencies.temporaryAudio?.cleanup(input.audio);
+    await cleanupTemporaryAudio(dependencies.temporaryAudio, input.audio);
   }
 }

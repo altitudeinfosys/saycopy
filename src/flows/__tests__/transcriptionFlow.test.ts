@@ -200,4 +200,42 @@ describe('runTranscriptionFlow', () => {
       retryable: false,
     });
   });
+
+  it('preserves the STT AppError when temporary audio cleanup also fails', async () => {
+    const providerError = createAppError('auth_error', 'OpenRouter authentication failed.', {
+      provider: 'openrouter',
+      retryable: false,
+    });
+    const cleanupError = new Error('Could not delete temporary audio');
+    const provider = {
+      transcribeAudio: jest.fn().mockRejectedValue(providerError),
+      cleanupTranscript: jest.fn(),
+    };
+    const historyRepository = {
+      createHistoryItem: jest.fn(),
+    };
+    const temporaryAudio = {
+      cleanup: jest.fn().mockRejectedValue(cleanupError),
+    };
+    const audio = {
+      uri: 'file:///tmp/auth-error.m4a',
+      base64Audio: 'auth-error-base64',
+      format: 'm4a' as const,
+    };
+
+    await expect(
+      runTranscriptionFlow(
+        { provider, historyRepository, temporaryAudio },
+        {
+          audio,
+          sourceLanguageId: 'auto',
+          modelPresetId: 'balanced',
+          cleanupEnabled: true,
+        },
+      ),
+    ).rejects.toBe(providerError);
+
+    expect(historyRepository.createHistoryItem).not.toHaveBeenCalled();
+    expect(temporaryAudio.cleanup).toHaveBeenCalledWith(audio);
+  });
 });

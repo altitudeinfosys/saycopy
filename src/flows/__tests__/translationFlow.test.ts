@@ -228,4 +228,62 @@ describe('runTranslationFlow', () => {
       error: translationError,
     });
   });
+
+  it('preserves translation_failed retry result when temporary audio cleanup also fails', async () => {
+    const translationError = createAppError(
+      'provider_unavailable',
+      'OpenRouter is temporarily unavailable.',
+      {
+        provider: 'openrouter',
+        retryable: true,
+      },
+    );
+    const cleanupError = new Error('Could not delete temporary audio');
+    const provider = {
+      transcribeAudio: jest.fn().mockResolvedValue({
+        text: 'keep the original text',
+        modelId: 'openai/whisper-large-v3',
+      }),
+      translateText: jest.fn().mockRejectedValue(translationError),
+    };
+    const historyRepository = {
+      createHistoryItem: jest.fn(),
+    };
+    const temporaryAudio = {
+      cleanup: jest.fn().mockRejectedValue(cleanupError),
+    };
+    const audio = {
+      uri: 'file:///tmp/translation-cleanup-fails.m4a',
+      base64Audio: 'translation-cleanup-fails-base64',
+      format: 'm4a' as const,
+    };
+
+    const result = await runTranslationFlow(
+      { provider, historyRepository, temporaryAudio },
+      {
+        sourceType: 'voice',
+        audio,
+        sourceLanguageId: 'english',
+        targetLanguageId: 'spanish',
+        modelPresetId: 'balanced',
+      },
+    );
+
+    expect(historyRepository.createHistoryItem).not.toHaveBeenCalled();
+    expect(temporaryAudio.cleanup).toHaveBeenCalledWith(audio);
+    expect(result).toEqual({
+      status: 'translation_failed',
+      sourceType: 'voice',
+      sourceText: 'keep the original text',
+      primaryText: 'keep the original text',
+      retry: {
+        canRetry: true,
+        text: 'keep the original text',
+      },
+      copyOriginal: {
+        text: 'keep the original text',
+      },
+      error: translationError,
+    });
+  });
 });

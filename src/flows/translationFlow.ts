@@ -8,6 +8,7 @@ import type {
   TemporaryAudioCleanup,
   TranslationProvider,
 } from './types';
+import { cleanupTemporaryAudio } from './temporaryAudioCleanup';
 
 export type RunVoiceTranslationFlowInput = {
   readonly sourceType: 'voice';
@@ -129,7 +130,7 @@ export async function runTranslationFlow(
     };
   } finally {
     if (audio) {
-      await dependencies.temporaryAudio?.cleanup(audio);
+      await cleanupTemporaryAudio(dependencies.temporaryAudio, audio);
     }
   }
 }
