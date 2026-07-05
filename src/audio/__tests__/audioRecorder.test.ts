@@ -317,6 +317,78 @@ describe('createAudioRecordingController', () => {
     expect(controller.getState()).toEqual({ status: 'idle' });
   });
 
+  it('serializes repeated cancel calls while native stop is pending', async () => {
+    const stopDeferred = createDeferred<{
+      readonly durationMs: number;
+      readonly uri: string;
+    }>();
+    const session: NativeAudioRecordingSession = {
+      getTemporaryFileReference: jest.fn(() => ({ uri: 'file:///tmp/repeated-cancel.m4a' })),
+      stop: jest.fn().mockReturnValue(stopDeferred.promise),
+    };
+    const cleanup = {
+      cleanup: jest.fn().mockResolvedValue(undefined),
+    };
+    const controller = createAudioRecordingController({
+      audioFileReader: { readBase64: jest.fn().mockResolvedValue('unused-repeated-cancel') },
+      nativeRecorder: createNativeAdapter(session),
+      temporaryAudio: cleanup,
+    });
+
+    await controller.start();
+    const firstCancel = controller.cancel();
+    const secondCancel = controller.cancel();
+
+    stopDeferred.resolve({
+      durationMs: 1200,
+      uri: 'file:///tmp/repeated-cancel.m4a',
+    });
+
+    await Promise.all([firstCancel, secondCancel]);
+
+    expect(session.stop).toHaveBeenCalledTimes(1);
+    expect(cleanup.cleanup).toHaveBeenCalledWith({
+      uri: 'file:///tmp/repeated-cancel.m4a',
+    });
+    expect(controller.getState()).toEqual({ status: 'idle' });
+  });
+
+  it('does not call native stop twice when stop is requested during cancel', async () => {
+    const stopDeferred = createDeferred<{
+      readonly durationMs: number;
+      readonly uri: string;
+    }>();
+    const session: NativeAudioRecordingSession = {
+      getTemporaryFileReference: jest.fn(() => ({ uri: 'file:///tmp/cancel-then-stop.m4a' })),
+      stop: jest.fn().mockReturnValue(stopDeferred.promise),
+    };
+    const cleanup = {
+      cleanup: jest.fn().mockResolvedValue(undefined),
+    };
+    const controller = createAudioRecordingController({
+      audioFileReader: { readBase64: jest.fn().mockResolvedValue('cancel-then-stop-base64') },
+      nativeRecorder: createNativeAdapter(session),
+      temporaryAudio: cleanup,
+    });
+
+    await controller.start();
+    const cancelPromise = controller.cancel();
+    const stopPromise = controller.stop().catch((error: unknown) => error);
+
+    stopDeferred.resolve({
+      durationMs: 1300,
+      uri: 'file:///tmp/cancel-then-stop.m4a',
+    });
+
+    await Promise.all([cancelPromise, stopPromise]);
+
+    expect(session.stop).toHaveBeenCalledTimes(1);
+    expect(cleanup.cleanup).toHaveBeenCalledWith({
+      uri: 'file:///tmp/cancel-then-stop.m4a',
+    });
+    expect(controller.getState()).toEqual({ status: 'idle' });
+  });
+
   it('cancels during an in-flight stop by cleaning the stopped audio and staying idle', async () => {
     const stopDeferred = createDeferred<{
       readonly durationMs: number;
@@ -350,6 +422,35 @@ describe('createAudioRecordingController', () => {
 
     expect(cleanup.cleanup).toHaveBeenCalledWith({
       uri: 'file:///tmp/cancel-during-stop.m4a',
+    });
+    expect(controller.getState()).toEqual({ status: 'idle' });
+  });
+
+  it('suppresses processing completion state after cancellation', async () => {
+    const processorDeferred = createDeferred<void>();
+    const cleanup = {
+      cleanup: jest.fn().mockResolvedValue(undefined),
+    };
+    const controller = createAudioRecordingController({
+      audioFileReader: { readBase64: jest.fn().mockResolvedValue('processing-cancel-base64') },
+      nativeRecorder: createNativeAdapter(
+        createSession({ uri: 'file:///tmp/processing-cancel.m4a' }),
+      ),
+      temporaryAudio: cleanup,
+    });
+
+    await controller.start();
+    await controller.stop();
+    const processingPromise = controller.processStoppedAudio(async () => {
+      await processorDeferred.promise;
+    });
+    const cancelPromise = controller.cancel();
+
+    processorDeferred.resolve();
+    await Promise.all([processingPromise, cancelPromise]);
+
+    expect(cleanup.cleanup).toHaveBeenCalledWith({
+      uri: 'file:///tmp/processing-cancel.m4a',
     });
     expect(controller.getState()).toEqual({ status: 'idle' });
   });

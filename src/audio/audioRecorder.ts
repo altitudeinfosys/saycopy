@@ -169,6 +169,7 @@ export function createAudioRecordingController({
   let state: AudioRecordingState = { status: 'idle' };
   let session: NativeAudioRecordingSession | undefined;
   let maxDurationTimer: ReturnType<typeof setTimeout> | undefined;
+  let cancelPromise: Promise<void> | undefined;
   let startPromise: Promise<void> | undefined;
   let stopPromise: Promise<FlowAudioInput> | undefined;
   let transitionGeneration = 0;
@@ -187,6 +188,10 @@ export function createAudioRecordingController({
   }
 
   async function stopRecording(stopReason: AudioRecordingStopReason = 'manual') {
+    if (cancelPromise) {
+      throw new AudioRecorderError('recording_not_started', 'Recording cancellation is in progress.');
+    }
+
     if (stopPromise) {
       return stopPromise;
     }
@@ -264,34 +269,55 @@ export function createAudioRecordingController({
 
   return {
     async cancel() {
+      if (cancelPromise) {
+        return cancelPromise;
+      }
+
       transitionGeneration += 1;
       const cancelGeneration = transitionGeneration;
       clearMaxDurationTimer();
 
       if (stopPromise) {
-        try {
-          const audio = await stopPromise;
-          await cleanupStoppedAudio(audio);
-        } catch {
-          // The stop path already performs best-effort fallback cleanup.
-        } finally {
-          session = undefined;
-          stopPromise = undefined;
+        cancelPromise = (async () => {
+          try {
+            const audio = await stopPromise;
+            await cleanupStoppedAudio(audio);
+          } catch {
+            // The stop path already performs best-effort fallback cleanup.
+          } finally {
+            session = undefined;
+            stopPromise = undefined;
 
-          if (transitionGeneration === cancelGeneration) {
-            emit({ status: 'idle' });
+            if (transitionGeneration === cancelGeneration) {
+              emit({ status: 'idle' });
+            }
+
+            cancelPromise = undefined;
           }
-        }
-        return;
+        })();
+
+        return cancelPromise;
       }
 
       if (state.status === 'recording' && session) {
         const activeSession = session;
-        await stopAndCleanupSession(activeSession);
         session = undefined;
-        stopPromise = undefined;
-        emit({ status: 'idle' });
-        return;
+        emit({ status: 'stopping' });
+        cancelPromise = (async () => {
+          try {
+            await stopAndCleanupSession(activeSession);
+          } finally {
+            stopPromise = undefined;
+
+            if (transitionGeneration === cancelGeneration) {
+              emit({ status: 'idle' });
+            }
+
+            cancelPromise = undefined;
+          }
+        })();
+
+        return cancelPromise;
       }
 
       if ((state.status === 'stopped' || state.status === 'processing') && state.audio) {
@@ -310,15 +336,28 @@ export function createAudioRecordingController({
         throw new AudioRecorderError('recording_not_started', 'No stopped recording to process.');
       }
 
+      const operationGeneration = transitionGeneration;
       const audio = state.audio;
       const stopReason = state.stopReason;
       emit({ audio, status: 'processing', stopReason });
 
       try {
         await processor(audio);
+        if (operationGeneration !== transitionGeneration) {
+          return;
+        }
+
         await cleanupStoppedAudio(audio);
+        if (operationGeneration !== transitionGeneration) {
+          return;
+        }
+
         emit({ status: 'stopped' });
       } catch (error) {
+        if (operationGeneration !== transitionGeneration) {
+          throw error;
+        }
+
         await cleanupStoppedAudio(audio);
         emit({ error, status: 'failed' });
         throw error;
