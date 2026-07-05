@@ -137,7 +137,7 @@
       <li class="decision">The working product name is <code>Tarek-Wisper</code>, with final naming still open to alternatives.</li>
       <li>OpenRouter currently documents a dedicated speech-to-text endpoint, <code>/api/v1/audio/transcriptions</code>, with base64 audio input and support for 99+ languages including English, Spanish, and Arabic.</li>
       <li class="decision">All durable project artifacts should live in this project folder and be written as HTML unless the user explicitly requests otherwise.</li>
-      <li class="decision">This project folder has been initialized as a new Git repository on <code>main</code>.</li>
+      <li class="decision">This project folder has been initialized as a Git repository on <code>main</code> and pushed to the private GitHub repo <code>altitudeinfosys/Tarek-Wisper</code>.</li>
     </ul>
   </section>
 
@@ -146,7 +146,7 @@
     <h3>Q1 - Project Setup and Artifact Format</h3>
     <p><strong>Asked:</strong> Should this folder be initialized as the project Git repository, and should all artifacts be HTML?</p>
     <p><strong>Captured:</strong> The user confirmed that the folder should be initialized as a Git repository. The user also requested that all artifacts be HTML and that this rule be recorded in <code>AGENTS.md</code>.</p>
-    <p><strong>Flags:</strong> A remote has not been configured yet, so upstream sync is not applicable until a remote is added.</p>
+    <p><strong>Flags:</strong> Resolved. A private GitHub remote now exists at <code>https://github.com/altitudeinfosys/Tarek-Wisper</code>.</p>
 
     <h3>Q2 - Accounts and History Storage</h3>
     <p><strong>Asked:</strong> Should v1 require accounts and synced history from day one, or should it start account-free with local-only history and add Supabase sync later?</p>
@@ -279,7 +279,7 @@
       <li>Decide whether raw/original AI output is stored separately for troubleshooting or omitted in v1.</li>
       <li>Include offline and provider-error states in the design.</li>
       <li>Future enhancement: support longer dictation by splitting audio into chunks and merging results.</li>
-      <li>Add a Git remote before future implementation work that depends on upstream sync.</li>
+      <li>Before future implementation work, fetch and fast-forward from <code>origin/main</code> per <code>AGENTS.md</code>.</li>
     </ul>
   </section>
 </main>
