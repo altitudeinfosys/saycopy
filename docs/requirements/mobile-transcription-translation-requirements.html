@@ -126,6 +126,7 @@
       <li class="decision">V1 should use three main tabs: Record, History, and Settings.</li>
       <li class="decision">Successful transcription and translation results should auto-save to History by default, and history items should be deletable.</li>
       <li class="decision">Result text should be editable before copy/share, and saved history should reflect the user's edited text.</li>
+      <li class="decision">Translate mode should show both the original transcription and the translated output, with the translation emphasized.</li>
       <li class="decision">The working product name is <code>Tarek-Wisper</code>, with final naming still open to alternatives.</li>
       <li>OpenRouter currently documents a dedicated speech-to-text endpoint, <code>/api/v1/audio/transcriptions</code>, with base64 audio input and support for 99+ languages including English, Spanish, and Arabic.</li>
       <li class="decision">All durable project artifacts should live in this project folder and be written as HTML unless the user explicitly requests otherwise.</li>
@@ -214,6 +215,11 @@
     <p><strong>Asked:</strong> Should the result text be editable before copy/share, or should v1 show read-only output with copy/share only?</p>
     <p><strong>Captured:</strong> Result text should be editable before copy/share. Saved history should reflect the user's edited text.</p>
     <p><strong>Flags:</strong> Decide whether raw/original AI output is stored separately for troubleshooting or omitted in v1.</p>
+
+    <h3>Q17 - Translate Result Display</h3>
+    <p><strong>Asked:</strong> For Translate mode, should the app show both the original transcription and the translated output, or only the translated output?</p>
+    <p><strong>Captured:</strong> Translate mode should show both the original transcription and the translated output. The translated output should be emphasized, and saved history items should keep both fields.</p>
+    <p><strong>Flags:</strong> None.</p>
   </section>
 
   <section>
