@@ -112,6 +112,7 @@
       <li>The pragmatic default under consideration is an Expo/React Native app with cloud transcription and translation providers.</li>
       <li>The likely backend for a later synced-history version is Supabase, because it is fast for auth, database, storage, and React Native/Expo integration.</li>
       <li class="decision">V1 should store transcription and translation history locally on the device. Database sync is deferred to v2.</li>
+      <li class="decision">V1 should include both Transcribe mode and Translate mode.</li>
       <li class="decision">All durable project artifacts should live in this project folder and be written as HTML unless the user explicitly requests otherwise.</li>
       <li class="decision">This project folder has been initialized as a new Git repository on <code>main</code>.</li>
     </ul>
@@ -128,6 +129,11 @@
     <p><strong>Asked:</strong> Should v1 require accounts and synced history from day one, or should it start account-free with local-only history and add Supabase sync later?</p>
     <p><strong>Captured:</strong> V1 should store history locally on the device. Account-based database sync can be considered for v2.</p>
     <p><strong>Flags:</strong> V2 backend choice remains open, with Supabase currently the likely default.</p>
+
+    <h3>Q3 - MVP Modes</h3>
+    <p><strong>Asked:</strong> Should v1 support both Transcribe and Translate modes, or focus only on Transcribe first and add Translate immediately after?</p>
+    <p><strong>Captured:</strong> V1 should include both Transcribe and Translate modes.</p>
+    <p><strong>Flags:</strong> None.</p>
   </section>
 
   <section>
