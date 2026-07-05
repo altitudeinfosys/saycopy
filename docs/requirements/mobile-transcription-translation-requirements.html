@@ -120,6 +120,7 @@
       <li class="decision">The app should recommend suitable OpenRouter models for translation, balancing translation quality, speed, latency, and cost.</li>
       <li class="decision">V1 model selection should use simple presets such as Fast, Balanced, and Best Quality instead of exposing a full OpenRouter model picker in the primary UI.</li>
       <li class="decision">Transcribe mode should apply light cleanup by default, including punctuation, capitalization, and modest filler-word cleanup.</li>
+      <li class="decision">V1 should include a Settings page where the user can enter an OpenRouter API token, stored locally and securely on the device. The app should not embed a shared production API token.</li>
       <li class="decision">The working product name is <code>Tarek-Wisper</code>, with final naming still open to alternatives.</li>
       <li>OpenRouter currently documents a dedicated speech-to-text endpoint, <code>/api/v1/audio/transcriptions</code>, with base64 audio input and support for 99+ languages including English, Spanish, and Arabic.</li>
       <li class="decision">All durable project artifacts should live in this project folder and be written as HTML unless the user explicitly requests otherwise.</li>
@@ -178,6 +179,11 @@
     <p><strong>Asked:</strong> In Transcribe mode, should the default output be a mostly raw transcript, or should it be lightly cleaned up with punctuation, capitalization, and filler-word cleanup?</p>
     <p><strong>Captured:</strong> The user agreed with light cleanup by default.</p>
     <p><strong>Flags:</strong> The design should decide whether to store raw transcript text internally when available or only store the cleaned output in v1.</p>
+
+    <h3>Q11 - API Key Handling</h3>
+    <p><strong>Asked:</strong> Is v1 a personal app using the user's own OpenRouter API key, or should it be designed for multiple users with each user bringing their own key?</p>
+    <p><strong>Captured:</strong> V1 should include a Settings page where the user can enter an OpenRouter token. The token should be stored locally and securely on the device. The app should not embed a shared production OpenRouter token in the shipped mobile app.</p>
+    <p><strong>Flags:</strong> The design should specify the secure local token storage mechanism for Expo/React Native.</p>
   </section>
 
   <section>
@@ -190,6 +196,7 @@
       <li>Verify current OpenRouter model options before finalizing default translation model recommendations.</li>
       <li>Future enhancement: consider an advanced OpenRouter model picker after the preset flow is working.</li>
       <li>Decide whether v1 stores raw transcript text internally when available, or only the cleaned output shown to the user.</li>
+      <li>Specify the Expo/React Native secure local storage mechanism for the OpenRouter token.</li>
       <li>Confirm the first set of MVP screens.</li>
       <li>Add a Git remote before future implementation work that depends on upstream sync.</li>
     </ul>
