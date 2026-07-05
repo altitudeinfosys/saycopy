@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FlowLocal v1 Implementation and Testing Guide</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f7f8fb;
+      --panel: #ffffff;
+      --panel-2: #f1f4f8;
+      --text: #172033;
+      --muted: #5d687a;
+      --line: #d9e0ea;
+      --accent: #0b6bcb;
+      --good: #127a3a;
+      --warn: #9a5b00;
+      --bad: #b42318;
+      --code: #eef2f7;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1218;
+        --panel: #171b24;
+        --panel-2: #202635;
+        --text: #edf2f8;
+        --muted: #a7b0bf;
+        --line: #2f3748;
+        --accent: #7cb7ff;
+        --good: #68d391;
+        --warn: #f6bd60;
+        --bad: #ff8a80;
+        --code: #242b3a;
+      }
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    main {
+      width: min(1120px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 32px 0 56px;
+    }
+    header {
+      padding: 28px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+    h1, h2, h3 { line-height: 1.15; margin: 0; }
+    h1 { font-size: clamp(30px, 4vw, 48px); letter-spacing: 0; }
+    h2 { font-size: 24px; margin-bottom: 14px; }
+    h3 { font-size: 17px; margin: 20px 0 8px; }
+    p { margin: 10px 0; }
+    a { color: var(--accent); }
+    code, pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background: var(--code);
+      border-radius: 6px;
+    }
+    code { padding: 2px 5px; }
+    pre {
+      padding: 14px;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+    }
+    section {
+      margin-top: 18px;
+      padding: 24px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    th, td {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      text-align: left;
+    }
+    th {
+      background: var(--panel-2);
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--muted);
+    }
+    tr:last-child td { border-bottom: 0; }
+    ul, ol { padding-left: 22px; }
+    li { margin: 7px 0; }
+    .lede { max-width: 850px; color: var(--muted); font-size: 17px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .card {
+      padding: 16px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 650;
+      border: 1px solid currentColor;
+    }
+    .done { color: var(--good); }
+    .warn { color: var(--warn); }
+    .blocked { color: var(--bad); }
+    .muted { color: var(--muted); }
+    .checklist li::marker { color: var(--accent); }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="tag done">FlowLocal v1 status</p>
+    <h1>Implementation and Testing Guide</h1>
+    <p class="lede">
+      This document summarizes what has been implemented in the private local VoiceInk fork and gives a practical test plan for validating each feature manually and from the command line.
+    </p>
+    <div class="grid">
+      <div class="card"><strong>Repo</strong><br><code>/Users/tarekalaaddin/Projects/code/VoiceInk-FlowLocal</code></div>
+      <div class="card"><strong>Branch</strong><br><code>flowlocal-v1</code></div>
+      <div class="card"><strong>Status</strong><br>Clean worktree, 6 commits ahead of <code>origin/main</code></div>
+      <div class="card"><strong>Note</strong><br>Local only. Not pushed or published.</div>
+    </div>
+  </header>
+
+  <section>
+    <h2>What Is Done</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Area</th>
+          <th>Implemented behavior</th>
+          <th>Commit</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Language profiles</td>
+          <td>
+            English is the default local-first profile using recommended Parakeet V3 transcription and OpenRouter Claude Haiku 4.5 cleanup by default.
+            Whisper and other models remain selectable from mode/model settings.
+            Arabic and Spanish are cloud-first profiles using ElevenLabs Scribe v2 and light cleanup prompts.
+          </td>
+          <td><code>bbf926d</code>, <code>43f3d05</code></td>
+        </tr>
+        <tr>
+          <td>Privacy and retention</td>
+          <td>
+            Recorder-created audio is temporary by default and deleted after success or cancel. Transcript text is retained for 30 days.
+            A debug toggle can retain recorder audio for troubleshooting. Imported/manual audio is not deleted by the immediate recorder cleanup policy.
+          </td>
+          <td><code>17189f2</code></td>
+        </tr>
+        <tr>
+          <td>Control scheme</td>
+          <td>
+            While actively recording in the recorder panel, single <code>Esc</code> cancels. <code>Return</code>, keypad Enter, and <code>fn+Space</code> commit.
+            Option-number mode shortcuts remain available.
+          </td>
+          <td><code>bc0a4c3</code></td>
+        </tr>
+        <tr>
+          <td>Cloud state</td>
+          <td>
+            The menu bar shows a cloud badge when the active usable transcription profile is cloud-based. The menu shows Local, Cloud, or Model unavailable.
+            Switching from a local profile to a cloud profile triggers a one-time reminder.
+          </td>
+          <td><code>751f20d</code></td>
+        </tr>
+        <tr>
+          <td>Review before insert</td>
+          <td>
+            Optional review mode defaults off. When enabled, final cleaned text opens in an editable panel before paste.
+            The panel supports edit, copy, cancel/Esc, and commit with Return or keypad Enter.
+          </td>
+          <td><code>0c76658</code></td>
+        </tr>
+        <tr>
+          <td>Build fix</td>
+          <td>
+            Added the explicit <code>return</code> required by the local Xcode build in the starter mode config factory.
+          </td>
+          <td><code>70fa342</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Current Verification Status</h2>
+    <ul class="checklist">
+      <li><span class="tag done">Passed</span> Builder/verifier loop used for each implementation slice.</li>
+      <li><span class="tag done">Passed</span> Builder/verifier P0 code review completed; stale documentation references were corrected after verifier review.</li>
+      <li><span class="tag done">Passed</span> <code>git diff --check origin/main..HEAD</code>.</li>
+      <li><span class="tag done">Passed</span> Swift parse check for all app and test Swift files.</li>
+      <li><span class="tag done">Passed</span> Whisper dependency built at <code>/Users/tarekalaaddin/VoiceInk-Dependencies/whisper.cpp/build-apple/whisper.xcframework</code>.</li>
+      <li><span class="tag done">Passed</span> Local app build completed with <code>make local</code> and copied the app to <code>/Users/tarekalaaddin/Downloads/VoiceInk.app</code>.</li>
+      <li><span class="tag done">Fixed</span> Explicit mode transcription models no longer silently fall back to Apple Speech when the configured local model is missing.</li>
+      <li><span class="tag done">Fixed</span> Missing configured models now produce profile/model-specific guidance instead of the generic <code>No AI Model Selected</code> message.</li>
+      <li><span class="tag done">Passed</span> The built app launches to the permissions screen.</li>
+      <li><span class="tag warn">Partial</span> Focused P0 tests compile, but current Xcode test execution is blocked by the app-host/CoreSimulator runner crash.</li>
+      <li><span class="tag done">Passed</span> Private GitHub repo created at <code>https://github.com/altitudeinfosys/VoiceInk-FlowLocal</code> and branch <code>flowlocal-v1</code> pushed.</li>
+      <li>
+        <span class="tag warn">Partial</span>
+        Full Debug <code>VoiceInkTests</code> ran but one app-host test pass aborted on
+        <code>starterFactoryInstallsLanguageProfileDefaults</code>. That same test passed when rerun by itself, so this is recorded as a full-suite crash/flakiness item, not as a confirmed profile-default failure.
+      </li>
+      <li>
+        <span class="tag warn">Environment warning</span>
+        Xcode still reports a CoreSimulator version mismatch on every build/test command:
+        current <code>1051.54.0</code>, expected <code>1051.55.0</code>. It did not block the local macOS app build.
+      </li>
+    </ul>
+    <pre><code>cd /Users/tarekalaaddin/Projects/code/VoiceInk-FlowLocal
+git status --short --branch
+git diff --check origin/main..HEAD
+find VoiceInk VoiceInkTests -name '*.swift' -print0 | xargs -0 xcrun swiftc -parse
+make local</code></pre>
+  </section>
+
+  <section>
+    <h2>How To Build The App</h2>
+    <p><strong>Use this path for a fresh Mac or after pulling new changes.</strong> Until we create our own signed DMG, building locally from the private repo is the most reliable install path. The build still outputs <code>VoiceInk.app</code>; the Local Flow rename can happen later.</p>
+
+    <h3>Prerequisites</h3>
+    <ol>
+      <li>Make sure the Mac has access to the private GitHub repo at <code>https://github.com/altitudeinfosys/VoiceInk-FlowLocal</code>.</li>
+      <li>Install Xcode or Xcode Command Line Tools.</li>
+      <li>Install Homebrew if it is not already installed.</li>
+      <li>Install CMake with Homebrew.</li>
+    </ol>
+    <pre><code>xcode-select --install
+command -v brew || echo "Install Homebrew from https://brew.sh first"
+brew install cmake</code></pre>
+
+    <h3>Fresh Clone Build</h3>
+    <ol>
+      <li>Clone the private repo from GitHub.</li>
+      <li>Check out the current working branch.</li>
+      <li>Run the local build command.</li>
+      <li>Confirm the app appears in <code>~/Downloads</code>.</li>
+    </ol>
+    <pre><code>mkdir -p ~/Projects/code
+cd ~/Projects/code
+git clone --branch flowlocal-v1 https://github.com/altitudeinfosys/VoiceInk-FlowLocal.git
+cd VoiceInk-FlowLocal
+make local
+ls -lh ~/Downloads/VoiceInk.app</code></pre>
+
+    <h3>Existing Checkout Build</h3>
+    <ol>
+      <li>Use this if the repo is already cloned on the Mac.</li>
+      <li>Pull the latest private branch.</li>
+      <li>Run <code>make local</code> again.</li>
+    </ol>
+    <pre><code>cd /Users/tarekalaaddin/Projects/code/VoiceInk-FlowLocal
+git checkout flowlocal-v1
+git pull --ff-only private flowlocal-v1
+# If this checkout was cloned directly from the private repo, use this instead:
+# git pull --ff-only origin flowlocal-v1
+make local
+ls -lh /Users/tarekalaaddin/Downloads/VoiceInk.app</code></pre>
+
+    <h3>Build Output</h3>
+    <ul>
+      <li><code>make local</code> builds the app and copies the runnable app bundle to <code>~/Downloads/VoiceInk.app</code>.</li>
+      <li>After building, install the app by copying <code>~/Downloads/VoiceInk.app</code> into <code>/Applications</code>.</li>
+      <li>If macOS blocks the first launch, right-click the app in Finder and choose Open.</li>
+    </ul>
+
+    <h3>Future DMG Path</h3>
+    <p>Once we create a signed private DMG, this section can shrink to a normal Mac flow: download the DMG, open it, drag Local Flow into Applications, then launch it. For now, local build first and app copy second is the most dependable process.</p>
+  </section>
+
+  <section>
+    <h2>Installation Instructions</h2>
+    <p><strong>Recommended for now:</strong> install the local build as a normal Mac app by copying <code>VoiceInk.app</code> into <code>/Applications</code>. The app is still named VoiceInk at the bundle level until the later Local Flow rename work.</p>
+
+    <h3>Install the already built app on this Mac</h3>
+    <ol>
+      <li>Use the current built app at <code>/Users/tarekalaaddin/Downloads/VoiceInk.app</code>.</li>
+      <li>Optional: use the zipped app artifact at <code>/Users/tarekalaaddin/Downloads/VoiceInk-FlowLocal-P0.zip</code> if you want to copy it to another Mac without rebuilding immediately.</li>
+      <li>Quit any running VoiceInk copy from the menu bar.</li>
+      <li>Copy the app into Applications:</li>
+    </ol>
+    <pre><code>rm -rf /Applications/VoiceInk.app
+cp -R /Users/tarekalaaddin/Downloads/VoiceInk.app /Applications/VoiceInk.app
+open /Applications/VoiceInk.app</code></pre>
+    <p>If macOS blocks the app because it is a local/private build, right-click <code>VoiceInk.app</code> in Finder and choose Open. If needed, remove quarantine after you trust the build:</p>
+    <pre><code>xattr -dr com.apple.quarantine /Applications/VoiceInk.app</code></pre>
+
+    <h3>Install from the private repo on another Mac</h3>
+    <ol>
+      <li>Make sure the Mac has Xcode or Xcode Command Line Tools installed.</li>
+      <li>Install build prerequisites if missing, especially CMake.</li>
+      <li>Clone the private repo and build the local app.</li>
+      <li>Copy the generated app into Applications and launch it.</li>
+    </ol>
+    <pre><code>xcode-select --install
+brew install cmake
+git clone --branch flowlocal-v1 https://github.com/altitudeinfosys/VoiceInk-FlowLocal.git
+cd VoiceInk-FlowLocal
+make local
+rm -rf /Applications/VoiceInk.app
+cp -R ~/Downloads/VoiceInk.app /Applications/VoiceInk.app
+open /Applications/VoiceInk.app</code></pre>
+
+    <h3>Install from the private zip on another Mac</h3>
+    <ol>
+      <li>Copy <code>VoiceInk-FlowLocal-P0.zip</code> to the other Mac.</li>
+      <li>Double-click the zip to extract <code>VoiceInk.app</code>.</li>
+      <li>Drag <code>VoiceInk.app</code> into <code>/Applications</code>.</li>
+      <li>Right-click the app and choose Open if macOS blocks the first launch.</li>
+      <li>Use the repo-based install if the copied app does not run on that Mac; rebuilding locally is more reliable while the app is not signed/notarized.</li>
+    </ol>
+
+    <h3>First Launch Setup</h3>
+    <ol>
+      <li>Grant microphone, accessibility, and screen-recording permissions when prompted.</li>
+      <li>Download Parakeet V3 for English local transcription.</li>
+      <li>Add the cleanup provider key you want to use, such as Gemini or OpenRouter.</li>
+      <li>Use the English profile first and confirm dictation inserts into Notes or TextEdit.</li>
+      <li>For Arabic and Spanish, configure the cloud transcription/cleanup keys before testing those profiles.</li>
+    </ol>
+    <p><strong>Do not use the crash dialog's Reopen button for old Xcode Debug builds.</strong> If a dialog says VoiceInk quit unexpectedly after an Xcode/test run, click Ignore and open <code>/Applications/VoiceInk.app</code> or <code>/Users/tarekalaaddin/Downloads/VoiceInk.app</code> directly.</p>
+
+    <h3>Future Packaging</h3>
+    <p>The easiest final installation path will be a private signed zip or DMG that contains the app, then later a fully signed/notarized Local Flow app. For the current private build, cloning the repo and running <code>make local</code> is the most reliable repeatable install path.</p>
+  </section>
+
+  <section>
+    <h2>Before Manual Testing</h2>
+    <ol>
+      <li>Use the already built app at <code>/Users/tarekalaaddin/Downloads/VoiceInk.app</code>, or rebuild with <code>make local</code>.</li>
+      <li>If using Xcode, open <code>/Users/tarekalaaddin/Projects/code/VoiceInk-FlowLocal/VoiceInk.xcodeproj</code>, select the macOS app scheme, then build and run.</li>
+      <li>If Xcode still reports the CoreSimulator mismatch, update macOS/Xcode command line tools or reboot after installing available updates.</li>
+      <li>Grant microphone, accessibility, and screen-recording permissions when macOS asks. These are OS security permissions and were not granted during automated testing.</li>
+      <li>For English local testing, make sure Parakeet V3 is downloaded/available.</li>
+      <li>For Arabic/Spanish cloud testing, add the needed provider keys, especially ElevenLabs for Scribe v2 and OpenRouter for cleanup.</li>
+    </ol>
+    <p><strong>Parakeet note:</strong> the current P0 default recommends Parakeet V3 for English local transcription. If you switch English to Whisper <code>large-v3-turbo</code> later, download that Whisper model before testing that mode.</p>
+    <p><strong>Fixed fallback behavior:</strong> older local builds could show vague missing-model errors or fall through to Apple Speech. The rebuilt app at <code>/Users/tarekalaaddin/Downloads/VoiceInk.app</code> no longer treats Apple Speech as an implicit fallback for an explicitly configured mode model, and the error now names the missing model when possible.</p>
+  </section>
+
+  <section>
+    <h2>Manual Test Plan</h2>
+
+    <h3>1. Language Profiles</h3>
+    <ol>
+      <li>Launch the app with a fresh or reset onboarding state.</li>
+      <li>Complete onboarding.</li>
+      <li>Open mode/profile settings and confirm English is active/default.</li>
+      <li>Confirm English uses Parakeet V3 <code>parakeet-tdt-0.6b-v3</code>, language <code>en</code>, OpenRouter cleanup, and the English Medium Cleanup prompt.</li>
+      <li>Switch to Arabic and confirm it uses <code>scribe_v2</code>, language <code>ar</code>, and Arabic Light Cleanup.</li>
+      <li>Switch to Spanish and confirm it uses <code>scribe_v2</code>, language <code>es</code>, and Spanish Light Cleanup.</li>
+    </ol>
+    <p><strong>Expected:</strong> English is local-first. Arabic and Spanish are cloud-first. Old no-AI Dictation is not the final onboarding default.</p>
+
+    <h3>2. English Dictation Path</h3>
+    <ol>
+      <li>Select the English profile.</li>
+      <li>Place the cursor in Notes, TextEdit, or another editable app.</li>
+      <li>Start recording with the app hotkey.</li>
+      <li>Dictate a short English sentence with minor filler words.</li>
+      <li>Commit with Return or the configured hotkey.</li>
+    </ol>
+    <p><strong>Expected:</strong> text is transcribed locally, cleaned by the configured cleanup model if keys are configured, and inserted at the cursor.</p>
+
+    <h3>3. Arabic and Spanish Cloud Paths</h3>
+    <ol>
+      <li>Add/confirm ElevenLabs API key.</li>
+      <li>Select Arabic profile and dictate a short Arabic phrase.</li>
+      <li>Confirm the menu bar cloud badge appears when the Arabic profile is active and usable.</li>
+      <li>Repeat with Spanish.</li>
+    </ol>
+    <p><strong>Expected:</strong> cloud transcription runs through Scribe v2. Cleanup is light and should not aggressively rewrite wording.</p>
+
+    <h3>4. Cloud Reminder</h3>
+    <ol>
+      <li>Reset the reminder flag if you need to retest: remove <code>HasShownCloudProfileReminder</code> from app defaults, or use a fresh defaults domain.</li>
+      <li>Select English local profile.</li>
+      <li>Switch to Arabic or Spanish cloud profile from the menu bar or mode popover.</li>
+    </ol>
+    <p><strong>Expected:</strong> a one-time warning appears saying the profile uses cloud transcription. It should not repeat after the first warning.</p>
+
+    <h3>5. Recorder Controls</h3>
+    <ol>
+      <li>Start recording from the recorder panel.</li>
+      <li>Press <code>Esc</code>.</li>
+      <li>Start a second recording.</li>
+      <li>Press <code>Return</code>.</li>
+      <li>Start a third recording.</li>
+      <li>Press <code>fn+Space</code>.</li>
+    </ol>
+    <p><strong>Expected:</strong> <code>Esc</code> cancels and inserts nothing. <code>Return</code> and <code>fn+Space</code> commit and continue through transcription/cleanup/paste.</p>
+
+    <h3>6. Review Before Insert</h3>
+    <ol>
+      <li>Open Settings -> Pasting.</li>
+      <li>Enable Review Before Insert.</li>
+      <li>Start a recording and commit it.</li>
+      <li>Edit the text in the review panel.</li>
+      <li>Click Copy and confirm the edited text is copied.</li>
+      <li>Press <code>Shift+Return</code> inside the editor and confirm it inserts a newline.</li>
+      <li>Press unmodified <code>Return</code> to commit.</li>
+      <li>Repeat and press <code>Esc</code> or Cancel.</li>
+    </ol>
+    <p><strong>Expected:</strong> review mode pauses before insert. Edited text is what gets pasted. Cancel closes the panel and inserts nothing. Review mode off restores fast direct insertion.</p>
+
+    <h3>7. Privacy and Retention</h3>
+    <ol>
+      <li>Open History Settings.</li>
+      <li>Confirm transcript cleanup is enabled and retention is 30 days.</li>
+      <li>Confirm audio cleanup defaults to Temporary and debug recorder audio retention is off.</li>
+      <li>Record and commit a test phrase.</li>
+      <li>Check the app recordings directory for a UUID-named recorder <code>.wav</code> file from that session.</li>
+      <li>Cancel a recording and repeat the file check.</li>
+      <li>Enable Retain Recorder Audio for Debugging and repeat a short recording.</li>
+    </ol>
+    <p><strong>Expected:</strong> committed and canceled recorder audio is deleted by default while transcript text remains. Debug retention keeps recorder audio.</p>
+
+    <h3>8. Imported Audio Safety</h3>
+    <ol>
+      <li>Use the app's audio-file transcription flow with an imported file.</li>
+      <li>Confirm the transcript is created.</li>
+      <li>Run normal recorder tests again.</li>
+    </ol>
+    <p><strong>Expected:</strong> immediate recorder cleanup only applies to recorder-created UUID <code>.wav</code> files, not imported/manual audio copies such as <code>transcribed_*.wav</code>.</p>
+  </section>
+
+  <section>
+    <h2>Command-Line Checks</h2>
+    <p>Use these after any future change to confirm the branch is still clean and parse-valid.</p>
+    <pre><code>cd /Users/tarekalaaddin/Projects/code/VoiceInk-FlowLocal
+git status --short --branch
+git log --oneline --decorate -8
+git diff --check origin/main..HEAD
+find VoiceInk VoiceInkTests -name '*.swift' -print0 | xargs -0 xcrun swiftc -parse</code></pre>
+
+    <p>For the local unsigned build path:</p>
+    <pre><code>cd /Users/tarekalaaddin/Projects/code/VoiceInk-FlowLocal
+xcodebuild -list -project VoiceInk.xcodeproj
+make local</code></pre>
+
+    <p>For tests, use Debug so <code>@testable import VoiceInk</code> can load a testing-enabled module:</p>
+    <pre><code>cd /Users/tarekalaaddin/Projects/code/VoiceInk-FlowLocal
+xcodebuild test -project VoiceInk.xcodeproj -scheme VoiceInk -configuration Debug -destination 'platform=macOS' -only-testing:VoiceInkTests</code></pre>
+  </section>
+
+  <section>
+    <h2>Known Remaining Runtime Work</h2>
+    <ul>
+      <li><strong>Full Xcode test suite:</strong> one full-suite Debug run aborted in the app host, while the named profile-default test passed in isolation. Re-run the full suite after dismissing old crash dialogs and after the CoreSimulator tooling mismatch is resolved.</li>
+      <li><strong>Permissions:</strong> app launch reached the permission screen. Microphone, accessibility, and screen-recording permissions still need manual approval before end-to-end dictation testing.</li>
+      <li><strong>Provider benchmarking:</strong> Arabic/Spanish quality should be compared using your own real samples once API keys are configured.</li>
+      <li><strong>Local cleanup LLM:</strong> optional future experiment. Not needed for v1 because English uses local STT plus cloud cleanup, while Arabic/Spanish are cloud-first.</li>
+      <li><strong>Packaging polish:</strong> current installs use <code>make local</code> or a copied local app. A signed zip/DMG and final Local Flow identity rename are still future work.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Bottom Line Status</h2>
+    <p><strong>Updated:</strong> July 4, 2026. The branch is usable for local testing, but it still needs product polish before it feels like a finished Local Flow app.</p>
+
+    <h3>Done So Far</h3>
+    <ul>
+      <li><strong>Language profiles:</strong> onboarding now installs English, Arabic, and Spanish starter profiles instead of ending on generic no-AI dictation.</li>
+      <li><strong>English default:</strong> English is local-first with recommended Parakeet V3 <code>parakeet-tdt-0.6b-v3</code>, language <code>en</code>, OpenRouter cleanup, and the English Medium Cleanup prompt. Whisper remains available as an alternate model choice.</li>
+      <li><strong>Arabic/Spanish defaults:</strong> Arabic and Spanish are cloud-first using ElevenLabs Scribe v2, language-specific cleanup prompts, and the cheaper OpenRouter cleanup model.</li>
+      <li><strong>Cloud awareness:</strong> the menu/profile flow can show cloud transcription state and a one-time reminder when switching from local English to cloud profiles.</li>
+      <li><strong>Review before insert:</strong> optional review mode lets you edit or cancel the transcript before it is pasted.</li>
+      <li><strong>Recorder controls:</strong> <code>Esc</code> cancels, <code>Return</code> commits, and <code>fn+Space</code> is reserved for commit behavior.</li>
+      <li><strong>Privacy defaults:</strong> recorder audio is temporary by default while transcript text remains available in history.</li>
+      <li><strong>Model safety:</strong> explicit mode models no longer silently fall back to Apple Speech when the configured model is missing, and missing-model errors now name the profile/model when possible.</li>
+      <li><strong>Local build path:</strong> Whisper XCFramework builds locally and <code>make local</code> produces a runnable app in <code>/Users/tarekalaaddin/Downloads/VoiceInk.app</code>.</li>
+      <li><strong>Private repo:</strong> the working branch is pushed privately to <code>https://github.com/altitudeinfosys/VoiceInk-FlowLocal</code> on <code>flowlocal-v1</code>.</li>
+    </ul>
+
+    <h3>Remaining Work</h3>
+    <ul>
+      <li><strong>P1 - Fresh Mac mini onboarding pass:</strong> install the latest local build on the Mac mini, follow onboarding from a clean state, download Parakeet V3, configure cleanup, and confirm English dictation/paste end to end.</li>
+      <li><strong>P1 - Arabic/Spanish cloud validation:</strong> test real Arabic and Spanish samples with ElevenLabs Scribe v2 and OpenRouter cleanup, then record quality/cost notes.</li>
+      <li><strong>P1 - Display rename:</strong> do a low-risk visible rename to Local Flow while keeping the bundle ID/storage identity unchanged for now.</li>
+      <li><strong>P1 - Permission polish:</strong> make microphone/accessibility/screen-recording setup clearer, including recheck behavior and stale TCC permission guidance.</li>
+      <li><strong>P1 - Model download guidance:</strong> surface downloaded/required model mismatches directly inside onboarding and mode settings.</li>
+      <li><strong>P1 - Private app package:</strong> create an easy private zip or DMG installer so another Mac can install without building from source.</li>
+      <li><strong>P1 - Usage Stats page:</strong> add a sidebar item called Stats that is always visible, independent from the locked Insights flow. It should show total recorded minutes, completed sessions, words dictated, local/cloud model usage, cleanup usage, and time saved.</li>
+      <li><strong>P1 - OpenRouter model selection UX:</strong> make the AI Models -> OpenRouter panel selectable or add a clear link to the per-mode AI model picker. Current behavior only verifies the key, refreshes the model cache, and shows the number of models available.</li>
+      <li><strong>P1 - Full regression pass:</strong> rerun the full Debug test suite after clearing old crash dialogs and resolving the CoreSimulator mismatch.</li>
+      <li><strong>P2 - Estimated Cost page:</strong> extend Stats with estimated provider cost by model, including local transcription cost as zero, cloud transcription cost by audio minute where applicable, and cleanup cost by token usage once token counts are captured per request.</li>
+      <li><strong>P2 - Translation mode:</strong> add a Translate sidebar item after AI Models/Audio that lets the user choose source and target languages, speak in one language, view the transcript and translated text, then copy or insert the translation.</li>
+      <li><strong>P2 - Full identity rename:</strong> defer deep bundle ID, keychain, storage, iCloud, schemes, and target renaming until after core runtime behavior is stable.</li>
+      <li><strong>P2 - VoiceInk commercial remnants:</strong> decide whether to hide/remove license, Pro, affiliate, update-feed, and original support links for the personal Local Flow build.</li>
+      <li><strong>P2 - Local cleanup experiment:</strong> benchmark a local cleanup LLM only if cloud cleanup cost or privacy becomes a real concern.</li>
+      <li><strong>P3 - Mobile companion app:</strong> design a simple iOS-first companion with Transcribe and Translate modes, cloud transcription/translation, copy/share output, and optional transcript sync to Supabase or Neon.</li>
+    </ul>
+
+    <h3>Future Feature Notes</h3>
+    <ul>
+      <li><strong>Stats effort:</strong> low to medium. The app already records sessions, audio duration, words, transcription model, cleanup model, and cleanup duration. The first version should be a read-only page using the existing stats store.</li>
+      <li><strong>Cost tracking effort:</strong> medium. The app needs to persist provider request metadata such as model, input tokens, output tokens, audio seconds, provider, and pricing snapshot. Pricing changes over time, so all costs should be labeled estimated.</li>
+      <li><strong>Pricing refresh:</strong> medium to high depending on provider support. Start with a local editable pricing table and a manual "Update Pricing" action. Provider APIs can be added later when stable enough.</li>
+      <li><strong>Translate effort on Mac:</strong> medium. The simplest version can reuse the existing cloud cleanup/provider path: record -> transcribe -> translate prompt -> show translated text -> copy/insert. A polished version needs language selectors, history metadata, and offline/error states.</li>
+      <li><strong>Mobile effort:</strong> medium for a simple iOS app, higher for iOS plus Android. A practical v1 should be cloud-first, with one record button, source/target language selectors, transcript/translation output, copy/share, and database sync. Native keyboard-level insertion is the hard part and should not be v1.</li>
+      <li><strong>OpenRouter selector note:</strong> the current OpenRouter detail drawer is a provider-management screen, not the model selector. To choose a model today, open Modes, edit the target mode such as English, choose OpenRouter as the AI provider, then use that mode's AI Model picker. Future UI should make this path discoverable from the catalog itself.</li>
+    </ul>
+
+    <h3>Taskitos Backlog Candidates</h3>
+    <ul>
+      <li><strong>P1:</strong> Add always-visible Stats sidebar page for total minutes, sessions, words, model usage, cleanup usage, and time saved.</li>
+      <li><strong>P1:</strong> Improve OpenRouter model selection UX so users can select a cleanup model from the provider catalog or jump directly to the relevant mode editor.</li>
+      <li><strong>P2:</strong> Add estimated cost tracking using per-request provider metadata and token/audio-minute usage.</li>
+      <li><strong>P2:</strong> Add editable pricing table and optional pricing refresh action.</li>
+      <li><strong>P2:</strong> Add Mac Translate mode with source/target language selectors, transcript preview, translated text preview, copy, and insert.</li>
+      <li><strong>P3:</strong> Scope simple mobile companion app for cloud transcription, translation, copy/share, and Supabase/Neon transcript storage.</li>
+    </ul>
+
+    <h3>English Online and Offline Flow</h3>
+    <p><strong>When English uses Parakeet V3:</strong> Parakeet runs on the Mac and converts recorded speech into raw transcript text. Gemini runs in the cloud and only receives the raw text for cleanup; it does not need the original audio.</p>
+    <pre><code>Online English:
+microphone audio -> Parakeet V3 local transcription -> raw transcript -> Gemini cleanup -> polished text -> insert at cursor</code></pre>
+    <pre><code>Offline English:
+microphone audio -> Parakeet V3 local transcription -> raw transcript -> insert raw text or show cleanup-unavailable prompt</code></pre>
+    <p><strong>Offline expectation:</strong> local English transcription should continue working after the model is downloaded, but Gemini cleanup will not run without internet. The app should make that state obvious and offer to insert the raw transcript instead of failing silently.</p>
+    <p><strong>Arabic/Spanish expectation:</strong> the v1 design keeps Arabic and Spanish cloud-first, so those profiles still require internet for cloud transcription and cleanup.</p>
+
+    <p><strong>Taskitos tracking note:</strong> the Taskitos MCP is not currently exposed in this Codex session. The backlog above is ready to sync once the connector is connected and authenticated.</p>
+  </section>
+</main>
+</body>
+</html>

@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FlowLocal — v1 Spec (Personal Wispr Flow Replacement)</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --ink:#e8ecf3; --muted:#9aa4b2;
+    --line:#2a2f3a; --accent:#6ea8fe; --accent2:#7ee0c0; --warn:#ffcf6e; --danger:#ff8f8f;
+    --good:#7ee0a0; --chip:#242a35;
+    --mono:'SF Mono',ui-monospace,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  }
+  @media print{ :root{ --bg:#fff;--panel:#fff;--panel2:#f6f8fb;--ink:#12151b;--muted:#4a5566;--line:#d7dde6;--chip:#eef2f7;} body{padding:0} .noprint{display:none} }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;font-size:16px;padding:0 0 80px}
+  .wrap{max-width:960px;margin:0 auto;padding:0 22px}
+  header.hero{background:linear-gradient(135deg,#141a2b,#0f1115 60%);border-bottom:1px solid var(--line);padding:46px 0 34px;margin-bottom:8px}
+  .kicker{font-family:var(--mono);font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 10px}
+  h1{font-size:34px;line-height:1.15;margin:0 0 12px;font-weight:800;letter-spacing:-.02em}
+  h1 .sub{color:var(--muted);font-weight:600}
+  .lede{color:var(--muted);font-size:17px;max-width:760px;margin:0}
+  .meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+  .chip{background:var(--chip);border:1px solid var(--line);color:var(--ink);font-size:12.5px;padding:5px 11px;border-radius:20px;font-family:var(--mono)}
+  h2{font-size:23px;margin:44px 0 6px;letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
+  h2 .n{font-family:var(--mono);font-size:14px;color:var(--accent);border:1px solid var(--line);border-radius:8px;padding:2px 8px;background:var(--panel2)}
+  h3{font-size:17px;margin:26px 0 8px}
+  p{margin:10px 0}
+  .rule{height:1px;background:var(--line);border:0;margin:6px 0 0}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:16px 0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:720px){.grid2{grid-template-columns:1fr}}
+  .callout{border-left:3px solid var(--accent);background:var(--panel2);border-radius:0 10px 10px 0;padding:12px 16px;margin:16px 0}
+  .callout.warn{border-color:var(--warn)} .callout.good{border-color:var(--good)} .callout.danger{border-color:var(--danger)}
+  .callout .t{font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+  .callout.warn .t{color:var(--warn)} .callout.good .t{color:var(--good)} .callout.danger .t{color:var(--danger)} .callout .t.a{color:var(--accent)}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}
+  tbody tr:hover{background:var(--panel2)}
+  .tag{display:inline-block;font-family:var(--mono);font-size:11.5px;padding:2px 7px;border-radius:6px;border:1px solid var(--line)}
+  .tag.own{color:var(--good);border-color:#2c4a3a;background:#14241c}
+  .tag.new{color:var(--accent);border-color:#25405f;background:#132133}
+  .tag.tune{color:var(--warn);border-color:#4d4223;background:#241f10}
+  code{font-family:var(--mono);font-size:13px;background:var(--panel2);border:1px solid var(--line);padding:1px 6px;border-radius:6px}
+  kbd{font-family:var(--mono);font-size:12.5px;background:#2b3240;border:1px solid #3a4250;border-bottom-width:2px;border-radius:6px;padding:2px 8px;color:#fff;white-space:nowrap}
+  ul{margin:8px 0;padding-left:22px} li{margin:4px 0}
+  .pill-row{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;flex:1;min-width:150px}
+  .stat .big{font-size:22px;font-weight:800} .stat .lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .flow-svg{width:100%;height:auto;display:block;background:var(--panel);border:1px solid var(--line);border-radius:14px;margin:16px 0}
+  .num{font-variant-numeric:tabular-nums}
+  .muted{color:var(--muted)}
+  .phase{display:flex;gap:14px;margin:10px 0;align-items:flex-start}
+  .phase .badge{flex:none;width:34px;height:34px;border-radius:9px;background:var(--panel2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;color:var(--accent)}
+  .foot{margin-top:40px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:16px}
+  a{color:var(--accent)}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <p class="kicker">v1 Design Spec · Mac · for approval</p>
+    <h1>FlowLocal <span class="sub">— your own Wispr Flow, owned &amp; self-hosted</span></h1>
+    <p class="lede">A personal macOS dictation app: press a hotkey, speak mostly English, and get intelligently cleaned-up text inserted at your cursor in any app. English is local-first; Arabic and Spanish are cloud-first language profiles with light cleanup. Your own dictionary, no subscription.</p>
+    <div class="meta">
+      <span class="chip">Target: MacBook Pro M5 Pro · 64GB · macOS 26</span>
+      <span class="chip">Strategy: fork VoiceInk</span>
+      <span class="chip">Pace: spec → your approval → build</span>
+      <span class="chip">Date: 2026-07-04</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="callout good">
+    <div class="t">The headline recommendation (revised after reading the source)</div>
+    <p style="margin:2px 0"><strong>Fork <a href="https://github.com/beingpax/VoiceInk">VoiceInk</a></strong> (native Swift, GPLv3, ~5k★, commit <code>756ee8a</code> on 2026-07-03). A source-level review of current <code>main</code> shows it ships <strong>even more than the web suggested</strong>: local Whisper (incl. <code>whisper-large-v3-turbo</code>) + Apple SpeechAnalyzer, global push-to-talk, paste-at-cursor, an LLM cleanup layer, a custom dictionary with replacements — <strong>and already-built OpenRouter, ElevenLabs Scribe (v1/v2 batch + v2 realtime), Deepgram, Groq, Gemini, Mistral providers</strong>. So v1 is a <strong>personalization &amp; hardening delta</strong>, not a feature build: mostly <em>verify/tune</em> what exists, plus simple <strong>language profiles</strong> (English local-first, Arabic/Spanish cloud-first), a genuinely new <strong>review panel</strong>, your exact <strong>Esc-cancel / Enter-commit</strong> scheme, a <strong>privacy/retention fix</strong> (see §1), and an explicit <strong>local-model resource budget</strong> (see §4). Free — a private build has zero GPL obligation.</p>
+  </div>
+
+  <div class="pill-row">
+    <div class="stat"><div class="big">~90%+</div><div class="lbl">Already built (source-verified)</div></div>
+    <div class="stat"><div class="big">~$0–4<span style="font-size:13px">/mo</span></div><div class="lbl">Mostly-English cost</div></div>
+    <div class="stat"><div class="big">3</div><div class="lbl">Profiles: EN local · ES/AR cloud</div></div>
+    <div class="stat"><div class="big">~2–3s</div><div class="lbl">Speak → cleaned text at cursor</div></div>
+  </div>
+
+  <!-- source verification -->
+  <div class="card" style="border-color:#3a4250">
+    <h3 style="margin-top:0;display:flex;align-items:center;gap:8px">🔍 Source-level verification <span class="muted" style="font-weight:400;font-size:13px">— Codex code review vs the original web research</span></h3>
+    <p class="muted" style="margin:4px 0 12px">The first draft was built from web research (README, blogs). A second review read the actual VoiceInk <code>main</code> (<code>756ee8a</code>, 2026-07-03) and corrected it. All six points confirmed against source. The plan below already reflects these.</p>
+    <table>
+      <thead><tr><th>#</th><th>Original spec said</th><th>Source actually shows</th><th>Impact</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>"Build an OpenRouter adapter"</td><td><code>AIService.openRouter</code> + <code>fetchOpenRouterModels()</code> + key mgmt — <strong>already built</strong></td><td><span class="tag own">less work</span> verify/tune</td></tr>
+        <tr><td>2</td><td>"Add ElevenLabs Scribe v2"</td><td><code>ElevenLabsProvider</code> (scribe_v1/v2 batch) + streaming (scribe_v2 realtime) + Deepgram/Groq — <strong>already built</strong></td><td><span class="tag own">less work</span> add key only</td></tr>
+        <tr><td>3</td><td>"No audio saved · 30-day text history"</td><td>Upstream saves <strong>audio 7 days</strong>, <strong>transcripts 1 day</strong> by default — opposite of the ask</td><td><span class="tag new">must-fix</span> was a real gap</td></tr>
+        <tr><td>4</td><td>Review panel = net-new</td><td>Only history/detail views exist; nothing gates insertion</td><td><span class="tag new">confirmed new</span></td></tr>
+        <tr><td>5</td><td>Esc/Enter control scheme</td><td><code>cancelRecording()</code> infra exists, but not your exact single-press semantics</td><td><span class="tag new">dedicated task</span> + tests</td></tr>
+        <tr><td>6</td><td>Insertion mechanism unknown</td><td>Clipboard paste w/ restore (<code>restoreClipboardAfterPaste</code>, <code>useAppleScriptPaste</code>)</td><td><span class="tag own">resolved</span></td></tr>
+      </tbody>
+    </table>
+    <div class="callout warn" style="margin:12px 0 0">
+      <div class="t">Lesson baked into how we proceed</div>
+      <p style="margin:2px 0">Web research can't see a Swift <code>enum</code>'s cases or a retention default — 100+ web agents missed what one code-reading review caught. <strong>For a fork, the repo is the spec.</strong> We verify against source before every build decision.</p>
+    </div>
+  </div>
+
+  <!-- 1 -->
+  <h2><span class="n">1</span> What v1 is (and isn't)</h2>
+  <hr class="rule">
+  <div class="grid2">
+    <div class="card">
+      <h3 style="margin-top:0;color:var(--good)">✓ In scope for v1</h3>
+      <ul>
+        <li>Global hotkey → record → cleaned text at cursor in <strong>any</strong> app</li>
+        <li><strong>Language profiles</strong> from the menu bar: English local-first; Spanish/Arabic cloud-first</li>
+        <li><strong>Switchable engines</strong> (local ⇄ cloud) still available for transcription &amp; cleanup, but not the main daily workflow</li>
+        <li><strong>OpenRouter</strong> model picker for cleanup (Claude / GPT / any)</li>
+        <li><strong>Cleanup profiles:</strong> English medium cleanup; Arabic/Spanish light cleanup or pass-through</li>
+        <li>EN / ES / AR support, with English expected to be ~99% of daily use</li>
+        <li>Custom dictionary: name boosting + text-replacement shortcuts</li>
+        <li>Optional <strong>review &amp; edit panel</strong> with a copy button</li>
+        <li><strong>Privacy fix:</strong> allow temporary audio during capture/transcription, then delete it immediately after success/cancel unless debug audio retention is enabled (upstream keeps audio 7 days) + set transcript retention to 30 days (upstream default is 1 day)</li>
+        <li>Privacy toggle + simple cloud reminder: menu-bar cloud badge + one-time warning when switching from local to cloud</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0;color:var(--muted)">✗ Deferred (cheap to add later)</h3>
+      <ul>
+        <li>Spoken format commands ("new paragraph", "bullet")</li>
+        <li>Per-app tone modes (Slack casual vs email polished)</li>
+        <li>Auto-learn dictionary (app suggests new words)</li>
+        <li>Style preferences ("always JavaScript not javascript")</li>
+        <li>iOS / Android apps → <strong>v2</strong></li>
+        <li>Windows → <strong>v4</strong></li>
+        <li>Open-sourcing your fork → maybe, later</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <h2><span class="n">2</span> The pipeline (architecture)</h2>
+  <hr class="rule">
+  <p>One press-to-talk gesture drives a five-stage pipeline. v1 should use <strong>language-aware defaults</strong>: English stays local-first for speed/privacy; Spanish and Arabic route to cloud transcription and usually need only light cleanup.</p>
+
+  <svg class="flow-svg" viewBox="0 0 920 300" role="img" aria-label="FlowLocal pipeline diagram">
+    <defs>
+      <marker id="arw" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#6ea8fe"/></marker>
+      <style>
+        .box{fill:#1e222b;stroke:#2a2f3a;stroke-width:1.2;rx:11}
+        .lb{fill:#e8ecf3;font:600 13px -apple-system,Segoe UI,sans-serif}
+        .sm{fill:#9aa4b2;font:11px 'SF Mono',monospace}
+        .ln{stroke:#6ea8fe;stroke-width:1.6;fill:none;marker-end:url(#arw)}
+        .eng{fill:#132133;stroke:#25405f}
+        .hd{fill:#6ea8fe;font:700 11px 'SF Mono',monospace;letter-spacing:.05em}
+      </style>
+    </defs>
+    <!-- stage 1 -->
+    <rect class="box" x="14" y="120" width="120" height="60" rx="11"/>
+    <text class="hd" x="26" y="112">1 · TRIGGER</text>
+    <text class="lb" x="26" y="146">Hotkey down</text>
+    <text class="sm" x="26" y="165">mic capture starts</text>
+    <!-- stage 2 -->
+    <rect class="box eng" x="178" y="96" width="150" height="108" rx="11"/>
+    <text class="hd" x="190" y="88">2 · TRANSCRIBE</text>
+    <text class="lb" x="190" y="122">EN: local Whisper</text>
+    <text class="sm" x="190" y="140">large-v3-turbo</text>
+    <text class="lb" x="190" y="168">ES/AR: cloud STT</text>
+    <text class="sm" x="190" y="186">Scribe / OpenAI</text>
+    <!-- stage 3 -->
+    <rect class="box eng" x="372" y="96" width="156" height="108" rx="11"/>
+    <text class="hd" x="384" y="88">3 · CLEANUP LLM</text>
+    <text class="lb" x="384" y="122">EN: medium cleanup</text>
+    <text class="sm" x="384" y="140">Haiku default</text>
+    <text class="lb" x="384" y="168">ES/AR: light cleanup</text>
+    <text class="sm" x="384" y="186">or pass-through</text>
+    <!-- dictionary feeds cleanup -->
+    <rect class="box" x="372" y="238" width="156" height="46" rx="11"/>
+    <text class="sm" x="384" y="258" style="fill:#7ee0c0">Custom dictionary</text>
+    <text class="sm" x="384" y="274">names + replacements → prompt</text>
+    <path class="ln" d="M450,238 L450,208"/>
+    <!-- stage 4 -->
+    <rect class="box" x="572" y="96" width="150" height="108" rx="11"/>
+    <text class="hd" x="584" y="88">4 · REVIEW</text>
+    <text class="lb" x="584" y="126">Optional panel</text>
+    <text class="sm" x="584" y="146">edit · copy</text>
+    <text class="sm" x="584" y="176" style="fill:#7ee0a0">Enter → commit</text>
+    <text class="sm" x="584" y="192" style="fill:#ff8f8f">Esc → cancel</text>
+    <!-- stage 5 -->
+    <rect class="box" x="766" y="120" width="140" height="60" rx="11"/>
+    <text class="hd" x="778" y="112">5 · INSERT</text>
+    <text class="lb" x="778" y="146">At cursor</text>
+    <text class="sm" x="778" y="165">any app · AX / paste</text>
+    <!-- arrows -->
+    <path class="ln" d="M134,150 L172,150"/>
+    <path class="ln" d="M328,150 L366,150"/>
+    <path class="ln" d="M528,150 L566,150"/>
+    <path class="ln" d="M722,150 L760,150"/>
+  </svg>
+
+  <p class="muted" style="font-size:14px">Implementation note: VoiceInk records to an audio file for the current transcription path. v1 privacy behavior is therefore <strong>temporary audio only</strong>: create the file during capture/transcription, delete it immediately after success or cancel, and keep it only when debug audio retention is explicitly enabled. Only final text enters the 30-day history log.</p>
+
+  <h3>Language profile defaults</h3>
+  <table>
+    <thead><tr><th>Profile</th><th>Transcription</th><th>Cleanup</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td><strong>English</strong> <span class="tag own">default</span></td><td>Local Whisper large-v3-turbo</td><td>OpenRouter Haiku-class medium cleanup by default; optional local/offline cleanup later</td><td>English is expected to be ~99% of usage, so optimize for speed, privacy, and near-zero cost.</td></tr>
+      <tr><td><strong>Arabic</strong></td><td>Cloud STT: ElevenLabs Scribe v2 or OpenAI transcribe</td><td>Light cleanup only: punctuation, spacing, obvious fixes; Sonnet/Haiku only when needed</td><td>No need to force local Arabic in v1. Cloud accuracy matters more, and Arabic dictation should not need aggressive rewriting.</td></tr>
+      <tr><td><strong>Spanish</strong></td><td>Cloud STT: ElevenLabs Scribe v2 or OpenAI transcribe</td><td>Light cleanup only: punctuation, accents, obvious grammar; Sonnet/Haiku only when needed</td><td>Spanish usage is occasional, so cloud mode keeps the local build smaller and avoids tuning local Spanish edge cases early.</td></tr>
+    </tbody>
+  </table>
+  <p class="muted" style="font-size:14px">Clarification: Haiku/Sonnet are text cleanup models, not speech-to-text engines. Arabic/Spanish still need a cloud transcription provider first; Haiku/Sonnet can then lightly normalize the transcript if useful.</p>
+
+  <!-- 3 -->
+  <h2><span class="n">3</span> Control scheme</h2>
+  <hr class="rule">
+  <p>Wispr-Flow-style, with your refinements. Two capture modes (you pick a default, both supported):</p>
+  <div class="grid2">
+    <div class="card">
+      <h3 style="margin-top:0">Push-to-talk (hold)</h3>
+      <p style="margin:2px 0"><kbd>hold hotkey</kbd> → speak → <kbd>release</kbd> → cleaned text inserts.</p>
+      <p class="muted" style="font-size:13.5px">Fastest for short bursts. Uses the <code>.onKeyDown</code>/<code>.onKeyUp</code> primitives already in the fork.</p>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0">Toggle (tap to start/stop)</h3>
+      <p style="margin:2px 0"><kbd>tap hotkey</kbd> → speak → <kbd>Enter</kbd> or <kbd>tap hotkey</kbd> → commit &amp; insert.</p>
+      <p class="muted" style="font-size:13.5px">Better for long dictation. The review panel fits naturally here.</p>
+    </div>
+  </div>
+  <table>
+    <thead><tr><th>Key</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td><kbd>Enter</kbd> or <kbd>fn</kbd>+<kbd>Space</kbd></td><td><strong>Commit</strong> — stop recording, run cleanup, insert at cursor</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td><strong>Cancel</strong> — discard the dictation entirely (nothing inserted)</td></tr>
+      <tr><td>hotkey (configurable)</td><td>Start / toggle recording</td></tr>
+    </tbody>
+  </table>
+  <div class="callout warn">
+    <div class="t">Open item — the <code>fn</code> key</div>
+    <p style="margin:2px 0">Research could <strong>not</strong> confirm that macOS 26 lets an app intercept the <kbd>fn</kbd>/Globe key as a hotkey (it's reserved by the system; forum evidence says using it as a modifier is unreliable). <strong>Plan:</strong> ship with a rock-solid default combo (e.g. double-tap <kbd>Right ⌥</kbd>, or <kbd>⌃</kbd>+<kbd>Space</kbd>) and <em>attempt</em> <kbd>fn</kbd> via a low-level event tap as a best-effort option. We verify this on day 1 of the build before committing to it.</p>
+  </div>
+
+  <!-- 4 -->
+  <h2><span class="n">4</span> Engine choices (verified)</h2>
+  <hr class="rule">
+  <h3>Transcription (speech → text)</h3>
+  <table>
+    <thead><tr><th>Engine</th><th>Type</th><th>EN/ES/AR</th><th>Cost</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Whisper large-v3-turbo</strong> (whisper.cpp)</td><td>Local</td><td>✓ all 3 (99+ langs)</td><td>Free</td><td>Default local engine for English. Best speed/accuracy/resource tradeoff: 1.5 GB download, ~1.8 GB RAM in VoiceInk.</td></tr>
+      <tr><td>Parakeet v3</td><td>Local</td><td>⚠️ <strong>no Arabic</strong></td><td>Free</td><td>Fast but European-only; not useful as an Arabic local fallback.</td></tr>
+      <tr><td>Apple SpeechAnalyzer</td><td>Local</td><td>✓ fast</td><td>Free</td><td>macOS 26 native; flagship path lacks custom vocab → weaker name-boosting.</td></tr>
+      <tr><td><strong>ElevenLabs Scribe</strong> <span class="tag own">already in fork</span></td><td>Cloud</td><td>✓ <strong>best Arabic</strong></td><td>Batch: ~$0.22/hr<br>Realtime: ~$0.39/hr</td><td>Default cloud path for Arabic/Spanish. Fork already has Scribe v1/v2 batch + v2 realtime — just add your key.</td></tr>
+      <tr><td>OpenAI gpt-4o-transcribe</td><td>Cloud</td><td>✓ good</td><td>$0.006/min</td><td>Solid all-rounder; mini variant $0.003/min.</td></tr>
+    </tbody>
+  </table>
+  <div class="callout"><div class="t a">Recommended default</div><p style="margin:2px 0"><strong>English:</strong> local Whisper large-v3-turbo + Haiku-class medium cleanup. <strong>Arabic/Spanish:</strong> cloud transcription + light cleanup or pass-through. This matches the expected usage pattern instead of over-optimizing local multilingual accuracy for v1.</p></div>
+
+  <h3>Cleanup (the "intelligence")</h3>
+  <table>
+    <thead><tr><th>Model</th><th>Type</th><th>Price (in / out per M tok)</th><th>Best for</th></tr></thead>
+    <tbody>
+      <tr><td>Qwen-class local LLM (9B / 27B / 35B)</td><td>Local</td><td>Free</td><td>Private / offline English cleanup experiment. Not needed for Arabic/Spanish v1 because those profiles are cloud-first.</td></tr>
+      <tr><td><strong>Claude Haiku 4.5</strong></td><td>Cloud (OpenRouter)</td><td>$1 / $5</td><td>Cheap default for English medium cleanup; also enough for light Arabic/Spanish cleanup if needed.</td></tr>
+      <tr><td>Claude Sonnet 4.6</td><td>Cloud (OpenRouter)</td><td>$3 / $15</td><td>Use selectively for important writing or difficult Arabic/Spanish cleanup, not the normal path.</td></tr>
+      <tr><td>GPT-4o-mini / others</td><td>Cloud (OpenRouter)</td><td>varies (cheapest)</td><td>Ultra-budget light cleanup; likely enough for Spanish/Arabic punctuation/normalization.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Local model resource budget</h3>
+  <table>
+    <thead><tr><th>Local model</th><th>Disk / memory</th><th>Quality expectation</th><th>v1 recommendation</th></tr></thead>
+    <tbody>
+      <tr><td>Whisper base</td><td>142 MB disk · ~0.5 GB RAM</td><td>Fast but noticeably weaker, especially for names, accents, and noisy audio.</td><td>Keep available for testing only; not the default.</td></tr>
+      <tr><td>Whisper large-v3-turbo quantized</td><td>547 MB disk · ~1.0 GB RAM</td><td>Very efficient; may be enough for English, but quality should be compared against full turbo before using daily.</td><td>Optional low-resource English fallback.</td></tr>
+      <tr><td><strong>Whisper large-v3-turbo</strong></td><td><strong>1.5 GB disk · ~1.8 GB RAM</strong></td><td>Sweet spot. It keeps large-v3's encoder, cuts decoder layers from 32 → 4, and is much faster with minor accuracy loss. Best fit for everyday local English dictation.</td><td><strong>Default local English STT.</strong></td></tr>
+      <tr><td>Whisper large-v3</td><td>2.9 GB disk · ~3.9 GB RAM</td><td>Slightly better accuracy than turbo; slower.</td><td>Not needed for v1 unless English accuracy is unexpectedly poor.</td></tr>
+      <tr><td>Apple SpeechAnalyzer</td><td>System model · low app footprint</td><td>Fast native path, but less controllable for custom vocabulary/name boosting.</td><td>Keep as a fallback, not primary.</td></tr>
+      <tr><td>Local cleanup LLM, 9B 4-bit</td><td>~5–8 GB model+cache</td><td>Fast and light; may be enough for grammar/punctuation but weaker at de-rambling and tone preservation.</td><td>Try first for offline cleanup speed.</td></tr>
+      <tr><td>Local cleanup LLM, 27B 4-bit</td><td>~14–17 GB model+cache</td><td>Much better reasoning/style cleanup. Viable on 64GB, but may add noticeable latency.</td><td>Best offline-quality candidate.</td></tr>
+      <tr><td>Local cleanup LLM, 35B MoE 4-bit</td><td>~20–22 GB model+cache</td><td>High quality and still fits 64GB, but competes with browser/IDE memory and may be overkill for short dictation cleanup.</td><td>Optional experiment, not v1 default.</td></tr>
+    </tbody>
+  </table>
+  <div class="callout warn">
+    <div class="t">Resource conclusion</div>
+    <p style="margin:2px 0"><strong>Local English transcription is cheap enough to default on</strong>: large-v3-turbo is only ~1.5 GB on disk and ~1.8 GB RAM in the fork. Since Arabic/Spanish are cloud-first in v1, there is no need to install larger local STT models for multilingual edge cases. <strong>Local cleanup is still the heavier optional experiment</strong>: a good 27B/35B 4-bit LLM can consume ~14–22 GB and may miss the 2–3s target.</p>
+  </div>
+
+  <!-- 5 -->
+  <h2><span class="n">5</span> Cost — verified</h2>
+  <hr class="rule">
+  <p>At a <strong>heavy 2 hrs/day</strong> of mostly English dictation (most people do far less — divide by ~4 for 30 min/day):</p>
+  <table>
+    <thead><tr><th>Setup</th><th>Transcription</th><th>Cleanup</th><th>~Monthly</th></tr></thead>
+    <tbody>
+      <tr><td><strong>English default</strong> ⭐</td><td>Whisper local (free)</td><td>Haiku 4.5</td><td><strong>~$0–4</strong></td></tr>
+      <tr><td>English all-local/offline</td><td>Whisper local (free)</td><td>Qwen-class local LLM</td><td><strong>~$0</strong> (electricity)</td></tr>
+      <tr><td>English quality mode</td><td>Whisper local (free)</td><td>Sonnet 4.6</td><td>~$11–12</td></tr>
+      <tr><td>Occasional Arabic/Spanish cloud batch</td><td>Scribe v2 batch (~$0.22/hr)</td><td>Light Haiku / cheapest model / none</td><td>Usually low; scales with occasional non-English minutes</td></tr>
+      <tr><td>Occasional Arabic/Spanish cloud realtime</td><td>Scribe v2 realtime (~$0.39/hr)</td><td>Light Haiku / cheapest model / none</td><td>Higher per hour, but still minor for occasional use</td></tr>
+      <tr><td class="muted">Wispr Flow (reference)</td><td colspan="2" class="muted">flat subscription</td><td class="muted">~$12–15</td></tr>
+    </tbody>
+  </table>
+  <p class="muted" style="font-size:14px">The big lever is keeping the <strong>99% English workflow local for transcription</strong>. Arabic/Spanish can be cloud-first without changing the monthly cost much unless non-English usage grows substantially.</p>
+
+  <!-- 6 -->
+  <h2><span class="n">6</span> Build plan</h2>
+  <hr class="rule">
+  <p>Inherited from the fork = <span class="tag own">own it</span> · net-new = <span class="tag new">build</span> · tune existing = <span class="tag tune">tune</span></p>
+
+  <div class="card">
+    <div class="phase"><div class="badge">0</div><div><strong>Fork &amp; run VoiceInk locally</strong> <span class="tag own">own it</span><br><span class="muted">Execution preflight: clone/fork VoiceInk into a real Git repo, <code>git fetch origin main</code>, start from current <code>origin/main</code>, then branch. Build in Xcode, confirm local Whisper + hotkey + paste-at-cursor work on your M5. <strong>Day-1 spike:</strong> can we grab the <kbd>fn</kbd> key, or default to another combo?</span></div></div>
+    <div class="phase"><div class="badge">1</div><div><strong>Verify OpenRouter + ElevenLabs/Deepgram paths</strong> <span class="tag own">already built</span><br><span class="muted">Both exist upstream (<code>AIService.openRouter</code>, <code>ElevenLabsProvider</code>). Add your keys, confirm model fetching + cloud Arabic/Spanish transcription work end-to-end, and set personal defaults: English = local Whisper large-v3-turbo + OpenRouter Haiku-class cleanup; Arabic/Spanish = cloud transcription + light cleanup. No new adapter needed.</span></div></div>
+    <div class="phase"><div class="badge">2</div><div><strong>Control scheme: Esc-cancel / Enter-commit / fn+Space</strong> <span class="tag new">build + acceptance tests</span><br><span class="muted">Upstream has <code>cancelRecording()</code> infra but not your exact single-press semantics. Dedicated task with pass/fail tests.</span></div></div>
+    <div class="phase"><div class="badge">3</div><div><strong>Privacy &amp; retention fix</strong> <span class="tag new">must-fix</span><br><span class="muted">Machinery exists (<code>AudioCleanupManager</code>). Change defaults: temporary audio is deleted right after success/cancel (upstream = 7d), transcript retention → 30 days (upstream = 1d). Add debug-mode audio keep. Acceptance-tested.</span></div></div>
+    <div class="phase"><div class="badge">4</div><div><strong>Cleanup prompts + dictionary tuning</strong> <span class="tag tune">tune</span><br><span class="muted">Author the English "medium" system prompt (de-ramble, keep voice). Add separate Arabic/Spanish light-cleanup prompts that mostly preserve wording and only fix punctuation, spacing, accents, and obvious recognition mistakes. Dictionary already exists as two models — <code>VocabularyWord</code> (recognizer biasing, cloud providers only) + <code>WordReplacement</code> (post-hoc find/replace, all engines). Inject your vocab into the local-Whisper prompt and the cleanup prompt for the active language profile.</span></div></div>
+    <div class="phase"><div class="badge">5</div><div><strong>Review &amp; edit panel</strong> <span class="tag new">build</span><br><span class="muted">Genuinely net-new: optional review mode defaults off for fast insertion; when enabled, pause cleaned text before insert, edit inline, copy button, Enter to commit. (History views exist but don't gate insertion.)</span></div></div>
+    <div class="phase"><div class="badge">6</div><div><strong>Language profile toggle + privacy reminder + daily-use hardening</strong> <span class="tag tune">tune</span><br><span class="muted">Menu-bar profile switch: English local, Arabic cloud, Spanish cloud. Keep advanced local⇄cloud engine controls available behind settings. Show menu-bar cloud badge + one-time warning when a cloud profile is active; test the whole flow against your real workflow.</span></div></div>
+  </div>
+
+  <!-- 7 -->
+  <h2><span class="n">7</span> Risks &amp; open questions</h2>
+  <hr class="rule">
+  <table>
+    <thead><tr><th>Item</th><th>Status</th><th>Plan</th></tr></thead>
+    <tbody>
+      <tr><td><kbd>fn</kbd> key as hotkey on macOS 26</td><td><span class="tag tune">unverified</span></td><td>Test day 1; reliable default combo as fallback.</td></tr>
+      <tr><td>Text insertion mechanism</td><td><span class="tag own">resolved</span></td><td>Confirmed: clipboard paste w/ restore (<code>restoreClipboardAfterPaste</code>, <code>useAppleScriptPaste</code>). Secure fields remain an edge case to test.</td></tr>
+      <tr><td>Audio/transcript retention defaults</td><td><span class="tag new">must-fix</span></td><td>Upstream saves audio 7d / transcripts 1d — opposite of your ask. Fix in Phase 3 (machinery exists).</td></tr>
+      <tr><td>Cloud Arabic/Spanish provider quality</td><td><span class="tag tune">to benchmark</span></td><td>Compare Scribe vs OpenAI transcribe on your own Arabic/Spanish samples. No need to make local Whisper pass this benchmark in v1.</td></tr>
+      <tr><td>Local cleanup LLM latency</td><td><span class="tag tune">optional benchmark</span></td><td>Only relevant for all-local English/offline mode. 27B/35B 4-bit models fit 64GB, but may add too much latency.</td></tr>
+      <tr><td>GPLv3 license</td><td><span class="tag own">non-issue</span></td><td>Private personal build = no obligation. Only matters if you distribute.</td></tr>
+      <tr><td>Model/price drift</td><td><span class="tag tune">time-sensitive</span></td><td>Re-check pricing &amp; versions at build start.</td></tr>
+    </tbody>
+  </table>
+
+  <!-- 8 -->
+  <h2><span class="n">8</span> Roadmap beyond v1</h2>
+  <hr class="rule">
+  <div class="grid2">
+    <div class="card"><h3 style="margin-top:0">v2 — iOS / Android <span class="muted" style="font-weight:400;font-size:13px">(capture app)</span></h3><p class="muted" style="margin:2px 0">Deliberately simple: one screen, mic button → speak → LLM-cleaned text in a box → <strong>Copy</strong> → paste anywhere. <strong>No system-wide insertion</strong> (impossible on iOS, messy on Android) — the copy-flow sidesteps the hardest mobile problem. Cloud-first thin client reusing the same engine layer; one cross-platform codebase.</p></div>
+    <div class="card"><h3 style="margin-top:0">v3 — Language modes <span class="muted" style="font-weight:400;font-size:13px">(mobile)</span></h3><p class="muted" style="margin:2px 0">Two modes on the mobile app: <strong>(1) Normal</strong> — concise, no-fluff transcription; <strong>(2) Learn-language</strong> — auto-detect source, translate into chosen target language(s) (EN→ES/AR), show both + transliteration + TTS playback. Later: conversation mode (2-speaker diarization). Full design → its own spec.</p></div>
+    <div class="card"><h3 style="margin-top:0">v4 — Windows</h3><p class="muted" style="margin:2px 0">If you fork Handy instead (Tauri, cross-platform) the Windows path is nearly free — a reason to keep the cleanup layer engine-agnostic now so it can be reused.</p></div>
+  </div>
+
+  <div class="callout" style="margin-top:28px">
+    <div class="t a">Decision needed from you before I build</div>
+    <ol style="margin:6px 0 2px">
+      <li><strong>Approve the fork:</strong> VoiceInk (recommended) — or prefer Handy/from-scratch?</li>
+      <li><strong>App name:</strong> "FlowLocal" is a placeholder — your call.</li>
+      <li><strong>Default hotkey</strong> to try first (pending the <kbd>fn</kbd> test): e.g. double-tap <kbd>Right ⌥</kbd>?</li>
+      <li><strong>Default profiles:</strong> English = local Whisper + Haiku cleanup; Arabic/Spanish = cloud transcription + light cleanup?</li>
+      <li><strong>Review panel default:</strong> recommended off by default, with a toggle for review-before-insert mode.</li>
+    </ol>
+  </div>
+
+  <div class="foot">
+    <p>Sources (verified, 2026-07-04): VoiceInk source at <code>756ee8a</code> · VoiceInk model registry for Whisper disk/RAM · Hugging Face Whisper large-v3-turbo model card · ElevenLabs API pricing (Scribe v1/v2 batch vs Scribe v2 Realtime) · MLX/Qwen Apple Silicon resource guidance · Argmax/WhisperKit · arXiv:2605.19069 (code-switching ASR benchmark) · Artificial Analysis (Scribe v2) · OpenRouter/Claude pricing · sindresorhus/KeyboardShortcuts. Full interview notes: <code>~/.codex/brainstorms/2026-07-03-wispr-flow-clone-mac.md</code>. Pricing &amp; versions are time-sensitive — re-verify at build start.</p>
+  </div>
+
+</div>
+</body>
+</html>
