@@ -115,7 +115,9 @@
       <li class="decision">V1 should store transcription and translation history locally on the device. Database sync is deferred to v2.</li>
       <li class="decision">V1 should include both Transcribe mode and Translate mode.</li>
       <li class="decision">V1 Translate mode should support single-speaker translation only. Conversation mode is a future enhancement.</li>
+      <li class="decision">V1 should show English, Spanish, Arabic, and Auto-detect as first-class language choices.</li>
       <li class="decision">V1 should use OpenRouter as the primary provider for speech-to-text, translation, and any cleanup/formatting because it centralizes API keys, model access, cost tracking, and dashboard visibility.</li>
+      <li class="decision">The app should recommend suitable OpenRouter models for translation, balancing translation quality, speed, latency, and cost.</li>
       <li class="decision">The working product name is <code>Tarek-Wisper</code>, with final naming still open to alternatives.</li>
       <li>OpenRouter currently documents a dedicated speech-to-text endpoint, <code>/api/v1/audio/transcriptions</code>, with base64 audio input and support for 99+ languages including English, Spanish, and Arabic.</li>
       <li class="decision">All durable project artifacts should live in this project folder and be written as HTML unless the user explicitly requests otherwise.</li>
@@ -159,6 +161,11 @@
     <p><strong>Asked:</strong> In Translate mode, should v1 support only single-speaker translation or also a conversation mode where two people speak back and forth?</p>
     <p><strong>Captured:</strong> V1 should support single-speaker translation only. Conversation mode should be documented as a future enhancement.</p>
     <p><strong>Flags:</strong> Conversation mode belongs in the future roadmap, not the v1 MVP.</p>
+
+    <h3>Q8 - First-Class Languages and Model Suggestions</h3>
+    <p><strong>Asked:</strong> Which languages should be shown as first-class choices in v1?</p>
+    <p><strong>Captured:</strong> V1 should show English, Spanish, Arabic, and Auto-detect as first-class language choices. The user also wants the app to offer model suggestions for translation tasks, with a preference for efficient, easy, fast, low-latency choices.</p>
+    <p><strong>Flags:</strong> Exact OpenRouter model recommendations are time-sensitive and should be verified against current OpenRouter model availability, pricing, and latency data during design and implementation.</p>
   </section>
 
   <section>
@@ -168,6 +175,7 @@
       <li>Revisit final product naming; <code>Tarek-Wisper</code> is the working name for now.</li>
       <li>Future enhancement: add conversation mode for two-person back-and-forth translation.</li>
       <li>Benchmark OpenRouter speech-to-text quality and latency on real English, Spanish, and Arabic samples during implementation.</li>
+      <li>Verify current OpenRouter model options before finalizing default translation model recommendations.</li>
       <li>Confirm the first set of MVP screens.</li>
       <li>Add a Git remote before future implementation work that depends on upstream sync.</li>
     </ul>
