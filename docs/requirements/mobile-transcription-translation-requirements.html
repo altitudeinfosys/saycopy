@@ -133,6 +133,7 @@
       <li class="decision">Voice recording should use tap once to start and tap again to stop for v1.</li>
       <li class="decision">V1 should be cloud-only for transcription, translation, and cleanup. Offline/local speech models are deferred.</li>
       <li class="decision">V1 should optimize for short recording clips, around 60 seconds max, rather than long dictation with audio chunking.</li>
+      <li class="decision">The approved product direction is Approach A: Focused Cloud MVP.</li>
       <li class="decision">The working product name is <code>Tarek-Wisper</code>, with final naming still open to alternatives.</li>
       <li>OpenRouter currently documents a dedicated speech-to-text endpoint, <code>/api/v1/audio/transcriptions</code>, with base64 audio input and support for 99+ languages including English, Spanish, and Arabic.</li>
       <li class="decision">All durable project artifacts should live in this project folder and be written as HTML unless the user explicitly requests otherwise.</li>
@@ -256,6 +257,11 @@
     <p><strong>Asked:</strong> Should v1 keep recordings to short clips, around 60 seconds max, or support longer dictation by splitting audio into chunks?</p>
     <p><strong>Captured:</strong> V1 should optimize for short recording clips, around 60 seconds max.</p>
     <p><strong>Flags:</strong> Longer dictation with audio chunking belongs in the future roadmap.</p>
+
+    <h3>Q24 - Approach Approval</h3>
+    <p><strong>Asked:</strong> Is Approach A, the Focused Cloud MVP, approved as the direction?</p>
+    <p><strong>Captured:</strong> The user approved moving forward with Approach A: Expo/React Native, OpenRouter primary provider, local text history, simple tags/search, no accounts, no offline mode, and no long-audio chunking in v1.</p>
+    <p><strong>Flags:</strong> None.</p>
   </section>
 
   <section>
