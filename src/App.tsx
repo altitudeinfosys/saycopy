@@ -3,6 +3,9 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import RecordScreen from './screens/RecordScreen';
+import HistoryScreen from './screens/HistoryScreen';
+import SettingsScreen from './screens/SettingsScreen';
+import { createDemoAppDependencies, type DemoAppDependencies } from './storage/demoAppRepositories';
 
 const tabs = ['Record', 'History', 'Settings'] as const;
 
@@ -10,11 +13,12 @@ type AppTab = (typeof tabs)[number];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('Record');
+  const [dependencies] = useState(createDemoAppDependencies);
 
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
-      <View style={styles.content}>{renderActiveTab(activeTab)}</View>
+      <View style={styles.content}>{renderActiveTab(activeTab, dependencies)}</View>
       <View accessibilityRole="tablist" style={styles.tabBar}>
         {tabs.map((tab) => (
           <Pressable
@@ -33,15 +37,20 @@ export default function App() {
   );
 }
 
-function renderActiveTab(activeTab: AppTab) {
+function renderActiveTab(activeTab: AppTab, dependencies: DemoAppDependencies) {
   if (activeTab === 'Record') {
     return <RecordScreen />;
   }
 
+  if (activeTab === 'History') {
+    return <HistoryScreen repository={dependencies.historyRepository} />;
+  }
+
   return (
-    <View style={styles.placeholder}>
-      <Text style={styles.placeholderTitle}>{activeTab}</Text>
-    </View>
+    <SettingsScreen
+      settingsRepository={dependencies.settingsRepository}
+      tokenStore={dependencies.tokenStore}
+    />
   );
 }
 
@@ -77,16 +86,6 @@ const styles = StyleSheet.create({
   },
   tabLabelActive: {
     color: '#111827',
-    fontWeight: '800',
-  },
-  placeholder: {
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-  },
-  placeholderTitle: {
-    color: '#111827',
-    fontSize: 24,
     fontWeight: '800',
   },
 });
