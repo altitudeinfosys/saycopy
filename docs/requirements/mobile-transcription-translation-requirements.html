@@ -115,6 +115,7 @@
       <li class="decision">V1 should store transcription and translation history locally on the device. Database sync is deferred to v2.</li>
       <li class="decision">V1 should include both Transcribe mode and Translate mode.</li>
       <li class="decision">V1 should use OpenRouter as the primary provider for speech-to-text, translation, and any cleanup/formatting because it centralizes API keys, model access, cost tracking, and dashboard visibility.</li>
+      <li class="decision">The working product name is <code>Tarek-Wisper</code>, with final naming still open to alternatives.</li>
       <li>OpenRouter currently documents a dedicated speech-to-text endpoint, <code>/api/v1/audio/transcriptions</code>, with base64 audio input and support for 99+ languages including English, Spanish, and Arabic.</li>
       <li class="decision">All durable project artifacts should live in this project folder and be written as HTML unless the user explicitly requests otherwise.</li>
       <li class="decision">This project folder has been initialized as a new Git repository on <code>main</code>.</li>
@@ -147,13 +148,18 @@
     <p><strong>Asked:</strong> Should v1 use one cloud AI provider wherever possible for simplicity, or separate best-in-class providers for transcription and translation?</p>
     <p><strong>Captured:</strong> The user prefers OpenRouter as the primary provider because it gives access to many AI models and keeps tracking in one dashboard. Current OpenRouter documentation supports this direction: it documents speech-to-text via <code>/api/v1/audio/transcriptions</code>, base64 audio input, auto language detection when the language parameter is omitted, and speech-to-text support across 99+ languages including English, Spanish, and Arabic. Translation can be handled through OpenRouter text models.</p>
     <p><strong>Flags:</strong> Keep a small provider abstraction so a later fallback provider can be added if OpenRouter transcription quality, latency, file limits, or pricing is not good enough for real mobile use.</p>
+
+    <h3>Q6 - Working Product Name</h3>
+    <p><strong>Asked:</strong> What working app name should be used in the docs and design?</p>
+    <p><strong>Captured:</strong> The working product name is <code>Tarek-Wisper</code>. The user is also open to other name suggestions, so final branding can be revisited later.</p>
+    <p><strong>Flags:</strong> Include a short naming options section in the design doc or a later branding note.</p>
   </section>
 
   <section>
     <h2>Open Flags</h2>
     <ul>
       <li>For v2, decide whether synced history uses Supabase, Neon plus custom auth/API, or another backend.</li>
-      <li>Select the app name or confirm a working placeholder.</li>
+      <li>Revisit final product naming; <code>Tarek-Wisper</code> is the working name for now.</li>
       <li>Benchmark OpenRouter speech-to-text quality and latency on real English, Spanish, and Arabic samples during implementation.</li>
       <li>Confirm the first set of MVP screens.</li>
       <li>Add a Git remote before future implementation work that depends on upstream sync.</li>
