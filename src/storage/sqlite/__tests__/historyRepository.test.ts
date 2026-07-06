@@ -78,6 +78,43 @@ describe('history repository', () => {
     await expect(repository.listHistoryItems()).resolves.toEqual([second, first]);
   });
 
+  it('lists and searches history when Array.toSorted is unavailable in the runtime', async () => {
+    const originalToSorted = Array.prototype.toSorted;
+    const arrayPrototype = Array.prototype as {
+      toSorted?: typeof originalToSorted;
+    };
+    // React Native runtimes can lag newer JavaScript array helpers.
+    delete arrayPrototype.toSorted;
+
+    try {
+      const repository = await createRepository();
+      await repository.createHistoryItem({
+        primaryText: 'Meeting transcript',
+        sourceLanguageId: 'auto',
+      });
+      await repository.createHistoryItem({
+        mode: 'translate',
+        primaryText: 'Hello Tarek',
+        sourceText: 'Hola Tarek',
+        sourceLanguageId: 'spanish',
+        targetLanguageId: 'english',
+      });
+
+      await expect(repository.listHistoryItems()).resolves.toHaveLength(2);
+      await expect(repository.searchHistory({ query: 'meeting' })).resolves.toHaveLength(1);
+      await expect(repository.searchHistory({ query: 'hola' })).resolves.toHaveLength(1);
+      await expect(repository.searchHistory({ query: '' })).resolves.toHaveLength(2);
+    } finally {
+      if (originalToSorted) {
+        Object.defineProperty(arrayPrototype, 'toSorted', {
+          configurable: true,
+          value: originalToSorted,
+          writable: true,
+        });
+      }
+    }
+  });
+
   it('stores translated output as primary text for translate history items', async () => {
     const { database, repository } = await createRepositoryWithDatabase();
 

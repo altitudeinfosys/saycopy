@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import {
   type AudioRecordingController,
   type AudioRecordingState,
+  MAX_RECORDING_DURATION_MS,
   useExpoAudioRecordingController,
 } from '../audio/audioRecorder';
 import LanguageSelect from '../components/LanguageSelect';
@@ -15,7 +16,7 @@ import { createResultActions, type ResultActions } from '../components/ActionBar
 import type { AppError } from '../domain/errors';
 import type { HistoryItem, Tag } from '../domain/history';
 import { LANGUAGE_OPTIONS, type ConcreteLanguageId, type LanguageId } from '../domain/languages';
-import type { ModelPresetId } from '../domain/modelPresets';
+import { getModelPreset, type ModelPresetId } from '../domain/modelPresets';
 import type { TranscriptionFlowResult } from '../flows/transcriptionFlow';
 import type { TranslationFlowResult } from '../flows/translationFlow';
 import {
@@ -129,6 +130,11 @@ function RecordScreenContent({
   );
   const [cleanupEnabled, setCleanupEnabled] = useState(DEFAULT_APP_SETTINGS.cleanupEnabled);
   const [manualText, setManualText] = useState('');
+  const [areRecordingOptionsExpanded, setAreRecordingOptionsExpanded] = useState(false);
+  const [isManualTextExpanded, setIsManualTextExpanded] = useState(
+    DEFAULT_APP_SETTINGS.defaultMode === 'translate',
+  );
+  const [recordingElapsedMs, setRecordingElapsedMs] = useState(0);
   const [isManualTranslationPending, setIsManualTranslationPending] = useState(false);
   const [resultMode, setResultMode] = useState<RecordMode>('transcribe');
   const [resultText, setResultText] = useState('');
@@ -159,6 +165,18 @@ function RecordScreenContent({
     () => getLanguageLabel(targetLanguageId),
     [targetLanguageId],
   );
+  const sourceLanguageLabel = useMemo(
+    () => getLanguageLabel(sourceLanguageId),
+    [sourceLanguageId],
+  );
+  const modelPresetLabel = useMemo(
+    () => getModelPreset(modelPresetId).label,
+    [modelPresetId],
+  );
+  const recordingOptionsSummary =
+    mode === 'translate'
+      ? `${sourceLanguageLabel} to ${targetLanguageLabel} - ${modelPresetLabel}`
+      : `${sourceLanguageLabel} - ${modelPresetLabel}`;
   const areSettingsReady = settingsLoadStatus === 'ready';
   const areSettingsLoading = settingsLoadStatus === 'loading';
   const didSettingsLoadFail = settingsLoadStatus === 'failed';
@@ -189,6 +207,9 @@ function RecordScreenContent({
   const visibleFlowErrorText = didSettingsLoadFail
     ? SETTINGS_LOAD_FAILURE_MESSAGE
     : flowErrorText;
+  const shouldUseCompactRecorder = hasResult && !isRecording && !isRecorderBusy;
+  const visibleRecordingElapsedMs =
+    recordingState.status === 'recording' ? recordingElapsedMs : 0;
 
   useEffect(() => {
     let isActive = true;
@@ -212,6 +233,8 @@ function RecordScreenContent({
         setTargetLanguageId(loadedSettings.targetLanguageId);
         setModelPresetId(loadedSettings.modelPresetId);
         setCleanupEnabled(loadedSettings.cleanupEnabled);
+        setAreRecordingOptionsExpanded(false);
+        setIsManualTextExpanded(loadedSettings.defaultMode === 'translate');
         setSettingsLoadStatus('ready');
       } catch {
         if (isActive) {
@@ -268,6 +291,8 @@ function RecordScreenContent({
       setCurrentResultTags([...(historyItem?.tags ?? [])]);
       setFlowErrorText('');
       setSavedHistoryCount((currentCount) => currentCount + 1);
+      setAreRecordingOptionsExpanded(false);
+      setIsManualTextExpanded(false);
     },
     [setVisibleHistoryItemId],
   );
@@ -292,6 +317,8 @@ function RecordScreenContent({
         setVisibleHistoryItemId(null);
         setCurrentResultTags([]);
         setFlowErrorText(result.error.message);
+        setAreRecordingOptionsExpanded(false);
+        setIsManualTextExpanded(false);
         return;
       }
 
@@ -418,6 +445,22 @@ function RecordScreenContent({
   }, [recordingState.status]);
 
   useEffect(() => {
+    if (recordingState.status !== 'recording') {
+      return undefined;
+    }
+
+    const intervalId = setInterval(() => {
+      setRecordingElapsedMs((currentElapsedMs) =>
+        Math.min(currentElapsedMs + 1000, MAX_RECORDING_DURATION_MS),
+      );
+    }, 1000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [recordingState.status]);
+
+  useEffect(() => {
     if (
       recordingState.status !== 'stopped' ||
       recordingState.stopReason !== 'max_duration' ||
@@ -508,6 +551,8 @@ function RecordScreenContent({
     setCurrentResultTags([]);
     setIsManualTranslationPending(false);
     setSavedHistoryCount(0);
+    setAreRecordingOptionsExpanded(false);
+    setIsManualTextExpanded(nextMode === 'translate');
   }
 
   async function handleRecordPress() {
@@ -526,6 +571,7 @@ function RecordScreenContent({
       try {
         invalidateOpenRouterOperations();
         setIsManualTranslationPending(false);
+        setRecordingElapsedMs(0);
         setFlowErrorText('');
         await activeRecordingController.start();
       } catch {
@@ -601,61 +647,129 @@ function RecordScreenContent({
 
       <ModeSegmentedControl value={mode} onChange={handleModeChange} />
 
-      <LanguageSelect
-        includeAuto
-        label="Source language"
-        onChange={handleSourceLanguageChange}
-        value={sourceLanguageId}
-      />
+      <View style={styles.optionsCard}>
+        <Pressable
+          accessibilityLabel={
+            areRecordingOptionsExpanded ? 'Hide recording options' : 'Show recording options'
+          }
+          accessibilityRole="button"
+          accessibilityState={{ expanded: areRecordingOptionsExpanded }}
+          onPress={() => setAreRecordingOptionsExpanded((isExpanded) => !isExpanded)}
+          style={styles.optionsToggle}
+        >
+          <View style={styles.optionsToggleText}>
+            <Text style={styles.optionsTitle}>Recording options</Text>
+            <Text style={styles.optionsSummary}>{recordingOptionsSummary}</Text>
+          </View>
+          <Text style={styles.optionsAction}>
+            {areRecordingOptionsExpanded ? 'Hide' : 'Show'}
+          </Text>
+        </Pressable>
+
+        {areRecordingOptionsExpanded ? (
+          <View style={styles.optionsBody}>
+            <LanguageSelect
+              includeAuto
+              label="Source language"
+              onChange={handleSourceLanguageChange}
+              value={sourceLanguageId}
+            />
+
+            <ModelPresetSelect value={modelPresetId} onChange={setModelPresetId} />
+          </View>
+        ) : null}
+      </View>
+
+      {shouldUseCompactRecorder ? (
+        <View style={styles.compactRecorder}>
+          <View style={styles.compactRecorderText}>
+            <Text style={styles.compactRecorderTitle}>Ready for another recording</Text>
+            <Text style={styles.compactRecorderMeta}>60 second max</Text>
+          </View>
+          <Pressable
+            accessibilityLabel="Tap to record"
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !areSettingsReady }}
+            disabled={!areSettingsReady}
+            onPress={() => void handleRecordPress()}
+            style={[styles.compactRecordButton, !areSettingsReady && styles.compactRecordButtonDisabled]}
+          >
+            <Text style={styles.compactRecordButtonText}>Record again</Text>
+            <Text style={styles.compactRecordButtonSubtext}>Tap to record</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <RecordingPanel
+          busyLabel={recordingBusyLabel}
+          elapsedMs={visibleRecordingElapsedMs}
+          isDisabled={isRecorderBusy || !areSettingsReady}
+          isRecording={isRecording}
+          onRecordPress={handleRecordPress}
+        />
+      )}
 
       {mode === 'translate' ? (
         <View style={styles.translatePanel}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Text to translate</Text>
-            <TextInput
-              accessibilityLabel="Text to translate"
-              multiline
-              onChangeText={setManualText}
-              placeholder="Type or paste text to translate"
-              placeholderTextColor="#94A3B8"
-              style={styles.manualInput}
-              textAlignVertical="top"
-              value={manualText}
-            />
-          </View>
-
-          <LanguageSelect
-            label="Target language"
-            onChange={handleTargetLanguageChange}
-            value={targetLanguageId}
-          />
-
           <Pressable
-            accessibilityLabel="Translate text"
+            accessibilityLabel={isManualTextExpanded ? 'Hide text input' : 'Show text input'}
             accessibilityRole="button"
-            accessibilityState={{ disabled: isManualTranslationPending || !areSettingsReady }}
-            disabled={isManualTranslationPending || !areSettingsReady}
-            onPress={() => void handleTranslateText()}
-            style={[
-              styles.translateButton,
-              (isManualTranslationPending || !areSettingsReady) && styles.translateButtonDisabled,
-            ]}
+            accessibilityState={{ expanded: isManualTextExpanded }}
+            onPress={() => setIsManualTextExpanded((isExpanded) => !isExpanded)}
+            style={styles.manualInputToggle}
           >
-            <Text style={styles.translateButtonText}>
-              {isManualTranslationPending ? 'Translating' : 'Translate text'}
+            <View style={styles.optionsToggleText}>
+              <Text style={styles.optionsTitle}>Text to translate</Text>
+              <Text style={styles.optionsSummary}>
+                {trimmedManualText ? 'Typed text ready' : 'Optional typed translation'}
+              </Text>
+            </View>
+            <Text style={styles.optionsAction}>
+              {isManualTextExpanded ? 'Hide' : 'Show'}
             </Text>
           </Pressable>
+
+          {isManualTextExpanded ? (
+            <View style={styles.inputGroup}>
+              <TextInput
+                accessibilityLabel="Text to translate"
+                multiline
+                onChangeText={setManualText}
+                placeholder="Type or paste text to translate"
+                placeholderTextColor="#94A3B8"
+                style={styles.manualInput}
+                textAlignVertical="top"
+                value={manualText}
+              />
+            </View>
+          ) : null}
+
+          {isManualTextExpanded ? (
+            <>
+              <LanguageSelect
+                label="Target language"
+                onChange={handleTargetLanguageChange}
+                value={targetLanguageId}
+              />
+
+              <Pressable
+                accessibilityLabel="Translate text"
+                accessibilityRole="button"
+                accessibilityState={{ disabled: isManualTranslationPending || !areSettingsReady }}
+                disabled={isManualTranslationPending || !areSettingsReady}
+                onPress={() => void handleTranslateText()}
+                style={[
+                  styles.translateButton,
+                  (isManualTranslationPending || !areSettingsReady) && styles.translateButtonDisabled,
+                ]}
+              >
+                <Text style={styles.translateButtonText}>
+                  {isManualTranslationPending ? 'Translating' : 'Translate text'}
+                </Text>
+              </Pressable>
+            </>
+          ) : null}
         </View>
       ) : null}
-
-      <ModelPresetSelect value={modelPresetId} onChange={setModelPresetId} />
-
-      <RecordingPanel
-        busyLabel={recordingBusyLabel}
-        isDisabled={isRecorderBusy || !areSettingsReady}
-        isRecording={isRecording}
-        onRecordPress={handleRecordPress}
-      />
 
       {areSettingsLoading ? (
         <Text accessibilityLiveRegion="polite" style={styles.settingsLoadText}>
@@ -767,6 +881,103 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textAlign: 'center',
   },
+  optionsCard: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderRadius: 14,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  optionsToggle: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+    minHeight: 56,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  optionsToggleText: {
+    flex: 1,
+    gap: 2,
+  },
+  optionsTitle: {
+    color: '#111827',
+    flexShrink: 1,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  optionsSummary: {
+    color: '#64748B',
+    flexShrink: 1,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  optionsAction: {
+    color: '#2563EB',
+    flexShrink: 0,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  optionsBody: {
+    borderColor: '#E2E8F0',
+    borderTopWidth: 1,
+    gap: 16,
+    padding: 14,
+  },
+  compactRecorder: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#BBF7D0',
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    justifyContent: 'space-between',
+    padding: 14,
+  },
+  compactRecorderText: {
+    flex: 1,
+    gap: 3,
+    minWidth: 170,
+  },
+  compactRecorderTitle: {
+    color: '#111827',
+    flexShrink: 1,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  compactRecorderMeta: {
+    color: '#64748B',
+    flexShrink: 1,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  compactRecordButton: {
+    alignItems: 'center',
+    backgroundColor: '#111827',
+    borderRadius: 10,
+    minHeight: 46,
+    minWidth: 128,
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  compactRecordButtonDisabled: {
+    backgroundColor: '#64748B',
+  },
+  compactRecordButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  compactRecordButtonSubtext: {
+    color: '#CBD5E1',
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 2,
+  },
   translatePanel: {
     backgroundColor: '#FFFFFF',
     borderColor: '#E2E8F0',
@@ -774,6 +985,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 16,
     padding: 16,
+  },
+  manualInputToggle: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+    minHeight: 44,
   },
   inputGroup: {
     gap: 8,

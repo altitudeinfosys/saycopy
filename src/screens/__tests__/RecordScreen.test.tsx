@@ -302,6 +302,14 @@ function expectMinimumTouchTarget(instance: ReactTestInstance): void {
   expect(targetHeight).toBeGreaterThanOrEqual(44);
 }
 
+function expandRecordingOptions(): void {
+  const showOptionsButton = screen.queryByRole('button', { name: 'Show recording options' });
+
+  if (showOptionsButton) {
+    fireEvent.press(showOptionsButton);
+  }
+}
+
 async function renderManualTranslationResult({
   historyRepository,
   recordFlowProcessors = createScreenRecordFlowProcessors(),
@@ -343,7 +351,25 @@ describe('RecordScreen', () => {
     expect(screen.getByText('Light cleanup on')).toBeTruthy();
     expect(screen.getByText('Tap to record')).toBeTruthy();
     expect(screen.getByText('60 second max')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Show recording options' })).toBeTruthy();
+    expect(screen.queryByText('Source language')).toBeNull();
+    expect(screen.queryByText('Model preset')).toBeNull();
     expect(screen.queryByPlaceholderText('Type or paste text to translate')).toBeNull();
+  });
+
+  it('lets users expand advanced recording options without making them compete with the recorder', () => {
+    render(<RecordScreen />);
+
+    fireEvent.press(screen.getByRole('button', { name: 'Show recording options' }));
+
+    expect(screen.getByRole('button', { name: 'Hide recording options' })).toBeTruthy();
+    expect(screen.getByText('Source language')).toBeTruthy();
+    expect(screen.getByText('Model preset')).toBeTruthy();
+
+    fireEvent.press(screen.getByRole('button', { name: 'Hide recording options' }));
+
+    expect(screen.queryByText('Source language')).toBeNull();
+    expect(screen.queryByText('Model preset')).toBeNull();
   });
 
   it('disables the recording control while microphone permission is pending', async () => {
@@ -377,11 +403,20 @@ describe('RecordScreen', () => {
 
     fireEvent.press(screen.getByRole('button', { name: 'Translate' }));
 
+    expect(screen.getByRole('button', { name: 'Tap to record' })).toBeTruthy();
     expect(screen.getByPlaceholderText('Type or paste text to translate')).toBeTruthy();
-    expect(screen.getByText('Source language')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Hide text input' })).toBeTruthy();
     expect(screen.getByText('Target language')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Target language Spanish' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Translate text' })).toBeTruthy();
+
+    fireEvent.press(screen.getByRole('button', { name: 'Hide text input' }));
+
+    expect(screen.getByRole('button', { name: 'Show text input' })).toBeTruthy();
+    expect(screen.queryByPlaceholderText('Type or paste text to translate')).toBeNull();
+
+    expandRecordingOptions();
+    expect(screen.getByText('Source language')).toBeTruthy();
   });
 
   it('labels manual translation controls and keeps compact controls at usable touch sizes', () => {
@@ -391,6 +426,7 @@ describe('RecordScreen', () => {
     expectMinimumTouchTarget(screen.getByRole('button', { name: 'Translate' }));
 
     fireEvent.press(screen.getByRole('button', { name: 'Translate' }));
+    expandRecordingOptions();
 
     const manualInput = screen.getByLabelText('Text to translate');
     expect(manualInput.props.placeholder).toBe('Type or paste text to translate');
@@ -420,13 +456,19 @@ describe('RecordScreen', () => {
     );
 
     await waitFor(() => {
+      expect(screen.getByText('Spanish - Fast')).toBeTruthy();
+      expect(screen.getByText('Light cleanup off')).toBeTruthy();
+    });
+
+    expandRecordingOptions();
+
+    await waitFor(() => {
       expect(
         screen.getByRole('button', { name: 'Source language Spanish' }).props.accessibilityState,
       ).toMatchObject({ selected: true });
       expect(
         screen.getByRole('button', { name: 'Fast' }).props.accessibilityState,
       ).toMatchObject({ selected: true });
-      expect(screen.getByText('Light cleanup off')).toBeTruthy();
     });
 
     fireEvent.press(screen.getByRole('button', { name: 'Tap to record' }));
@@ -481,6 +523,8 @@ describe('RecordScreen', () => {
       await settingsDeferred.promise;
     });
 
+    expandRecordingOptions();
+
     await waitFor(() => {
       expect(screen.queryByText('Loading default settings')).toBeNull();
       expect(
@@ -525,6 +569,7 @@ describe('RecordScreen', () => {
     );
 
     expect(await screen.findByPlaceholderText('Type or paste text to translate')).toBeTruthy();
+    expandRecordingOptions();
     expect(
       screen.getByRole('button', { name: 'Source language English' }).props.accessibilityState,
     ).toMatchObject({ selected: true });
@@ -593,6 +638,11 @@ describe('RecordScreen', () => {
 
     await waitFor(() => {
       expect(screen.queryByText('Loading default settings')).toBeNull();
+    });
+
+    expandRecordingOptions();
+
+    await waitFor(() => {
       expect(
         screen.getByRole('button', { name: 'Source language English' }).props.accessibilityState,
       ).toMatchObject({ selected: true });
@@ -667,6 +717,8 @@ describe('RecordScreen', () => {
       { isCurrent: expect.any(Function) },
     );
     expect(screen.getByText('Saved to history')).toBeTruthy();
+    expect(screen.getByText('Record again')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Tap to record' })).toBeTruthy();
     expect(screen.getByText('Copy')).toBeTruthy();
     expect(screen.getByText('Share')).toBeTruthy();
     expect(screen.getByText('Tags')).toBeTruthy();
@@ -677,6 +729,37 @@ describe('RecordScreen', () => {
     fireEvent.changeText(resultEditor, 'Edited transcript text');
 
     expect(screen.getByTestId('result-editor').props.value).toBe('Edited transcript text');
+  });
+
+  it('updates the active recording timer and waveform while recording', async () => {
+    jest.useFakeTimers();
+
+    try {
+      const recordingController = createInjectedRecordingController();
+
+      render(<RecordScreen recordingController={recordingController} />);
+
+      fireEvent.press(screen.getByRole('button', { name: 'Tap to record' }));
+
+      await waitFor(() => {
+        expect(recordingController.start).toHaveBeenCalledTimes(1);
+      });
+
+      expect(screen.getByText('00:00 / 60s max')).toBeTruthy();
+      const initialBarHeight = StyleSheet.flatten(screen.getByTestId('waveform-bar-0').props.style)
+        ?.height;
+
+      act(() => {
+        jest.advanceTimersByTime(1000);
+      });
+
+      expect(screen.getByText('00:01 / 60s max')).toBeTruthy();
+      expect(
+        StyleSheet.flatten(screen.getByTestId('waveform-bar-0').props.style)?.height,
+      ).not.toBe(initialBarHeight);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('processes a max-duration stopped recording into a result and cleans up without another tap', async () => {
@@ -768,6 +851,118 @@ describe('RecordScreen', () => {
     expect(screen.getByText('Original text')).toBeTruthy();
     expect(screen.getByText('Meet me at the office at noon.')).toBeTruthy();
     expect(screen.getByText('Saved to history')).toBeTruthy();
+  });
+
+  it('keeps typed translation reachable after a manual translation result', async () => {
+    const recordFlowProcessors = createScreenRecordFlowProcessors({
+      runTranslation: jest
+        .fn()
+        .mockResolvedValueOnce({
+          status: 'success' as const,
+          sourceType: 'manual' as const,
+          sourceText: 'First text.',
+          translatedText: 'First translation.',
+          primaryText: 'First translation.',
+          historyItem: {
+            id: 'first-translation',
+            mode: 'translate' as const,
+            sourceType: 'manual' as const,
+            sourceLanguageId: 'auto' as const,
+            targetLanguageId: 'english' as const,
+            transcript: 'First text.',
+            translatedText: 'First translation.',
+            createdAt: '2026-07-05T18:45:00.000Z',
+            updatedAt: '2026-07-05T18:45:00.000Z',
+          },
+        })
+        .mockResolvedValueOnce({
+          status: 'success' as const,
+          sourceType: 'manual' as const,
+          sourceText: 'Second text.',
+          translatedText: 'Second translation.',
+          primaryText: 'Second translation.',
+          historyItem: {
+            id: 'second-translation',
+            mode: 'translate' as const,
+            sourceType: 'manual' as const,
+            sourceLanguageId: 'auto' as const,
+            targetLanguageId: 'english' as const,
+            transcript: 'Second text.',
+            translatedText: 'Second translation.',
+            createdAt: '2026-07-05T18:46:00.000Z',
+            updatedAt: '2026-07-05T18:46:00.000Z',
+          },
+        }),
+    });
+
+    render(<RecordScreen recordFlowProcessors={recordFlowProcessors} />);
+
+    fireEvent.press(screen.getByRole('button', { name: 'Translate' }));
+    fireEvent.changeText(screen.getByPlaceholderText('Type or paste text to translate'), 'First text.');
+    fireEvent.press(screen.getByRole('button', { name: 'Translate text' }));
+
+    expect(await screen.findByDisplayValue('First translation.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Show text input' })).toBeTruthy();
+    expect(screen.queryByPlaceholderText('Type or paste text to translate')).toBeNull();
+
+    fireEvent.press(screen.getByRole('button', { name: 'Show text input' }));
+    fireEvent.changeText(screen.getByPlaceholderText('Type or paste text to translate'), 'Second text.');
+    fireEvent.press(screen.getByRole('button', { name: 'Translate text' }));
+
+    expect(await screen.findByDisplayValue('Second translation.')).toBeTruthy();
+    expect(recordFlowProcessors.runTranslation).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        sourceType: 'manual',
+        text: 'Second text.',
+      }),
+      { isCurrent: expect.any(Function) },
+    );
+  });
+
+  it('collapses upper controls when voice translation falls back to editable original text', async () => {
+    const recordingController = createInjectedRecordingController();
+    const recordFlowProcessors = createScreenRecordFlowProcessors({
+      runTranslation: jest.fn(async () => ({
+        status: 'translation_failed' as const,
+        sourceType: 'voice' as const,
+        sourceText: 'Recorded source text.',
+        primaryText: 'Recorded source text.',
+        retry: {
+          canRetry: true as const,
+          text: 'Recorded source text.',
+        },
+        copyOriginal: {
+          text: 'Recorded source text.',
+        },
+        error: createAppError('provider_unavailable', 'OpenRouter is temporarily unavailable.', {
+          provider: 'openrouter',
+          retryable: true,
+        }),
+      })),
+    });
+
+    render(
+      <RecordScreen
+        recordFlowProcessors={recordFlowProcessors}
+        recordingController={recordingController}
+      />,
+    );
+
+    fireEvent.press(screen.getByRole('button', { name: 'Translate' }));
+    expandRecordingOptions();
+    expect(screen.getByText('Source language')).toBeTruthy();
+
+    fireEvent.press(screen.getByRole('button', { name: 'Tap to record' }));
+    await waitFor(() => {
+      expect(recordingController.start).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.press(screen.getByRole('button', { name: 'Stop recording' }));
+
+    expect(await screen.findByDisplayValue('Recorded source text.')).toBeTruthy();
+    expect(screen.getByText('Record again')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Show recording options' })).toBeTruthy();
+    expect(screen.queryByText('Source language')).toBeNull();
   });
 
   it('surfaces missing token errors without saving manual translation history', async () => {

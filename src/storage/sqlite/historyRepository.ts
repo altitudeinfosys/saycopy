@@ -225,6 +225,10 @@ function sortNewestFirst(left: HistoryItemRow, right: HistoryItemRow): number {
   return right.created_at.localeCompare(left.created_at) || right.id.localeCompare(left.id);
 }
 
+function sortRowsNewestFirst(rows: readonly HistoryItemRow[]): HistoryItemRow[] {
+  return [...rows].sort(sortNewestFirst);
+}
+
 export function createHistoryRepository(
   database: LocalSqliteDatabase,
   options: HistoryRepositoryOptions = {},
@@ -253,9 +257,7 @@ export function createHistoryRepository(
       ? historyRows.filter((row) => rowHasTag(row, normalizedTag, tagRows, joinRows))
       : historyRows;
 
-    return filteredRows
-      .toSorted(sortNewestFirst)
-      .map((row) => toHistoryItem(row, tagRows, joinRows));
+    return sortRowsNewestFirst(filteredRows).map((row) => toHistoryItem(row, tagRows, joinRows));
   }
 
   async function getHistoryItem(id: string): Promise<HistoryItem | null> {
@@ -429,13 +431,13 @@ export function createHistoryRepository(
       : historyRows;
 
     if (!normalizedQuery) {
-      return filteredRows
-        .toSorted(sortNewestFirst)
-        .map((row) => toHistoryItem(row, tagRows, joinRows));
+      return sortRowsNewestFirst(filteredRows).map((row) =>
+        toHistoryItem(row, tagRows, joinRows),
+      );
     }
 
-    return filteredRows
-      .filter((row) => {
+    return sortRowsNewestFirst(
+      filteredRows.filter((row) => {
         const tagText = getTagRowsForHistoryItem(row.id, tagRows, joinRows)
           .map((tag) => tag.name)
           .join(' ');
@@ -449,9 +451,8 @@ export function createHistoryRepository(
         ].join(' ');
 
         return normalizeSearchValue(searchableText).includes(normalizedQuery);
-      })
-      .toSorted(sortNewestFirst)
-      .map((row) => toHistoryItem(row, tagRows, joinRows));
+      }),
+    ).map((row) => toHistoryItem(row, tagRows, joinRows));
   }
 
   return {

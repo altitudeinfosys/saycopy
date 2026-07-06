@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 type RecordingPanelProps = {
   readonly busyLabel?: string;
+  readonly elapsedMs?: number;
   readonly isDisabled?: boolean;
   readonly isRecording: boolean;
   readonly onRecordPress: () => void;
@@ -9,13 +10,24 @@ type RecordingPanelProps = {
 
 const WAVEFORM_BARS = [20, 34, 26, 44, 30, 52, 24, 40, 28, 46, 22] as const;
 
+function formatElapsedTime(elapsedMs: number) {
+  const elapsedSeconds = Math.min(60, Math.floor(elapsedMs / 1000));
+  const minutes = Math.floor(elapsedSeconds / 60);
+  const seconds = elapsedSeconds % 60;
+
+  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
 export default function RecordingPanel({
   busyLabel,
+  elapsedMs = 0,
   isDisabled = false,
   isRecording,
   onRecordPress,
 }: RecordingPanelProps) {
   const buttonLabel = busyLabel ?? (isRecording ? 'Stop recording' : 'Tap to record');
+  const waveformPhase = isRecording ? Math.floor(elapsedMs / 1000) : 0;
+  const elapsedLabel = `${formatElapsedTime(elapsedMs)} / 60s max`;
 
   return (
     <View
@@ -27,16 +39,22 @@ export default function RecordingPanel({
         <Text style={[styles.statusText, isRecording && styles.statusTextActive]}>
           {isRecording ? 'Recording in progress' : 'Ready to record'}
         </Text>
-        <Text style={styles.maxCue}>{isRecording ? '00:00 / 60s max' : '60 second max'}</Text>
+        <Text style={styles.maxCue}>{isRecording ? elapsedLabel : '60 second max'}</Text>
       </View>
 
       <View accessible accessibilityLabel="Mock audio waveform" style={styles.waveform}>
         {WAVEFORM_BARS.map((height, index) => (
+          // The phase shift gives users visible feedback while recording without sampling live audio.
           <View
             key={`${height}-${index}`}
+            testID={`waveform-bar-${index}`}
             style={[
               styles.waveformBar,
-              { height },
+              {
+                height: isRecording
+                  ? WAVEFORM_BARS[(index + waveformPhase) % WAVEFORM_BARS.length]
+                  : height,
+              },
               isRecording ? styles.waveformBarActive : styles.waveformBarIdle,
             ]}
           />

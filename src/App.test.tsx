@@ -50,6 +50,8 @@ describe('App shell', () => {
     render(<AppShell dependencies={dependencies} />);
 
     expect(await screen.findByPlaceholderText('Type or paste text to translate')).toBeTruthy();
+    fireEvent.press(screen.getByRole('button', { name: 'Show recording options' }));
+
     expect(
       screen.getByRole('button', { name: 'Source language English' }).props.accessibilityState,
     ).toMatchObject({ selected: true });
