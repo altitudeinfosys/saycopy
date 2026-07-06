@@ -38,6 +38,16 @@ function normalizeSql(sql: string): string {
   return sql.trim().replace(/\s+/gu, ' ').replace(/;$/u, '').toUpperCase();
 }
 
+function parseColumnNames(source: string): Set<string> {
+  const columnNames = new Set<string>();
+
+  for (const match of source.matchAll(/^\s*([a-z_]+)\s+(?:TEXT|INTEGER)\b/gimu)) {
+    columnNames.add(match[1]);
+  }
+
+  return columnNames;
+}
+
 function requireString(value: SqliteValue | undefined, label: string): string {
   if (typeof value !== 'string') {
     throw new Error(`Expected ${label} to be a string`);
@@ -60,6 +70,7 @@ function optionalString(value: SqliteValue | undefined, label: string): string |
 
 export class InMemoryLocalSqliteDatabase implements LocalSqliteDatabase {
   readonly createdTables = new Set<string>();
+  readonly tableColumns = new Map<string, Set<string>>();
   readonly appliedMigrations = new Set<number>();
   readonly historyItems = new Map<string, HistoryItemRow>();
   readonly tags = new Map<string, TagRow>();
@@ -67,18 +78,32 @@ export class InMemoryLocalSqliteDatabase implements LocalSqliteDatabase {
   readonly appSettings = new Map<string, AppSettingRow>();
 
   async execute(sql: string, params: readonly SqliteValue[] = []): Promise<void> {
-    for (const match of sql.matchAll(/CREATE TABLE IF NOT EXISTS\s+([a-z_]+)/giu)) {
-      this.createdTables.add(match[1]);
+    for (const match of sql.matchAll(/CREATE TABLE IF NOT EXISTS\s+([a-z_]+)\s*\(([\s\S]*?)\);/giu)) {
+      const tableName = match[1];
+      if (!this.createdTables.has(tableName)) {
+        this.createdTables.add(tableName);
+        this.tableColumns.set(tableName, parseColumnNames(match[2]));
+      }
     }
 
     const inlineMigrationMatch = sql.match(
-      /INSERT INTO schema_migrations\s*\(version\)\s*VALUES\s*\((\d+)\)/iu,
+      /INSERT(?: OR IGNORE)? INTO schema_migrations\s*\(version\)\s*VALUES\s*\((\d+)\)/iu,
     );
     if (inlineMigrationMatch) {
       this.appliedMigrations.add(Number(inlineMigrationMatch[1]));
     }
 
     const normalizedSql = normalizeSql(sql);
+
+    const alterMatch = sql.match(/ALTER TABLE\s+([a-z_]+)\s+ADD COLUMN\s+([a-z_]+)/iu);
+    if (alterMatch) {
+      const [, tableName, columnName] = alterMatch;
+      this.createdTables.add(tableName);
+      const columns = this.tableColumns.get(tableName) ?? new Set<string>();
+      columns.add(columnName);
+      this.tableColumns.set(tableName, columns);
+      return;
+    }
 
     if (normalizedSql.startsWith('INSERT INTO HISTORY_ITEMS')) {
       this.historyItems.set(requireString(params[0], 'history item id'), {
@@ -201,6 +226,12 @@ export class InMemoryLocalSqliteDatabase implements LocalSqliteDatabase {
 
     if (normalizedSql.startsWith('SELECT NAME FROM SQLITE_MASTER')) {
       return [...this.createdTables].map((name) => ({ name }) as T);
+    }
+
+    const pragmaMatch = sql.match(/PRAGMA table_info\(([a-z_]+)\)/iu);
+    if (pragmaMatch) {
+      const columns = this.tableColumns.get(pragmaMatch[1]) ?? new Set<string>();
+      return [...columns].map((name) => ({ name }) as T);
     }
 
     if (normalizedSql.includes('FROM HISTORY_ITEMS')) {
