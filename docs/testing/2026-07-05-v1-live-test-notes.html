@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tarek-Wisper v1 Live OpenRouter Test Notes</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f7f8fb;
+      --panel: #ffffff;
+      --panel-2: #f1f4f8;
+      --text: #172033;
+      --muted: #5d687a;
+      --line: #d9e0ea;
+      --accent: #0b6bcb;
+      --warn: #9a5b00;
+      --good: #127a3a;
+      --bad: #b42318;
+      --code: #eef2f7;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1218;
+        --panel: #171b24;
+        --panel-2: #202635;
+        --text: #edf2f8;
+        --muted: #a7b0bf;
+        --line: #2f3748;
+        --accent: #7cb7ff;
+        --warn: #f6bd60;
+        --good: #68d391;
+        --bad: #ff8a80;
+        --code: #242b3a;
+      }
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    main {
+      width: min(1080px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 32px 0 56px;
+    }
+    header, section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+    header { padding: 28px; }
+    section { margin-top: 18px; padding: 24px; }
+    h1, h2, h3 { line-height: 1.15; margin: 0; }
+    h1 { font-size: clamp(30px, 4vw, 44px); letter-spacing: 0; }
+    h2 { font-size: 23px; margin-bottom: 14px; }
+    h3 { font-size: 17px; margin: 18px 0 8px; }
+    p { margin: 10px 0; }
+    code, pre {
+      background: var(--code);
+      border-radius: 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    code { padding: 2px 5px; }
+    pre {
+      border: 1px solid var(--line);
+      overflow-x: auto;
+      padding: 14px;
+    }
+    table {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: 0; }
+    th {
+      background: var(--panel-2);
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+    ul, ol { padding-left: 22px; }
+    li { margin: 7px 0; }
+    .lede { color: var(--muted); font-size: 17px; max-width: 860px; }
+    .tag {
+      border: 1px solid currentColor;
+      border-radius: 999px;
+      display: inline-flex;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      min-height: 22px;
+      padding: 2px 8px;
+    }
+    .pending { color: var(--warn); }
+    .done { color: var(--good); }
+    .blocked { color: var(--bad); }
+    .muted { color: var(--muted); }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="tag pending">Manual live status: Pending</p>
+    <h1>Tarek-Wisper v1 Live OpenRouter Test Notes</h1>
+    <p class="lede">
+      Task 9 wires the real OpenRouter provider into local app flows while keeping token entry user-controlled.
+      Live provider calls were not run by the agent because no user-entered OpenRouter token is available in a
+      local Expo runtime in this environment.
+    </p>
+    <p><strong>Date:</strong> 2026-07-05</p>
+    <p><strong>Worktree:</strong> <code>/Users/tarekalaaddin/Projects/code/Tarek-Wisper/.worktrees/tarek-wisper-v1</code></p>
+  </header>
+
+  <section>
+    <h2>Automated Mocked Coverage</h2>
+    <p>
+      The live network path is covered with mocked fetch tests for successful STT, cleanup, manual translation,
+      missing token, auth/rate-limit style provider failures, and malformed provider responses.
+    </p>
+    <pre><code>npm test -- src/providers src/flows</code></pre>
+  </section>
+
+  <section>
+    <h2>Expected Model IDs</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Flow area</th>
+          <th>Preset</th>
+          <th>Primary model ID</th>
+          <th>Fallback candidate</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Speech to text</td>
+          <td>All presets</td>
+          <td><code>openai/whisper-large-v3</code></td>
+          <td>None configured in current STT request builder</td>
+        </tr>
+        <tr>
+          <td>Cleanup and translation</td>
+          <td>Fast</td>
+          <td><code>google/gemini-3.1-flash-lite</code></td>
+          <td><code>openai/gpt-4o-mini</code></td>
+        </tr>
+        <tr>
+          <td>Cleanup and translation</td>
+          <td>Balanced</td>
+          <td><code>openai/gpt-4.1-mini</code></td>
+          <td><code>google/gemini-2.5-flash</code></td>
+        </tr>
+        <tr>
+          <td>Cleanup and translation</td>
+          <td>Best Quality</td>
+          <td><code>anthropic/claude-sonnet-4.6</code></td>
+          <td><code>anthropic/claude-sonnet-4.5</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Local Manual Live Steps</h2>
+    <ol>
+      <li>From the worktree, run <code>npm install</code> if dependencies are not already installed.</li>
+      <li>Start the local Expo runtime with <code>npm run ios</code> or <code>npm start</code> and open an iOS simulator/device.</li>
+      <li>Open the Settings tab, paste a user-owned OpenRouter token into "OpenRouter API token", and tap "Save token".</li>
+      <li>Return to Record and verify transcribe mode with cleanup on using a short English recording.</li>
+      <li>Switch to Translate and verify manual translation for English to Spanish and English to Arabic.</li>
+      <li>In Translate mode, record a short English phrase and verify voice STT plus translation.</li>
+      <li>Clear the token in Settings and verify that a missing-token cue appears and no empty history item is saved.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Sample Languages To Test</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Scenario</th>
+          <th>Source</th>
+          <th>Target</th>
+          <th>Sample phrase</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Voice transcription</td>
+          <td>Auto-detect / English</td>
+          <td>Not applicable</td>
+          <td>"Please send the follow-up after the meeting."</td>
+          <td>Pending</td>
+        </tr>
+        <tr>
+          <td>Voice transcription</td>
+          <td>Auto-detect / Spanish</td>
+          <td>Not applicable</td>
+          <td>"Buenos dias, revisemos el contrato."</td>
+          <td>Pending</td>
+        </tr>
+        <tr>
+          <td>Voice transcription</td>
+          <td>Auto-detect / Arabic</td>
+          <td>Not applicable</td>
+          <td>"مرحبا، ارسل الملاحظات بعد الاجتماع."</td>
+          <td>Pending</td>
+        </tr>
+        <tr>
+          <td>Manual translation</td>
+          <td>Auto-detect / English</td>
+          <td>Spanish</td>
+          <td>"Meet me at the office at noon."</td>
+          <td>Pending</td>
+        </tr>
+        <tr>
+          <td>Manual translation</td>
+          <td>Auto-detect / English</td>
+          <td>Arabic</td>
+          <td>"The lease starts on August first."</td>
+          <td>Pending</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Latency Observations</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Scenario</th>
+          <th>Preset</th>
+          <th>Observed latency</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Voice STT plus cleanup</td>
+          <td>Balanced</td>
+          <td>Pending</td>
+          <td>Record device, network, audio duration, and total time from stop to visible result.</td>
+        </tr>
+        <tr>
+          <td>Manual translation</td>
+          <td>Fast</td>
+          <td>Pending</td>
+          <td>Record total time from tapping Translate text to visible translated output.</td>
+        </tr>
+        <tr>
+          <td>Voice STT plus translation</td>
+          <td>Balanced</td>
+          <td>Pending</td>
+          <td>Record whether STT succeeds before translation and whether any retry cue appears.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Provider Issues Found</h2>
+    <p class="muted">
+      Pending live runtime validation. No live provider issues are claimed here because no live OpenRouter call was run
+      in this agent environment.
+    </p>
+  </section>
+</main>
+</body>
+</html>

@@ -11,12 +11,18 @@ import ModeSegmentedControl, { type RecordMode } from '../components/ModeSegment
 import ModelPresetSelect from '../components/ModelPresetSelect';
 import RecordingPanel from '../components/RecordingPanel';
 import ResultCard from '../components/ResultCard';
+import type { AppError } from '../domain/errors';
 import { LANGUAGE_OPTIONS, type ConcreteLanguageId, type LanguageId } from '../domain/languages';
 import { DEFAULT_MODEL_PRESET_ID, type ModelPresetId } from '../domain/modelPresets';
+import type { TranscriptionFlowResult } from '../flows/transcriptionFlow';
+import type { TranslationFlowResult } from '../flows/translationFlow';
+import type { RecordFlowProcessors } from '../runtime/appDependencies';
 
 const DEFAULT_TARGET_LANGUAGE_ID = 'spanish' satisfies ConcreteLanguageId;
+const DEFAULT_SOURCE_LANGUAGE_ID = 'auto' satisfies LanguageId;
 
 type RecordScreenProps = {
+  readonly recordFlowProcessors?: RecordFlowProcessors;
   readonly recordingController?: AudioRecordingController;
 };
 
@@ -24,19 +30,24 @@ function getLanguageLabel(languageId: LanguageId) {
   return LANGUAGE_OPTIONS.find((language) => language.id === languageId)?.label ?? 'Selected language';
 }
 
-function buildTranscriptResult() {
-  return [
-    'Cleaned transcript:',
-    'The client asked for a concise follow-up after the demo, including pricing, setup timing, and next steps.',
-  ].join(' ');
-}
-
-function buildTranslationResult(sourceText: string, targetLanguageId: ConcreteLanguageId) {
-  return `${getLanguageLabel(targetLanguageId)} translation: ${sourceText}`;
-}
-
 function getRecorderFailureMessage(error: unknown) {
-  return error instanceof Error ? error.message : 'Recording failed. Try again.';
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (isMessageBearingObject(error)) {
+    return error.message;
+  }
+
+  return 'Recording failed. Try again.';
+}
+
+function getFlowFailureMessage(error: unknown) {
+  if (isAppError(error) || isMessageBearingObject(error)) {
+    return error.message;
+  }
+
+  return 'OpenRouter request failed. Try again.';
 }
 
 function isRecordButtonBusy(state: AudioRecordingState) {
@@ -51,16 +62,38 @@ function isRecordButtonActive(state: AudioRecordingState) {
   return state.status === 'recording' || state.status === 'stopping';
 }
 
-export default function RecordScreen({ recordingController }: RecordScreenProps = {}) {
+function isMessageBearingObject(value: unknown): value is { readonly message: string } {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'message' in value &&
+    typeof value.message === 'string'
+  );
+}
+
+function isAppError(value: unknown): value is AppError {
+  return (
+    isMessageBearingObject(value) &&
+    'category' in value &&
+    typeof value.category === 'string'
+  );
+}
+
+export default function RecordScreen({
+  recordFlowProcessors,
+  recordingController,
+}: RecordScreenProps = {}) {
   const [mode, setMode] = useState<RecordMode>('transcribe');
   const [targetLanguageId, setTargetLanguageId] = useState<ConcreteLanguageId>(
     DEFAULT_TARGET_LANGUAGE_ID,
   );
   const [modelPresetId, setModelPresetId] = useState<ModelPresetId>(DEFAULT_MODEL_PRESET_ID);
   const [manualText, setManualText] = useState('');
+  const [isManualTranslationPending, setIsManualTranslationPending] = useState(false);
   const [resultMode, setResultMode] = useState<RecordMode>('transcribe');
   const [resultText, setResultText] = useState('');
   const [originalText, setOriginalText] = useState('');
+  const [flowErrorText, setFlowErrorText] = useState('');
   const [savedHistoryCount, setSavedHistoryCount] = useState(0);
   const autoProcessedAudioUriRef = useRef<string | null>(null);
   const [defaultRecordingController] = useState(createAudioRecordingController);
@@ -102,40 +135,83 @@ export default function RecordScreen({ recordingController }: RecordScreenProps 
     };
   }, [activeRecordingController]);
 
-  const saveMockedResult = useCallback(
+  const saveResult = useCallback(
     (nextMode: RecordMode, nextResultText: string, nextOriginalText = '') => {
       setResultMode(nextMode);
       setResultText(nextResultText);
       setOriginalText(nextOriginalText);
+      setFlowErrorText('');
       setSavedHistoryCount((currentCount) => currentCount + 1);
     },
     [],
   );
 
+  const applyTranscriptionResult = useCallback(
+    (result: TranscriptionFlowResult) => {
+      saveResult('transcribe', result.transcript);
+
+      if (result.status === 'cleanup_failed') {
+        setFlowErrorText(result.notice.message);
+      }
+    },
+    [saveResult],
+  );
+
+  const applyTranslationResult = useCallback(
+    (result: TranslationFlowResult) => {
+      if (result.status === 'translation_failed') {
+        setResultMode('translate');
+        setResultText(result.primaryText);
+        setOriginalText(result.sourceText);
+        setFlowErrorText(result.error.message);
+        return;
+      }
+
+      saveResult('translate', result.translatedText, result.sourceText);
+    },
+    [saveResult],
+  );
+
   const processStoppedRecording = useCallback(async () => {
     try {
-      await activeRecordingController.processStoppedAudio(async () => {
+      await activeRecordingController.processStoppedAudio(async (audio) => {
+        if (!recordFlowProcessors) {
+          throw new Error('OpenRouter processing is not configured.');
+        }
+
         if (mode === 'translate') {
-          const sourceText = trimmedManualText || 'Recorded source text for translation.';
-          saveMockedResult(
-            'translate',
-            buildTranslationResult(sourceText, targetLanguageId),
-            sourceText,
+          applyTranslationResult(
+            await recordFlowProcessors.runTranslation({
+              sourceType: 'voice',
+              audio,
+              sourceLanguageId: DEFAULT_SOURCE_LANGUAGE_ID,
+              targetLanguageId,
+              modelPresetId,
+            }),
           );
           return;
         }
 
-        saveMockedResult('transcribe', buildTranscriptResult());
+        applyTranscriptionResult(
+          await recordFlowProcessors.runTranscription({
+            audio,
+            sourceLanguageId: DEFAULT_SOURCE_LANGUAGE_ID,
+            modelPresetId,
+            cleanupEnabled: true,
+          }),
+        );
       });
     } catch {
       // Failure details are surfaced through recorder state.
     }
   }, [
     activeRecordingController,
+    applyTranscriptionResult,
+    applyTranslationResult,
     mode,
-    saveMockedResult,
+    modelPresetId,
+    recordFlowProcessors,
     targetLanguageId,
-    trimmedManualText,
   ]);
 
   useEffect(() => {
@@ -162,9 +238,42 @@ export default function RecordScreen({ recordingController }: RecordScreenProps 
     void processStoppedRecording();
   }, [processStoppedRecording, recordingState]);
 
-  function handleTranslateText() {
-    const sourceText = trimmedManualText || 'Meet me at the office at noon.';
-    saveMockedResult('translate', buildTranslationResult(sourceText, targetLanguageId), sourceText);
+  async function handleTranslateText() {
+    if (isManualTranslationPending) {
+      return;
+    }
+
+    setResultText('');
+    setOriginalText('');
+    setFlowErrorText('');
+
+    if (!trimmedManualText) {
+      setFlowErrorText('Enter text to translate.');
+      return;
+    }
+
+    if (!recordFlowProcessors) {
+      setFlowErrorText('OpenRouter processing is not configured.');
+      return;
+    }
+
+    setIsManualTranslationPending(true);
+
+    try {
+      applyTranslationResult(
+        await recordFlowProcessors.runTranslation({
+          sourceType: 'manual',
+          text: trimmedManualText,
+          sourceLanguageId: DEFAULT_SOURCE_LANGUAGE_ID,
+          targetLanguageId,
+          modelPresetId,
+        }),
+      );
+    } catch (error) {
+      setFlowErrorText(getFlowFailureMessage(error));
+    } finally {
+      setIsManualTranslationPending(false);
+    }
   }
 
   function handleModeChange(nextMode: RecordMode) {
@@ -172,6 +281,7 @@ export default function RecordScreen({ recordingController }: RecordScreenProps 
     void activeRecordingController.cancel();
     setResultText('');
     setOriginalText('');
+    setFlowErrorText('');
     setSavedHistoryCount(0);
   }
 
@@ -182,6 +292,7 @@ export default function RecordScreen({ recordingController }: RecordScreenProps 
 
     if (!isRecording) {
       try {
+        setFlowErrorText('');
         await activeRecordingController.start();
       } catch {
         // Failure details are surfaced through recorder state.
@@ -241,10 +352,17 @@ export default function RecordScreen({ recordingController }: RecordScreenProps 
           <Pressable
             accessibilityLabel="Translate text"
             accessibilityRole="button"
-            onPress={handleTranslateText}
-            style={styles.translateButton}
+            accessibilityState={{ disabled: isManualTranslationPending }}
+            disabled={isManualTranslationPending}
+            onPress={() => void handleTranslateText()}
+            style={[
+              styles.translateButton,
+              isManualTranslationPending && styles.translateButtonDisabled,
+            ]}
           >
-            <Text style={styles.translateButtonText}>Translate text</Text>
+            <Text style={styles.translateButtonText}>
+              {isManualTranslationPending ? 'Translating' : 'Translate text'}
+            </Text>
           </Pressable>
         </View>
       ) : null}
@@ -268,6 +386,8 @@ export default function RecordScreen({ recordingController }: RecordScreenProps 
           {recorderCue}
         </Text>
       ) : null}
+
+      {flowErrorText ? <Text style={styles.flowErrorText}>{flowErrorText}</Text> : null}
 
       {savedHistoryCount > 0 ? (
         <View style={styles.savedRow}>
@@ -367,6 +487,9 @@ const styles = StyleSheet.create({
     minHeight: 46,
     justifyContent: 'center',
   },
+  translateButtonDisabled: {
+    opacity: 0.55,
+  },
   translateButtonText: {
     color: '#FFFFFF',
     fontSize: 15,
@@ -400,6 +523,12 @@ const styles = StyleSheet.create({
   },
   recorderCueError: {
     color: '#B91C1C',
+  },
+  flowErrorText: {
+    color: '#B91C1C',
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: -8,
   },
   targetHint: {
     color: '#64748B',

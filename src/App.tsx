@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import RecordScreen from './screens/RecordScreen';
 import HistoryScreen from './screens/HistoryScreen';
 import SettingsScreen from './screens/SettingsScreen';
-import { createDemoAppDependencies, type DemoAppDependencies } from './storage/demoAppRepositories';
+import { createAppDependencies, type AppDependencies } from './runtime/appDependencies';
 
 const tabs = ['Record', 'History', 'Settings'] as const;
 
@@ -13,7 +13,7 @@ type AppTab = (typeof tabs)[number];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('Record');
-  const [dependencies] = useState(createDemoAppDependencies);
+  const [dependencies] = useState(createAppDependencies);
 
   return (
     <View style={styles.container}>
@@ -37,9 +37,9 @@ export default function App() {
   );
 }
 
-function renderActiveTab(activeTab: AppTab, dependencies: DemoAppDependencies) {
+function renderActiveTab(activeTab: AppTab, dependencies: AppDependencies) {
   if (activeTab === 'Record') {
-    return <RecordScreen />;
+    return <RecordScreen recordFlowProcessors={dependencies.recordFlowProcessors} />;
   }
 
   if (activeTab === 'History') {

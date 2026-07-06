@@ -9,6 +9,8 @@ import {
   AudioRecordingState,
   type NativeAudioRecordingSession,
 } from '../../audio/audioRecorder';
+import { createAppError } from '../../domain/errors';
+import type { RecordFlowProcessors } from '../../runtime/appDependencies';
 import RecordScreen from '../RecordScreen';
 
 function createDeferred<T>() {
@@ -134,6 +136,58 @@ function createInjectedRecordingController(input: {
   };
 }
 
+function createRecordFlowProcessors(
+  overrides: Partial<RecordFlowProcessors> = {},
+): RecordFlowProcessors {
+  const runTranscription: jest.MockedFunction<RecordFlowProcessors['runTranscription']> = jest.fn<
+    ReturnType<RecordFlowProcessors['runTranscription']>,
+    Parameters<RecordFlowProcessors['runTranscription']>
+  >(async () => ({
+    status: 'success',
+    transcript: 'Live cleaned transcript from OpenRouter.',
+    historyItem: {
+      id: 'record-screen-transcript',
+      mode: 'transcribe',
+      sourceType: 'voice',
+      sourceLanguageId: 'auto',
+      transcript: 'Live cleaned transcript from OpenRouter.',
+      createdAt: '2026-07-05T18:30:00.000Z',
+      updatedAt: '2026-07-05T18:30:00.000Z',
+    },
+  }));
+  const runTranslation: jest.MockedFunction<RecordFlowProcessors['runTranslation']> = jest.fn<
+    ReturnType<RecordFlowProcessors['runTranslation']>,
+    Parameters<RecordFlowProcessors['runTranslation']>
+  >(async (input) => {
+    const sourceText = input.sourceType === 'manual' ? input.text : 'Recorded source text.';
+
+    return {
+      status: 'success',
+      sourceType: input.sourceType,
+      sourceText,
+      translatedText: 'Live translated text.',
+      primaryText: 'Live translated text.',
+      historyItem: {
+        id: 'record-screen-translation',
+        mode: 'translate',
+        sourceType: input.sourceType,
+        sourceLanguageId: input.sourceLanguageId,
+        targetLanguageId: input.targetLanguageId,
+        transcript: sourceText,
+        translatedText: 'Live translated text.',
+        createdAt: '2026-07-05T18:31:00.000Z',
+        updatedAt: '2026-07-05T18:31:00.000Z',
+      },
+    };
+  });
+
+  return {
+    runTranscription,
+    runTranslation,
+    ...overrides,
+  };
+}
+
 describe('RecordScreen', () => {
   it('starts in transcribe mode with cleanup wording and a large tap-to-record control', () => {
     render(<RecordScreen />);
@@ -185,8 +239,14 @@ describe('RecordScreen', () => {
 
   it('shows warm active recording treatment before producing an editable saved result', async () => {
     const recordingController = createInjectedRecordingController();
+    const recordFlowProcessors = createRecordFlowProcessors();
 
-    render(<RecordScreen recordingController={recordingController} />);
+    render(
+      <RecordScreen
+        recordFlowProcessors={recordFlowProcessors}
+        recordingController={recordingController}
+      />,
+    );
 
     fireEvent.press(screen.getByRole('button', { name: 'Tap to record' }));
 
@@ -209,13 +269,24 @@ describe('RecordScreen', () => {
       expect(recordingController.processStoppedAudio).toHaveBeenCalledTimes(1);
     });
 
+    expect(recordFlowProcessors.runTranscription).toHaveBeenCalledWith({
+      audio: {
+        uri: 'file:///tmp/screen-recording.m4a',
+        base64Audio: 'screen-base64-audio',
+        format: 'm4a',
+        durationMs: 1800,
+      },
+      sourceLanguageId: 'auto',
+      modelPresetId: 'balanced',
+      cleanupEnabled: true,
+    });
     expect(screen.getByText('Saved to history')).toBeTruthy();
     expect(screen.getByText('Copy')).toBeTruthy();
     expect(screen.getByText('Share')).toBeTruthy();
     expect(screen.getByText('Tags')).toBeTruthy();
 
     const resultEditor = screen.getByTestId('result-editor');
-    expect(resultEditor.props.value).toContain('Cleaned transcript');
+    expect(resultEditor.props.value).toContain('Live cleaned transcript');
 
     fireEvent.changeText(resultEditor, 'Edited transcript text');
 
@@ -224,6 +295,7 @@ describe('RecordScreen', () => {
 
   it('processes a max-duration stopped recording into a result and cleans up without another tap', async () => {
     const timer = createManualTimer();
+    const recordFlowProcessors = createRecordFlowProcessors();
     const cleanup = {
       cleanup: jest.fn().mockResolvedValue(undefined),
     };
@@ -239,7 +311,12 @@ describe('RecordScreen', () => {
       timer,
     });
 
-    render(<RecordScreen recordingController={recordingController} />);
+    render(
+      <RecordScreen
+        recordFlowProcessors={recordFlowProcessors}
+        recordingController={recordingController}
+      />,
+    );
 
     fireEvent.press(screen.getByRole('button', { name: 'Tap to record' }));
 
@@ -252,7 +329,7 @@ describe('RecordScreen', () => {
     });
 
     expect(await screen.findByText('Saved to history')).toBeTruthy();
-    expect(screen.getByTestId('result-editor').props.value).toContain('Cleaned transcript');
+    expect(screen.getByTestId('result-editor').props.value).toContain('Live cleaned transcript');
     expect(screen.getByText('Tap to record')).toBeTruthy();
     expect(cleanup.cleanup).toHaveBeenCalledWith({
       uri: 'file:///tmp/screen-capped-recording.m4a',
@@ -274,8 +351,10 @@ describe('RecordScreen', () => {
     expect(screen.queryByText('Saved to history')).toBeNull();
   });
 
-  it('creates a mocked translation result with emphasized translated output and original text', () => {
-    render(<RecordScreen />);
+  it('creates a live manual translation result with emphasized translated output and original text', async () => {
+    const recordFlowProcessors = createRecordFlowProcessors();
+
+    render(<RecordScreen recordFlowProcessors={recordFlowProcessors} />);
 
     fireEvent.press(screen.getByRole('button', { name: 'Translate' }));
     fireEvent.changeText(
@@ -284,10 +363,39 @@ describe('RecordScreen', () => {
     );
     fireEvent.press(screen.getByRole('button', { name: 'Translate text' }));
 
-    expect(screen.getByText('Translated output')).toBeTruthy();
-    expect(screen.getByTestId('result-editor').props.value).toContain('Spanish translation');
+    await waitFor(() => {
+      expect(recordFlowProcessors.runTranslation).toHaveBeenCalledWith({
+        sourceType: 'manual',
+        text: 'Meet me at the office at noon.',
+        sourceLanguageId: 'auto',
+        targetLanguageId: 'spanish',
+        modelPresetId: 'balanced',
+      });
+      expect(screen.getByText('Translated output')).toBeTruthy();
+    });
+    expect(screen.getByTestId('result-editor').props.value).toContain('Live translated text');
     expect(screen.getByText('Original text')).toBeTruthy();
     expect(screen.getByText('Meet me at the office at noon.')).toBeTruthy();
     expect(screen.getByText('Saved to history')).toBeTruthy();
+  });
+
+  it('surfaces missing token errors without saving manual translation history', async () => {
+    const missingTokenError = createAppError('missing_token', 'OpenRouter API token is required.', {
+      provider: 'openrouter',
+      retryable: false,
+    });
+    const recordFlowProcessors = createRecordFlowProcessors({
+      runTranslation: jest.fn().mockRejectedValue(missingTokenError),
+    });
+
+    render(<RecordScreen recordFlowProcessors={recordFlowProcessors} />);
+
+    fireEvent.press(screen.getByRole('button', { name: 'Translate' }));
+    fireEvent.changeText(screen.getByPlaceholderText('Type or paste text to translate'), 'Hello.');
+    fireEvent.press(screen.getByRole('button', { name: 'Translate text' }));
+
+    expect(await screen.findByText('OpenRouter API token is required.')).toBeTruthy();
+    expect(screen.queryByText('Saved to history')).toBeNull();
+    expect(screen.queryByTestId('result-editor')).toBeNull();
   });
 });
