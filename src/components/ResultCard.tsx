@@ -10,7 +10,7 @@ type ResultCardProps = {
   readonly actions: ResultActions;
   readonly canAddTag?: boolean;
   readonly mode: RecordMode;
-  readonly onAddTag?: (tagName: string) => Promise<Tag>;
+  readonly onAddTag?: (tagName: string) => Promise<Tag | null>;
   readonly value: string;
   readonly onChangeText: (value: string) => void;
   readonly originalText?: string;

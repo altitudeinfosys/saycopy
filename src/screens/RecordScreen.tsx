@@ -108,6 +108,7 @@ export default function RecordScreen({
   const [flowErrorText, setFlowErrorText] = useState('');
   const [savedHistoryCount, setSavedHistoryCount] = useState(0);
   const autoProcessedAudioUriRef = useRef<string | null>(null);
+  const currentHistoryItemIdRef = useRef<string | null>(null);
   const operationGenerationRef = useRef(0);
   const [defaultRecordingController] = useState(createAudioRecordingController);
   const [defaultResultActions] = useState(createResultActions);
@@ -161,6 +162,11 @@ export default function RecordScreen({
     return operationGenerationRef.current === operationGeneration;
   }, []);
 
+  const setVisibleHistoryItemId = useCallback((historyItemId: string | null) => {
+    currentHistoryItemIdRef.current = historyItemId;
+    setCurrentHistoryItemId(historyItemId);
+  }, []);
+
   useEffect(() => {
     return () => {
       invalidateOpenRouterOperations();
@@ -178,12 +184,12 @@ export default function RecordScreen({
       setResultMode(nextMode);
       setResultText(nextResultText);
       setOriginalText(nextOriginalText);
-      setCurrentHistoryItemId(historyItem?.id ?? null);
+      setVisibleHistoryItemId(historyItem?.id ?? null);
       setCurrentResultTags([...(historyItem?.tags ?? [])]);
       setFlowErrorText('');
       setSavedHistoryCount((currentCount) => currentCount + 1);
     },
-    [],
+    [setVisibleHistoryItemId],
   );
 
   const applyTranscriptionResult = useCallback(
@@ -203,7 +209,7 @@ export default function RecordScreen({
         setResultMode('translate');
         setResultText(result.primaryText);
         setOriginalText(result.sourceText);
-        setCurrentHistoryItemId(null);
+        setVisibleHistoryItemId(null);
         setCurrentResultTags([]);
         setFlowErrorText(result.error.message);
         return;
@@ -211,16 +217,22 @@ export default function RecordScreen({
 
       saveResult('translate', result.translatedText, result.sourceText, result.historyItem);
     },
-    [saveResult],
+    [saveResult, setVisibleHistoryItemId],
   );
 
   const handleAddResultTag = useCallback(
     async (tagName: string) => {
-      if (!historyRepository || !currentHistoryItemId) {
+      const historyItemId = currentHistoryItemId;
+
+      if (!historyRepository || !historyItemId) {
         throw new Error('Tags are unavailable for this result.');
       }
 
-      const tag = await historyRepository.assignTag(currentHistoryItemId, tagName);
+      const tag = await historyRepository.assignTag(historyItemId, tagName);
+      if (currentHistoryItemIdRef.current !== historyItemId) {
+        return null;
+      }
+
       const normalizedLabel = tag.label.trim().toLowerCase();
       setCurrentResultTags((currentTags) => {
         if (
@@ -330,7 +342,7 @@ export default function RecordScreen({
     setResultText('');
     setOriginalText('');
     setFlowErrorText('');
-    setCurrentHistoryItemId(null);
+    setVisibleHistoryItemId(null);
     setCurrentResultTags([]);
 
     if (!trimmedManualText) {
@@ -384,7 +396,7 @@ export default function RecordScreen({
     setResultText('');
     setOriginalText('');
     setFlowErrorText('');
-    setCurrentHistoryItemId(null);
+    setVisibleHistoryItemId(null);
     setCurrentResultTags([]);
     setIsManualTranslationPending(false);
     setSavedHistoryCount(0);

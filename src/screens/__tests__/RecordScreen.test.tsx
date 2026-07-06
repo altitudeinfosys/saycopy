@@ -10,7 +10,7 @@ import {
   type NativeAudioRecordingSession,
 } from '../../audio/audioRecorder';
 import { createAppError } from '../../domain/errors';
-import type { HistoryItem } from '../../domain/history';
+import type { HistoryItem, Tag } from '../../domain/history';
 import type { FlowTextResult, TranscriptionProvider, TranslationProvider } from '../../flows/types';
 import {
   createRecordFlowProcessors as createRuntimeRecordFlowProcessors,
@@ -903,5 +903,71 @@ describe('RecordScreen', () => {
 
     expect(await screen.findByText('Could not add tag.')).toBeTruthy();
     expect(screen.queryByText('Blocked')).toBeNull();
+  });
+
+  it('ignores stale tag completions after a newer result is visible', async () => {
+    const staleTagDeferred = createDeferred<Tag>();
+    const baseHistoryRepository = createDemoHistoryRepository();
+    const historyRepository: HistoryRepository = {
+      ...baseHistoryRepository,
+      assignTag: jest.fn(() => staleTagDeferred.promise),
+    };
+    const provider = createProviderMock({
+      translateText: jest.fn(async (input) => ({
+        text:
+          input.text === 'First result source.'
+            ? 'First visible result.'
+            : 'Second visible result.',
+        modelId: 'openai/gpt-4.1-mini',
+      })),
+    });
+    const recordFlowProcessors = createRuntimeRecordFlowProcessors({
+      historyRepository,
+      provider,
+    });
+
+    render(
+      <RecordScreen
+        historyRepository={historyRepository}
+        recordFlowProcessors={recordFlowProcessors}
+      />,
+    );
+
+    fireEvent.press(screen.getByRole('button', { name: 'Translate' }));
+    fireEvent.changeText(
+      screen.getByPlaceholderText('Type or paste text to translate'),
+      'First result source.',
+    );
+    fireEvent.press(screen.getByRole('button', { name: 'Translate text' }));
+
+    expect(await screen.findByDisplayValue('First visible result.')).toBeTruthy();
+
+    fireEvent.press(screen.getByRole('button', { name: 'Tags' }));
+    fireEvent.changeText(screen.getByPlaceholderText('Add a tag'), 'Stale tag');
+    fireEvent.press(screen.getByRole('button', { name: 'Add tag' }));
+
+    await waitFor(() => {
+      expect(historyRepository.assignTag).toHaveBeenCalledWith('history-1', 'Stale tag');
+    });
+
+    fireEvent.changeText(
+      screen.getByPlaceholderText('Type or paste text to translate'),
+      'Second result source.',
+    );
+    fireEvent.press(screen.getByRole('button', { name: 'Translate text' }));
+
+    expect(await screen.findByDisplayValue('Second visible result.')).toBeTruthy();
+
+    await act(async () => {
+      staleTagDeferred.resolve({ id: 'tag-stale', label: 'Stale tag' });
+      await staleTagDeferred.promise;
+      await flushMicrotasks();
+    });
+
+    fireEvent.press(screen.getByRole('button', { name: 'Tags' }));
+
+    expect(screen.queryByText('Stale tag')).toBeNull();
+    expect(screen.queryByText('Could not add tag.')).toBeNull();
+    expect(screen.getByTestId('result-editor').props.value).toBe('Second visible result.');
   });
 });

@@ -5,7 +5,7 @@ import type { Tag } from '../domain/history';
 
 type TagEditorProps = {
   readonly canAddTag: boolean;
-  readonly onAddTag?: (tagName: string) => Promise<Tag>;
+  readonly onAddTag?: (tagName: string) => Promise<Tag | null>;
   readonly tags: readonly Tag[];
 };
 
@@ -30,8 +30,10 @@ export default function TagEditor({ canAddTag, onAddTag, tags }: TagEditorProps)
     setErrorText('');
 
     try {
-      await onAddTag(trimmedTagName);
-      setTagName('');
+      const tag = await onAddTag(trimmedTagName);
+      if (tag) {
+        setTagName('');
+      }
     } catch {
       setErrorText('Could not add tag.');
     } finally {
