@@ -50,13 +50,14 @@ describe('App shell', () => {
     render(<AppShell dependencies={dependencies} />);
 
     expect(await screen.findByPlaceholderText('Type or paste text to translate')).toBeTruthy();
-    fireEvent.press(screen.getByRole('button', { name: 'Show recording options' }));
+    expect(screen.getByText('From English to Arabic')).toBeTruthy();
+    fireEvent.press(screen.getByRole('button', { name: 'Show language options' }));
 
     expect(
-      screen.getByRole('button', { name: 'Source language English' }).props.accessibilityState,
+      screen.getByRole('button', { name: 'From language English' }).props.accessibilityState,
     ).toMatchObject({ selected: true });
     expect(
-      screen.getByRole('button', { name: 'Target language Arabic' }).props.accessibilityState,
+      screen.getByRole('button', { name: 'To language Arabic' }).props.accessibilityState,
     ).toMatchObject({ selected: true });
     expect(screen.getByText('Light cleanup off')).toBeTruthy();
   });

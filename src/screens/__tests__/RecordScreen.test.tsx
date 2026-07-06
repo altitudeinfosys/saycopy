@@ -303,7 +303,7 @@ function expectMinimumTouchTarget(instance: ReactTestInstance): void {
 }
 
 function expandRecordingOptions(): void {
-  const showOptionsButton = screen.queryByRole('button', { name: 'Show recording options' });
+  const showOptionsButton = screen.queryByRole('button', { name: 'Show language options' });
 
   if (showOptionsButton) {
     fireEvent.press(showOptionsButton);
@@ -351,22 +351,25 @@ describe('RecordScreen', () => {
     expect(screen.getByText('Light cleanup on')).toBeTruthy();
     expect(screen.getByText('Tap to record')).toBeTruthy();
     expect(screen.getByText('60 second max')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Show recording options' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Show language options' })).toBeTruthy();
+    expect(screen.getByText('Recording language')).toBeTruthy();
+    expect(screen.getByText('Source: Auto-detect')).toBeTruthy();
     expect(screen.queryByText('Source language')).toBeNull();
     expect(screen.queryByText('Model preset')).toBeNull();
     expect(screen.queryByPlaceholderText('Type or paste text to translate')).toBeNull();
   });
 
-  it('lets users expand advanced recording options without making them compete with the recorder', () => {
+  it('lets users expand transcribe language options without showing model controls', () => {
     render(<RecordScreen />);
 
-    fireEvent.press(screen.getByRole('button', { name: 'Show recording options' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Show language options' }));
 
-    expect(screen.getByRole('button', { name: 'Hide recording options' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Hide language options' })).toBeTruthy();
     expect(screen.getByText('Source language')).toBeTruthy();
-    expect(screen.getByText('Model preset')).toBeTruthy();
+    expect(screen.queryByText('To language')).toBeNull();
+    expect(screen.queryByText('Model preset')).toBeNull();
 
-    fireEvent.press(screen.getByRole('button', { name: 'Hide recording options' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Hide language options' }));
 
     expect(screen.queryByText('Source language')).toBeNull();
     expect(screen.queryByText('Model preset')).toBeNull();
@@ -398,7 +401,7 @@ describe('RecordScreen', () => {
     expect(await screen.findByText('Microphone permission is required to record.')).toBeTruthy();
   });
 
-  it('shows manual input and a target language selector in translate mode', () => {
+  it('shows manual input and source-target language options in translate mode', () => {
     render(<RecordScreen />);
 
     fireEvent.press(screen.getByRole('button', { name: 'Translate' }));
@@ -406,8 +409,8 @@ describe('RecordScreen', () => {
     expect(screen.getByRole('button', { name: 'Tap to record' })).toBeTruthy();
     expect(screen.getByPlaceholderText('Type or paste text to translate')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Hide text input' })).toBeTruthy();
-    expect(screen.getByText('Target language')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Target language Spanish' })).toBeTruthy();
+    expect(screen.getByText('Translation languages')).toBeTruthy();
+    expect(screen.getByText('From Auto-detect to English')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Translate text' })).toBeTruthy();
 
     fireEvent.press(screen.getByRole('button', { name: 'Hide text input' }));
@@ -416,7 +419,9 @@ describe('RecordScreen', () => {
     expect(screen.queryByPlaceholderText('Type or paste text to translate')).toBeNull();
 
     expandRecordingOptions();
-    expect(screen.getByText('Source language')).toBeTruthy();
+    expect(screen.getByText('From language')).toBeTruthy();
+    expect(screen.getByText('To language')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'To language Spanish' })).toBeTruthy();
   });
 
   it('labels manual translation controls and keeps compact controls at usable touch sizes', () => {
@@ -430,10 +435,76 @@ describe('RecordScreen', () => {
 
     const manualInput = screen.getByLabelText('Text to translate');
     expect(manualInput.props.placeholder).toBe('Type or paste text to translate');
-    expectMinimumTouchTarget(screen.getByRole('button', { name: 'Target language Spanish' }));
-    expectMinimumTouchTarget(screen.getByRole('button', { name: 'Target language Arabic' }));
-    expectMinimumTouchTarget(screen.getByRole('button', { name: 'Balanced' }));
+    expectMinimumTouchTarget(screen.getByRole('button', { name: 'From language Auto-detect' }));
+    expectMinimumTouchTarget(screen.getByRole('button', { name: 'To language Spanish' }));
+    expectMinimumTouchTarget(screen.getByRole('button', { name: 'To language Arabic' }));
+    expect(screen.queryByText('Model preset')).toBeNull();
     expectMinimumTouchTarget(screen.getByRole('button', { name: 'Translate text' }));
+  });
+
+  it('uses changed source language for the next voice transcription', async () => {
+    const recordingController = createInjectedRecordingController();
+    const recordFlowProcessors = createScreenRecordFlowProcessors();
+
+    render(
+      <RecordScreen
+        recordFlowProcessors={recordFlowProcessors}
+        recordingController={recordingController}
+      />,
+    );
+
+    expandRecordingOptions();
+    fireEvent.press(screen.getByRole('button', { name: 'Source language Arabic' }));
+
+    expect(screen.getByText('Source: Arabic')).toBeTruthy();
+
+    fireEvent.press(screen.getByRole('button', { name: 'Tap to record' }));
+    await waitFor(() => {
+      expect(recordingController.start).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.press(screen.getByRole('button', { name: 'Stop recording' }));
+
+    await waitFor(() => {
+      expect(recordFlowProcessors.runTranscription).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sourceLanguageId: 'arabic',
+        }),
+        { isCurrent: expect.any(Function) },
+      );
+    });
+  });
+
+  it('uses changed from and to languages for the next manual translation', async () => {
+    const recordFlowProcessors = createScreenRecordFlowProcessors();
+
+    render(<RecordScreen recordFlowProcessors={recordFlowProcessors} />);
+
+    fireEvent.press(screen.getByRole('button', { name: 'Translate' }));
+    expandRecordingOptions();
+    fireEvent.press(screen.getByRole('button', { name: 'From language Spanish' }));
+    fireEvent.press(screen.getByRole('button', { name: 'To language Arabic' }));
+
+    expect(screen.getByText('From Spanish to Arabic')).toBeTruthy();
+
+    fireEvent.changeText(
+      screen.getByPlaceholderText('Type or paste text to translate'),
+      'Nos vemos manana.',
+    );
+    fireEvent.press(screen.getByRole('button', { name: 'Translate text' }));
+
+    await waitFor(() => {
+      expect(recordFlowProcessors.runTranslation).toHaveBeenCalledWith(
+        {
+          sourceType: 'manual',
+          text: 'Nos vemos manana.',
+          sourceLanguageId: 'spanish',
+          targetLanguageId: 'arabic',
+          modelPresetId: 'balanced',
+        },
+        { isCurrent: expect.any(Function) },
+      );
+    });
   });
 
   it('loads saved defaults into Record controls and voice transcription inputs', async () => {
@@ -456,7 +527,7 @@ describe('RecordScreen', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Spanish - Fast')).toBeTruthy();
+      expect(screen.getByText('Source: Spanish')).toBeTruthy();
       expect(screen.getByText('Light cleanup off')).toBeTruthy();
     });
 
@@ -466,9 +537,7 @@ describe('RecordScreen', () => {
       expect(
         screen.getByRole('button', { name: 'Source language Spanish' }).props.accessibilityState,
       ).toMatchObject({ selected: true });
-      expect(
-        screen.getByRole('button', { name: 'Fast' }).props.accessibilityState,
-      ).toMatchObject({ selected: true });
+      expect(screen.queryByText('Model preset')).toBeNull();
     });
 
     fireEvent.press(screen.getByRole('button', { name: 'Tap to record' }));
@@ -569,16 +638,15 @@ describe('RecordScreen', () => {
     );
 
     expect(await screen.findByPlaceholderText('Type or paste text to translate')).toBeTruthy();
+    expect(screen.getByText('From English to Arabic')).toBeTruthy();
     expandRecordingOptions();
     expect(
-      screen.getByRole('button', { name: 'Source language English' }).props.accessibilityState,
+      screen.getByRole('button', { name: 'From language English' }).props.accessibilityState,
     ).toMatchObject({ selected: true });
     expect(
-      screen.getByRole('button', { name: 'Target language Arabic' }).props.accessibilityState,
+      screen.getByRole('button', { name: 'To language Arabic' }).props.accessibilityState,
     ).toMatchObject({ selected: true });
-    expect(
-      screen.getByRole('button', { name: 'Best Quality' }).props.accessibilityState,
-    ).toMatchObject({ selected: true });
+    expect(screen.queryByText('Model preset')).toBeNull();
 
     fireEvent.changeText(
       screen.getByPlaceholderText('Type or paste text to translate'),
@@ -644,14 +712,12 @@ describe('RecordScreen', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole('button', { name: 'Source language English' }).props.accessibilityState,
+        screen.getByRole('button', { name: 'From language English' }).props.accessibilityState,
       ).toMatchObject({ selected: true });
       expect(
-        screen.getByRole('button', { name: 'Target language Arabic' }).props.accessibilityState,
+        screen.getByRole('button', { name: 'To language Arabic' }).props.accessibilityState,
       ).toMatchObject({ selected: true });
-      expect(
-        screen.getByRole('button', { name: 'Best Quality' }).props.accessibilityState,
-      ).toMatchObject({ selected: true });
+      expect(screen.queryByText('Model preset')).toBeNull();
     });
 
     fireEvent.press(screen.getByRole('button', { name: 'Translate text' }));
@@ -950,7 +1016,7 @@ describe('RecordScreen', () => {
 
     fireEvent.press(screen.getByRole('button', { name: 'Translate' }));
     expandRecordingOptions();
-    expect(screen.getByText('Source language')).toBeTruthy();
+    expect(screen.getByText('From language')).toBeTruthy();
 
     fireEvent.press(screen.getByRole('button', { name: 'Tap to record' }));
     await waitFor(() => {
@@ -961,8 +1027,8 @@ describe('RecordScreen', () => {
 
     expect(await screen.findByDisplayValue('Recorded source text.')).toBeTruthy();
     expect(screen.getByText('Record again')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Show recording options' })).toBeTruthy();
-    expect(screen.queryByText('Source language')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Show language options' })).toBeTruthy();
+    expect(screen.queryByText('From language')).toBeNull();
   });
 
   it('surfaces missing token errors without saving manual translation history', async () => {

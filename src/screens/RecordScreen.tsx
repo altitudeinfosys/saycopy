@@ -9,14 +9,13 @@ import {
 } from '../audio/audioRecorder';
 import LanguageSelect from '../components/LanguageSelect';
 import ModeSegmentedControl, { type RecordMode } from '../components/ModeSegmentedControl';
-import ModelPresetSelect from '../components/ModelPresetSelect';
 import RecordingPanel from '../components/RecordingPanel';
 import ResultCard from '../components/ResultCard';
 import { createResultActions, type ResultActions } from '../components/ActionBar';
 import type { AppError } from '../domain/errors';
 import type { HistoryItem, Tag } from '../domain/history';
 import { LANGUAGE_OPTIONS, type ConcreteLanguageId, type LanguageId } from '../domain/languages';
-import { getModelPreset, type ModelPresetId } from '../domain/modelPresets';
+import type { ModelPresetId } from '../domain/modelPresets';
 import type { TranscriptionFlowResult } from '../flows/transcriptionFlow';
 import type { TranslationFlowResult } from '../flows/translationFlow';
 import {
@@ -169,14 +168,15 @@ function RecordScreenContent({
     () => getLanguageLabel(sourceLanguageId),
     [sourceLanguageId],
   );
-  const modelPresetLabel = useMemo(
-    () => getModelPreset(modelPresetId).label,
-    [modelPresetId],
-  );
-  const recordingOptionsSummary =
+  const languageOptionsTitle =
+    mode === 'translate' ? 'Translation languages' : 'Recording language';
+  const languageOptionsSummary =
     mode === 'translate'
-      ? `${sourceLanguageLabel} to ${targetLanguageLabel} - ${modelPresetLabel}`
-      : `${sourceLanguageLabel} - ${modelPresetLabel}`;
+      ? `From ${sourceLanguageLabel} to ${targetLanguageLabel}`
+      : `Source: ${sourceLanguageLabel}`;
+  const languageOptionsToggleLabel = areRecordingOptionsExpanded
+    ? 'Hide language options'
+    : 'Show language options';
   const areSettingsReady = settingsLoadStatus === 'ready';
   const areSettingsLoading = settingsLoadStatus === 'loading';
   const didSettingsLoadFail = settingsLoadStatus === 'failed';
@@ -649,17 +649,15 @@ function RecordScreenContent({
 
       <View style={styles.optionsCard}>
         <Pressable
-          accessibilityLabel={
-            areRecordingOptionsExpanded ? 'Hide recording options' : 'Show recording options'
-          }
+          accessibilityLabel={languageOptionsToggleLabel}
           accessibilityRole="button"
           accessibilityState={{ expanded: areRecordingOptionsExpanded }}
           onPress={() => setAreRecordingOptionsExpanded((isExpanded) => !isExpanded)}
           style={styles.optionsToggle}
         >
           <View style={styles.optionsToggleText}>
-            <Text style={styles.optionsTitle}>Recording options</Text>
-            <Text style={styles.optionsSummary}>{recordingOptionsSummary}</Text>
+            <Text style={styles.optionsTitle}>{languageOptionsTitle}</Text>
+            <Text style={styles.optionsSummary}>{languageOptionsSummary}</Text>
           </View>
           <Text style={styles.optionsAction}>
             {areRecordingOptionsExpanded ? 'Hide' : 'Show'}
@@ -670,12 +668,18 @@ function RecordScreenContent({
           <View style={styles.optionsBody}>
             <LanguageSelect
               includeAuto
-              label="Source language"
+              label={mode === 'translate' ? 'From language' : 'Source language'}
               onChange={handleSourceLanguageChange}
               value={sourceLanguageId}
             />
 
-            <ModelPresetSelect value={modelPresetId} onChange={setModelPresetId} />
+            {mode === 'translate' ? (
+              <LanguageSelect
+                label="To language"
+                onChange={handleTargetLanguageChange}
+                value={targetLanguageId}
+              />
+            ) : null}
           </View>
         ) : null}
       </View>
@@ -744,29 +748,21 @@ function RecordScreenContent({
           ) : null}
 
           {isManualTextExpanded ? (
-            <>
-              <LanguageSelect
-                label="Target language"
-                onChange={handleTargetLanguageChange}
-                value={targetLanguageId}
-              />
-
-              <Pressable
-                accessibilityLabel="Translate text"
-                accessibilityRole="button"
-                accessibilityState={{ disabled: isManualTranslationPending || !areSettingsReady }}
-                disabled={isManualTranslationPending || !areSettingsReady}
-                onPress={() => void handleTranslateText()}
-                style={[
-                  styles.translateButton,
-                  (isManualTranslationPending || !areSettingsReady) && styles.translateButtonDisabled,
-                ]}
-              >
-                <Text style={styles.translateButtonText}>
-                  {isManualTranslationPending ? 'Translating' : 'Translate text'}
-                </Text>
-              </Pressable>
-            </>
+            <Pressable
+              accessibilityLabel="Translate text"
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isManualTranslationPending || !areSettingsReady }}
+              disabled={isManualTranslationPending || !areSettingsReady}
+              onPress={() => void handleTranslateText()}
+              style={[
+                styles.translateButton,
+                (isManualTranslationPending || !areSettingsReady) && styles.translateButtonDisabled,
+              ]}
+            >
+              <Text style={styles.translateButtonText}>
+                {isManualTranslationPending ? 'Translating' : 'Translate text'}
+              </Text>
+            </Pressable>
           ) : null}
         </View>
       ) : null}
@@ -823,10 +819,6 @@ function RecordScreenContent({
           tags={currentResultTags}
           value={resultText}
         />
-      ) : null}
-
-      {mode === 'translate' && !hasResult ? (
-        <Text style={styles.targetHint}>Target: {targetLanguageLabel}</Text>
       ) : null}
     </ScrollView>
   );
@@ -1074,12 +1066,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     marginTop: -8,
-  },
-  targetHint: {
-    color: '#64748B',
-    flexShrink: 1,
-    fontSize: 13,
-    fontWeight: '700',
-    textAlign: 'center',
   },
 });
