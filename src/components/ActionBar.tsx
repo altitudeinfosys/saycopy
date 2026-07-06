@@ -76,6 +76,7 @@ export default function ActionBar({
 const styles = StyleSheet.create({
   actionRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
   },
   actionButton: {
@@ -84,8 +85,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     flex: 1,
-    minHeight: 40,
+    minHeight: 44,
+    minWidth: 76,
     justifyContent: 'center',
+    paddingHorizontal: 8,
   },
   actionButtonSelected: {
     backgroundColor: '#FFF7ED',
@@ -93,8 +96,10 @@ const styles = StyleSheet.create({
   },
   actionText: {
     color: '#334155',
+    flexShrink: 1,
     fontSize: 14,
     fontWeight: '700',
+    textAlign: 'center',
   },
   actionTextSelected: {
     color: '#9A3412',

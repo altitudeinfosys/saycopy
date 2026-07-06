@@ -61,10 +61,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   option: {
+    alignItems: 'center',
     borderColor: '#CBD5E1',
     borderRadius: 8,
     borderWidth: 1,
-    minHeight: 36,
+    minHeight: 44,
     paddingHorizontal: 12,
     justifyContent: 'center',
   },
@@ -74,8 +75,10 @@ const styles = StyleSheet.create({
   },
   optionText: {
     color: '#475569',
+    flexShrink: 1,
     fontSize: 14,
     fontWeight: '600',
+    textAlign: 'center',
   },
   optionTextSelected: {
     color: '#FFFFFF',

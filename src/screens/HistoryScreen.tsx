@@ -222,9 +222,17 @@ export default function HistoryScreen({ repository, onOpenItem }: HistoryScreenP
         </View>
       ) : null}
 
-      {errorText ? <Text style={styles.errorText}>{errorText}</Text> : null}
+      {errorText ? (
+        <Text accessibilityLiveRegion="assertive" accessibilityRole="alert" style={styles.errorText}>
+          {errorText}
+        </Text>
+      ) : null}
 
-      {isLoading ? <Text style={styles.loadingText}>Loading history</Text> : null}
+      {isLoading ? (
+        <Text accessibilityLiveRegion="polite" style={styles.loadingText}>
+          Loading history
+        </Text>
+      ) : null}
 
       {!isLoading && visibleItems.length === 0 ? (
         <View style={styles.emptyState}>
@@ -293,6 +301,8 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
     justifyContent: 'space-between',
   },
   screenTitle: {
@@ -302,6 +312,7 @@ const styles = StyleSheet.create({
   },
   screenStatus: {
     color: '#64748B',
+    flexShrink: 1,
     fontSize: 14,
     fontWeight: '700',
     marginTop: 2,
@@ -327,7 +338,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     justifyContent: 'center',
-    minHeight: 36,
+    minHeight: 44,
     paddingHorizontal: 12,
   },
   clearFilterText: {
@@ -342,7 +353,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     justifyContent: 'center',
-    minHeight: 36,
+    minHeight: 44,
     paddingHorizontal: 12,
   },
   filterButtonSelected: {
@@ -370,28 +381,35 @@ const styles = StyleSheet.create({
   },
   itemBody: {
     gap: 10,
+    minHeight: 44,
   },
   itemHeader: {
     alignItems: 'center',
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
     justifyContent: 'space-between',
   },
   itemMode: {
     color: '#334155',
+    flexShrink: 1,
     fontSize: 12,
     fontWeight: '800',
     textTransform: 'uppercase',
   },
   itemDate: {
     color: '#64748B',
+    flexShrink: 1,
     fontSize: 12,
     fontWeight: '700',
   },
   itemText: {
     color: '#111827',
+    flexShrink: 1,
     fontSize: 16,
     fontWeight: '700',
     lineHeight: 22,
+    writingDirection: 'auto',
   },
   tagRow: {
     flexDirection: 'row',
@@ -418,7 +436,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     justifyContent: 'center',
-    minHeight: 40,
+    minHeight: 44,
     paddingHorizontal: 14,
   },
   deleteButtonText: {
@@ -455,6 +473,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: '#B91C1C',
+    flexShrink: 1,
     fontSize: 13,
     fontWeight: '800',
   },

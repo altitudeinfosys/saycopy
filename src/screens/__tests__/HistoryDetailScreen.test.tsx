@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 
 import type { HistoryItem, Tag } from '../../domain/history';
 import type {
@@ -140,6 +141,44 @@ describe('HistoryDetailScreen', () => {
       expect(screen.getByText('History item not found')).toBeTruthy();
       expect(screen.getByText('This history item no longer exists.')).toBeTruthy();
       expect(screen.queryByLabelText('History text')).toBeNull();
+    });
+  });
+
+  it('keeps Arabic translation detail text readable and editable', async () => {
+    const arabicSource = 'النص الأصلي العربي يبقى مرئيا في صفحة التفاصيل.';
+    const arabicTranslation = 'الترجمة العربية المحفوظة قابلة للتحرير بدون تداخل.';
+    const repository = new MemoryHistoryRepository([
+      {
+        id: 'history-arabic',
+        mode: 'translate',
+        sourceType: 'manual',
+        sourceLanguageId: 'arabic',
+        targetLanguageId: 'english',
+        transcript: arabicSource,
+        translatedText: arabicTranslation,
+        createdAt: '2026-07-05T12:00:00.000Z',
+        updatedAt: '2026-07-05T12:00:00.000Z',
+        tags: [],
+      },
+    ]);
+
+    render(<HistoryDetailScreen repository={repository} historyItemId="history-arabic" />);
+
+    const editor = await screen.findByLabelText('History text');
+    expect(editor.props.value).toBe(arabicTranslation);
+    expect(StyleSheet.flatten(editor.props.style)).toEqual(
+      expect.objectContaining({ writingDirection: 'auto' }),
+    );
+    expect(StyleSheet.flatten(screen.getByText(arabicSource).props.style)).toEqual(
+      expect.objectContaining({ writingDirection: 'auto' }),
+    );
+
+    fireEvent.changeText(editor, 'تعديل عربي محفوظ.');
+    fireEvent.press(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('History text').props.value).toBe('تعديل عربي محفوظ.');
+      expect(screen.getByText('Saved changes').props.accessibilityLiveRegion).toBe('polite');
     });
   });
 });

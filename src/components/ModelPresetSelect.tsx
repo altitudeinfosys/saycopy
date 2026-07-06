@@ -48,6 +48,8 @@ const styles = StyleSheet.create({
   headerRow: {
     alignItems: 'center',
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
     justifyContent: 'space-between',
   },
   label: {
@@ -57,11 +59,13 @@ const styles = StyleSheet.create({
   },
   selectedLabel: {
     color: '#64748B',
+    flexShrink: 1,
     fontSize: 13,
     fontWeight: '600',
   },
   optionRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
   },
   option: {
@@ -70,7 +74,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     flex: 1,
-    minHeight: 38,
+    minHeight: 44,
+    minWidth: 88,
     justifyContent: 'center',
     paddingHorizontal: 8,
   },
@@ -80,8 +85,10 @@ const styles = StyleSheet.create({
   },
   optionText: {
     color: '#475569',
+    flexShrink: 1,
     fontSize: 13,
     fontWeight: '700',
+    textAlign: 'center',
   },
   optionTextSelected: {
     color: '#075985',
@@ -90,5 +97,6 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontSize: 13,
     lineHeight: 18,
+    flexShrink: 1,
   },
 });

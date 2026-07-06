@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import type { ReactTestInstance } from 'react-test-renderer';
 import { StyleSheet } from 'react-native';
 
 import {
@@ -271,6 +272,18 @@ async function flushMicrotasks(count = 5): Promise<void> {
   }
 }
 
+function expectMinimumTouchTarget(instance: ReactTestInstance): void {
+  const style = StyleSheet.flatten(instance.props.style);
+  const targetHeight =
+    typeof style?.minHeight === 'number'
+      ? style.minHeight
+      : typeof style?.height === 'number'
+        ? style.height
+        : 0;
+
+  expect(targetHeight).toBeGreaterThanOrEqual(44);
+}
+
 async function renderManualTranslationResult({
   historyRepository,
   recordFlowProcessors = createScreenRecordFlowProcessors(),
@@ -350,6 +363,22 @@ describe('RecordScreen', () => {
     expect(screen.getByText('Target language')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Spanish' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Translate text' })).toBeTruthy();
+  });
+
+  it('labels manual translation controls and keeps compact controls at usable touch sizes', () => {
+    render(<RecordScreen />);
+
+    expectMinimumTouchTarget(screen.getByRole('button', { name: 'Transcribe' }));
+    expectMinimumTouchTarget(screen.getByRole('button', { name: 'Translate' }));
+
+    fireEvent.press(screen.getByRole('button', { name: 'Translate' }));
+
+    const manualInput = screen.getByLabelText('Text to translate');
+    expect(manualInput.props.placeholder).toBe('Type or paste text to translate');
+    expectMinimumTouchTarget(screen.getByRole('button', { name: 'Spanish' }));
+    expectMinimumTouchTarget(screen.getByRole('button', { name: 'Arabic' }));
+    expectMinimumTouchTarget(screen.getByRole('button', { name: 'Balanced' }));
+    expectMinimumTouchTarget(screen.getByRole('button', { name: 'Translate text' }));
   });
 
   it('shows warm active recording treatment before producing an editable saved result', async () => {
@@ -465,7 +494,9 @@ describe('RecordScreen', () => {
 
     fireEvent.press(screen.getByRole('button', { name: 'Tap to record' }));
 
-    expect(await screen.findByText('Microphone permission is required to record.')).toBeTruthy();
+    const permissionAlert = await screen.findByText('Microphone permission is required to record.');
+    expect(permissionAlert.props.accessibilityRole).toBe('alert');
+    expect(permissionAlert.props.accessibilityLiveRegion).toBe('assertive');
     expect(screen.queryByText('Saved to history')).toBeNull();
   });
 
@@ -515,9 +546,111 @@ describe('RecordScreen', () => {
     fireEvent.changeText(screen.getByPlaceholderText('Type or paste text to translate'), 'Hello.');
     fireEvent.press(screen.getByRole('button', { name: 'Translate text' }));
 
-    expect(await screen.findByText('OpenRouter API token is required.')).toBeTruthy();
+    const tokenAlert = await screen.findByText('OpenRouter API token is required.');
+    expect(tokenAlert.props.accessibilityRole).toBe('alert');
+    expect(tokenAlert.props.accessibilityLiveRegion).toBe('assertive');
     expect(screen.queryByText('Saved to history')).toBeNull();
     expect(screen.queryByTestId('result-editor')).toBeNull();
+  });
+
+  it.each([
+    [
+      'offline/network failure',
+      createAppError('network_unavailable', 'Network connection to OpenRouter failed.', {
+        provider: 'openrouter',
+        retryable: true,
+      }),
+    ],
+    [
+      'provider auth error',
+      createAppError('auth_error', 'OpenRouter authentication failed.', {
+        provider: 'openrouter',
+        retryable: false,
+      }),
+    ],
+    [
+      'provider payment error',
+      createAppError('payment_required', 'OpenRouter account credits are required.', {
+        provider: 'openrouter',
+        retryable: false,
+      }),
+    ],
+    [
+      'retryable rate limit overload',
+      createAppError('rate_limited', 'OpenRouter rate limit was reached. Try again shortly.', {
+        provider: 'openrouter',
+        retryable: true,
+      }),
+    ],
+    [
+      'retryable provider overload',
+      createAppError('provider_unavailable', 'OpenRouter is temporarily unavailable.', {
+        provider: 'openrouter',
+        retryable: true,
+      }),
+    ],
+  ])('surfaces %s as an alert without saving history', async (_label, appError) => {
+    const recordFlowProcessors = createScreenRecordFlowProcessors({
+      runTranslation: jest.fn().mockRejectedValue(appError),
+    });
+
+    render(<RecordScreen recordFlowProcessors={recordFlowProcessors} />);
+
+    fireEvent.press(screen.getByRole('button', { name: 'Translate' }));
+    fireEvent.changeText(screen.getByPlaceholderText('Type or paste text to translate'), 'Hello.');
+    fireEvent.press(screen.getByRole('button', { name: 'Translate text' }));
+
+    const alert = await screen.findByText(appError.message);
+    expect(alert.props.accessibilityRole).toBe('alert');
+    expect(alert.props.accessibilityLiveRegion).toBe('assertive');
+    expect(screen.getByRole('button', { name: 'Translate text' }).props.accessibilityState).toMatchObject({
+      disabled: false,
+    });
+    expect(screen.queryByText('Saved to history')).toBeNull();
+    expect(screen.queryByTestId('result-editor')).toBeNull();
+  });
+
+  it('keeps Arabic translated output editable with readable text direction', async () => {
+    const arabicSource = 'يرجى إرسال ملخص الاجتماع بعد الظهر.';
+    const arabicTranslation = 'تم حفظ الملخص العربي بشكل واضح للقراءة.';
+    const recordFlowProcessors = createScreenRecordFlowProcessors({
+      runTranslation: jest.fn(async (input) => ({
+        status: 'success' as const,
+        sourceType: input.sourceType,
+        sourceText: arabicSource,
+        translatedText: arabicTranslation,
+        primaryText: arabicTranslation,
+        historyItem: {
+          id: 'arabic-result',
+          mode: 'translate' as const,
+          sourceType: input.sourceType,
+          sourceLanguageId: input.sourceLanguageId,
+          targetLanguageId: input.targetLanguageId,
+          transcript: arabicSource,
+          translatedText: arabicTranslation,
+          createdAt: '2026-07-05T19:05:00.000Z',
+          updatedAt: '2026-07-05T19:05:00.000Z',
+        },
+      })),
+    });
+
+    render(<RecordScreen recordFlowProcessors={recordFlowProcessors} />);
+
+    fireEvent.press(screen.getByRole('button', { name: 'Translate' }));
+    fireEvent.changeText(
+      screen.getByPlaceholderText('Type or paste text to translate'),
+      arabicSource,
+    );
+    fireEvent.press(screen.getByRole('button', { name: 'Translate text' }));
+
+    const editor = await screen.findByDisplayValue(arabicTranslation);
+    expect(StyleSheet.flatten(editor.props.style)).toEqual(
+      expect.objectContaining({ writingDirection: 'auto' }),
+    );
+    expect(screen.getByText(arabicSource)).toBeTruthy();
+    expect(StyleSheet.flatten(screen.getByText(arabicSource).props.style)).toEqual(
+      expect.objectContaining({ writingDirection: 'auto' }),
+    );
   });
 
   it('does not save or show stale manual translation after mode changes before provider resolves', async () => {

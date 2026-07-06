@@ -1,4 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
+import type { ReactTestInstance } from 'react-test-renderer';
 
 import { getHistoryPrimaryText, type HistoryItem, type Tag } from '../../domain/history';
 import type {
@@ -26,6 +28,39 @@ function createHistoryItem(input: {
     updatedAt: input.createdAt,
     tags: input.tags ?? [],
   };
+}
+
+function createTranslatedHistoryItem(input: {
+  readonly id: string;
+  readonly sourceText: string;
+  readonly translatedText: string;
+  readonly createdAt: string;
+  readonly tags?: readonly Tag[];
+}): HistoryItem {
+  return {
+    id: input.id,
+    mode: 'translate',
+    sourceType: 'manual',
+    sourceLanguageId: 'arabic',
+    targetLanguageId: 'english',
+    transcript: input.sourceText,
+    translatedText: input.translatedText,
+    createdAt: input.createdAt,
+    updatedAt: input.createdAt,
+    tags: input.tags ?? [],
+  };
+}
+
+function expectMinimumTouchTarget(instance: ReactTestInstance): void {
+  const style = StyleSheet.flatten(instance.props.style);
+  const targetHeight =
+    typeof style?.minHeight === 'number'
+      ? style.minHeight
+      : typeof style?.height === 'number'
+        ? style.height
+        : 0;
+
+  expect(targetHeight).toBeGreaterThanOrEqual(44);
 }
 
 class MemoryHistoryRepository implements HistoryRepository {
@@ -244,6 +279,30 @@ describe('HistoryScreen', () => {
       expect(screen.queryByText('Vacation phrase')).toBeNull();
     });
     expect(repository.searchHistory).toHaveBeenLastCalledWith({ query: '', tag: 'Work' });
+  });
+
+  it('renders Arabic history text with readable wrapping and usable row actions', async () => {
+    const arabicText = 'هذه ملاحظة عربية طويلة محفوظة في السجل لقراءة واضحة.';
+    const repository = new MemoryHistoryRepository([
+      createTranslatedHistoryItem({
+        id: 'history-arabic',
+        sourceText: 'النص الأصلي محفوظ أيضا.',
+        translatedText: arabicText,
+        createdAt: '2026-07-05T12:02:00.000Z',
+      }),
+    ]);
+
+    render(<HistoryScreen repository={repository} />);
+
+    const renderedArabicText = await screen.findByText(arabicText);
+    expect(StyleSheet.flatten(renderedArabicText.props.style)).toEqual(
+      expect.objectContaining({
+        flexShrink: 1,
+        writingDirection: 'auto',
+      }),
+    );
+    expectMinimumTouchTarget(screen.getByRole('button', { name: `Open ${arabicText}` }));
+    expectMinimumTouchTarget(screen.getByRole('button', { name: `Delete ${arabicText}` }));
   });
 
   it('deletes a history item and refreshes the list', async () => {

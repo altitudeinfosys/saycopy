@@ -219,7 +219,10 @@ export default function SettingsScreen({ settingsRepository, tokenStore }: Setti
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>OpenRouter token</Text>
           <View style={[styles.statusPill, tokenStatus.hasToken && styles.statusPillSaved]}>
-            <Text style={[styles.statusText, tokenStatus.hasToken && styles.statusTextSaved]}>
+            <Text
+              accessibilityLiveRegion="polite"
+              style={[styles.statusText, tokenStatus.hasToken && styles.statusTextSaved]}
+            >
               {tokenStatus.statusText}
             </Text>
           </View>
@@ -333,8 +336,16 @@ export default function SettingsScreen({ settingsRepository, tokenStore }: Setti
         </View>
       </View>
 
-      {messageText ? <Text style={styles.savedText}>{messageText}</Text> : null}
-      {errorText ? <Text style={styles.errorText}>{errorText}</Text> : null}
+      {messageText ? (
+        <Text accessibilityLiveRegion="polite" style={styles.savedText}>
+          {messageText}
+        </Text>
+      ) : null}
+      {errorText ? (
+        <Text accessibilityLiveRegion="assertive" accessibilityRole="alert" style={styles.errorText}>
+          {errorText}
+        </Text>
+      ) : null}
     </ScrollView>
   );
 }
@@ -371,7 +382,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   sectionHeader: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
@@ -388,6 +399,8 @@ const styles = StyleSheet.create({
     borderColor: '#FECACA',
     borderRadius: 999,
     borderWidth: 1,
+    flexShrink: 1,
+    maxWidth: '100%',
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
@@ -397,8 +410,10 @@ const styles = StyleSheet.create({
   },
   statusText: {
     color: '#B91C1C',
+    flexShrink: 1,
     fontSize: 12,
     fontWeight: '800',
+    textAlign: 'center',
   },
   statusTextSaved: {
     color: '#047857',
@@ -415,6 +430,7 @@ const styles = StyleSheet.create({
   },
   buttonRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
   },
   primaryButton: {
@@ -422,6 +438,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#111827',
     borderRadius: 10,
     flex: 1,
+    flexBasis: 130,
     justifyContent: 'center',
     minHeight: 46,
   },
@@ -436,6 +453,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     flex: 1,
+    flexBasis: 130,
     justifyContent: 'center',
     minHeight: 46,
   },
@@ -466,7 +484,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     justifyContent: 'center',
-    minHeight: 38,
+    minHeight: 44,
     paddingHorizontal: 12,
   },
   optionButtonSelected: {
@@ -475,19 +493,23 @@ const styles = StyleSheet.create({
   },
   optionButtonText: {
     color: '#475569',
+    flexShrink: 1,
     fontSize: 13,
     fontWeight: '800',
+    textAlign: 'center',
   },
   optionButtonTextSelected: {
     color: '#075985',
   },
   savedText: {
     color: '#047857',
+    flexShrink: 1,
     fontSize: 13,
     fontWeight: '800',
   },
   errorText: {
     color: '#B91C1C',
+    flexShrink: 1,
     fontSize: 13,
     fontWeight: '800',
   },

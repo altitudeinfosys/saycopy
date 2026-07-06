@@ -1,4 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
+import type { ReactTestInstance } from 'react-test-renderer';
 
 import type { SecureTokenStore, TokenStatus } from '../../storage/secureTokenStore';
 import {
@@ -107,11 +109,46 @@ function renderSettingsScreen({
   return { settingsRepository, tokenStore };
 }
 
+function expectMinimumTouchTarget(instance: ReactTestInstance): void {
+  const style = StyleSheet.flatten(instance.props.style);
+  const targetHeight =
+    typeof style?.minHeight === 'number'
+      ? style.minHeight
+      : typeof style?.height === 'number'
+        ? style.height
+        : 0;
+
+  expect(targetHeight).toBeGreaterThanOrEqual(44);
+}
+
 describe('SettingsScreen', () => {
   it('shows token missing state', async () => {
     renderSettingsScreen({ tokenStore: new MemoryTokenStore(null) });
 
     expect(await screen.findByText('OpenRouter token missing')).toBeTruthy();
+  });
+
+  it('keeps settings controls touchable and token status resilient for large text', async () => {
+    renderSettingsScreen({ tokenStore: new MemoryTokenStore(null) });
+
+    const tokenStatus = await screen.findByText('OpenRouter token missing');
+    expect(StyleSheet.flatten(tokenStatus.props.style)).toEqual(
+      expect.objectContaining({ flexShrink: 1 }),
+    );
+    expect(tokenStatus.props.accessibilityLiveRegion).toBe('polite');
+
+    expectMinimumTouchTarget(screen.getByRole('button', { name: 'Save token' }));
+    expectMinimumTouchTarget(screen.getByRole('button', { name: 'Clear token' }));
+
+    await screen.findByText('Defaults');
+    expectMinimumTouchTarget(screen.getByRole('button', { name: 'Default mode Translate' }));
+    expectMinimumTouchTarget(
+      screen.getByRole('button', { name: 'Default source language Arabic' }),
+    );
+    expectMinimumTouchTarget(
+      screen.getByRole('button', { name: 'Default target language Arabic' }),
+    );
+    expectMinimumTouchTarget(screen.getByRole('button', { name: 'Default preset Best Quality' }));
   });
 
   it('shows token present state without rendering the secret token', async () => {

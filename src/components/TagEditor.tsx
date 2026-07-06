@@ -78,7 +78,15 @@ export default function TagEditor({ canAddTag, onAddTag, tags }: TagEditorProps)
         </Pressable>
       </View>
 
-      {errorText ? <Text style={styles.errorText}>{errorText}</Text> : null}
+      {errorText ? (
+        <Text
+          accessibilityLiveRegion="assertive"
+          accessibilityRole="alert"
+          style={styles.errorText}
+        >
+          {errorText}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -108,6 +116,7 @@ const styles = StyleSheet.create({
   inputRow: {
     alignItems: 'center',
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
   },
   input: {
@@ -118,7 +127,8 @@ const styles = StyleSheet.create({
     color: '#0F172A',
     flex: 1,
     fontSize: 15,
-    minHeight: 42,
+    minHeight: 44,
+    minWidth: 160,
     paddingHorizontal: 12,
   },
   addButton: {
@@ -126,7 +136,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#111827',
     borderRadius: 10,
     justifyContent: 'center',
-    minHeight: 42,
+    minHeight: 44,
     paddingHorizontal: 14,
   },
   addButtonDisabled: {
@@ -134,8 +144,10 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     color: '#FFFFFF',
+    flexShrink: 1,
     fontSize: 13,
     fontWeight: '800',
+    textAlign: 'center',
   },
   errorText: {
     color: '#B91C1C',

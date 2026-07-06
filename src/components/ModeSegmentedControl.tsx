@@ -53,8 +53,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 8,
     flex: 1,
-    minHeight: 40,
+    minHeight: 44,
     justifyContent: 'center',
+    paddingHorizontal: 8,
   },
   segmentSelected: {
     backgroundColor: '#FFFFFF',
@@ -65,8 +66,10 @@ const styles = StyleSheet.create({
   },
   segmentText: {
     color: '#64748B',
+    flexShrink: 1,
     fontSize: 15,
     fontWeight: '600',
+    textAlign: 'center',
   },
   segmentTextSelected: {
     color: '#111827',

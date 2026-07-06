@@ -63,7 +63,15 @@ export default function ResultCard({
         resultText={value}
       />
 
-      {actionErrorText ? <Text style={styles.errorText}>{actionErrorText}</Text> : null}
+      {actionErrorText ? (
+        <Text
+          accessibilityLiveRegion="assertive"
+          accessibilityRole="alert"
+          style={styles.errorText}
+        >
+          {actionErrorText}
+        </Text>
+      ) : null}
 
       {isTagEditorOpen ? (
         <TagEditor canAddTag={canAddTag} onAddTag={onAddTag} tags={tags} />
@@ -84,15 +92,19 @@ const styles = StyleSheet.create({
   headerRow: {
     alignItems: 'center',
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
     justifyContent: 'space-between',
   },
   heading: {
     color: '#111827',
+    flexShrink: 1,
     fontSize: 17,
     fontWeight: '800',
   },
   editableLabel: {
     color: '#64748B',
+    flexShrink: 1,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -106,6 +118,7 @@ const styles = StyleSheet.create({
     lineHeight: 23,
     minHeight: 140,
     padding: 12,
+    writingDirection: 'auto',
   },
   translationEditor: {
     backgroundColor: '#F0F9FF',
@@ -126,8 +139,10 @@ const styles = StyleSheet.create({
   },
   originalText: {
     color: '#334155',
+    flexShrink: 1,
     fontSize: 14,
     lineHeight: 20,
+    writingDirection: 'auto',
   },
   errorText: {
     color: '#B91C1C',

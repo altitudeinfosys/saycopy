@@ -446,7 +446,7 @@ export default function RecordScreen({
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <View>
+        <View style={styles.titleGroup}>
           <Text style={styles.screenTitle}>Record</Text>
           <Text style={styles.screenStatus}>{mode === 'transcribe' ? 'Transcribe' : 'Translate'}</Text>
         </View>
@@ -462,6 +462,7 @@ export default function RecordScreen({
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Text to translate</Text>
             <TextInput
+              accessibilityLabel="Text to translate"
               multiline
               onChangeText={setManualText}
               placeholder="Type or paste text to translate"
@@ -507,6 +508,8 @@ export default function RecordScreen({
 
       {recorderCue ? (
         <Text
+          accessibilityLiveRegion={recordingState.status === 'failed' ? 'assertive' : 'polite'}
+          accessibilityRole={recordingState.status === 'failed' ? 'alert' : 'text'}
           style={[
             styles.recorderCue,
             recordingState.status === 'failed' ? styles.recorderCueError : null,
@@ -516,11 +519,21 @@ export default function RecordScreen({
         </Text>
       ) : null}
 
-      {flowErrorText ? <Text style={styles.flowErrorText}>{flowErrorText}</Text> : null}
+      {flowErrorText ? (
+        <Text
+          accessibilityLiveRegion="assertive"
+          accessibilityRole="alert"
+          style={styles.flowErrorText}
+        >
+          {flowErrorText}
+        </Text>
+      ) : null}
 
       {savedHistoryCount > 0 ? (
         <View style={styles.savedRow}>
-          <Text style={styles.savedLabel}>Saved to history</Text>
+          <Text accessibilityLiveRegion="polite" style={styles.savedLabel}>
+            Saved to history
+          </Text>
           <Text style={styles.savedMeta}>
             {savedHistoryCount} {savedHistoryCount === 1 ? 'item' : 'items'} in this session
           </Text>
@@ -561,7 +574,12 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
     justifyContent: 'space-between',
+  },
+  titleGroup: {
+    flexShrink: 1,
   },
   screenTitle: {
     color: '#111827',
@@ -570,6 +588,7 @@ const styles = StyleSheet.create({
   },
   screenStatus: {
     color: '#64748B',
+    flexShrink: 1,
     fontSize: 14,
     fontWeight: '700',
     marginTop: 2,
@@ -579,13 +598,17 @@ const styles = StyleSheet.create({
     borderColor: '#A7F3D0',
     borderRadius: 999,
     borderWidth: 1,
+    flexShrink: 1,
+    maxWidth: '100%',
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   cleanupText: {
     color: '#047857',
+    flexShrink: 1,
     fontSize: 13,
     fontWeight: '800',
+    textAlign: 'center',
   },
   translatePanel: {
     backgroundColor: '#FFFFFF',
@@ -613,6 +636,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     minHeight: 104,
     padding: 12,
+    writingDirection: 'auto',
   },
   translateButton: {
     alignItems: 'center',
@@ -636,16 +660,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
     justifyContent: 'space-between',
     padding: 12,
   },
   savedLabel: {
     color: '#166534',
+    flexShrink: 1,
     fontSize: 14,
     fontWeight: '800',
   },
   savedMeta: {
     color: '#15803D',
+    flexShrink: 1,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -660,12 +688,14 @@ const styles = StyleSheet.create({
   },
   flowErrorText: {
     color: '#B91C1C',
+    flexShrink: 1,
     fontSize: 14,
     fontWeight: '700',
     marginTop: -8,
   },
   targetHint: {
     color: '#64748B',
+    flexShrink: 1,
     fontSize: 13,
     fontWeight: '700',
     textAlign: 'center',

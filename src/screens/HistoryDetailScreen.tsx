@@ -176,8 +176,16 @@ export default function HistoryDetailScreen({
           </View>
         ) : null}
 
-        {errorText ? <Text style={styles.errorText}>{errorText}</Text> : null}
-        {statusText ? <Text style={styles.savedText}>{statusText}</Text> : null}
+        {errorText ? (
+          <Text accessibilityLiveRegion="assertive" accessibilityRole="alert" style={styles.errorText}>
+            {errorText}
+          </Text>
+        ) : null}
+        {statusText ? (
+          <Text accessibilityLiveRegion="polite" style={styles.savedText}>
+            {statusText}
+          </Text>
+        ) : null}
 
         <Pressable
           accessibilityLabel="Save changes"
@@ -206,6 +214,7 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
   },
   titleGroup: {
@@ -214,11 +223,13 @@ const styles = StyleSheet.create({
   },
   screenTitle: {
     color: '#111827',
+    flexShrink: 1,
     fontSize: 30,
     fontWeight: '800',
   },
   metaText: {
     color: '#64748B',
+    flexShrink: 1,
     fontSize: 13,
     fontWeight: '700',
   },
@@ -228,7 +239,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     justifyContent: 'center',
-    minHeight: 42,
+    minHeight: 44,
     paddingHorizontal: 14,
   },
   backButtonText: {
@@ -259,6 +270,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     minHeight: 180,
     padding: 12,
+    writingDirection: 'auto',
   },
   sourcePanel: {
     backgroundColor: '#F8FAFC',
@@ -270,8 +282,10 @@ const styles = StyleSheet.create({
   },
   sourceText: {
     color: '#475569',
+    flexShrink: 1,
     fontSize: 15,
     lineHeight: 21,
+    writingDirection: 'auto',
   },
   tagRow: {
     flexDirection: 'row',
@@ -322,11 +336,13 @@ const styles = StyleSheet.create({
   },
   savedText: {
     color: '#047857',
+    flexShrink: 1,
     fontSize: 13,
     fontWeight: '800',
   },
   errorText: {
     color: '#B91C1C',
+    flexShrink: 1,
     fontSize: 13,
     fontWeight: '800',
   },
