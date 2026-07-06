@@ -37,6 +37,10 @@ type RecordScreenContentProps = Omit<RecordScreenProps, 'recordingController'> &
   readonly recordingController: AudioRecordingController;
 };
 
+type SettingsLoadStatus = 'loading' | 'ready' | 'failed';
+
+const SETTINGS_LOAD_FAILURE_MESSAGE = 'Could not load default settings.';
+
 function getLanguageLabel(languageId: LanguageId) {
   return LANGUAGE_OPTIONS.find((language) => language.id === languageId)?.label ?? 'Selected language';
 }
@@ -133,6 +137,9 @@ function RecordScreenContent({
   const [currentResultTags, setCurrentResultTags] = useState<Tag[]>([]);
   const [flowErrorText, setFlowErrorText] = useState('');
   const [savedHistoryCount, setSavedHistoryCount] = useState(0);
+  const [settingsLoadStatus, setSettingsLoadStatus] = useState<SettingsLoadStatus>(
+    settingsRepository ? 'loading' : 'ready',
+  );
   const autoProcessedAudioUriRef = useRef<string | null>(null);
   const currentHistoryItemIdRef = useRef<string | null>(null);
   const operationGenerationRef = useRef(0);
@@ -152,16 +159,23 @@ function RecordScreenContent({
     () => getLanguageLabel(targetLanguageId),
     [targetLanguageId],
   );
+  const areSettingsReady = settingsLoadStatus === 'ready';
+  const areSettingsLoading = settingsLoadStatus === 'loading';
+  const didSettingsLoadFail = settingsLoadStatus === 'failed';
   const isRecording = isRecordButtonActive(recordingState);
   const isRecorderBusy = isRecordButtonBusy(recordingState);
   const recordingBusyLabel =
-    recordingState.status === 'requesting_permission'
-      ? 'Preparing recorder'
-      : recordingState.status === 'stopping'
-        ? 'Stopping recording'
-        : recordingState.status === 'processing'
-          ? 'Creating result'
-          : undefined;
+    areSettingsLoading
+      ? 'Loading settings'
+      : didSettingsLoadFail
+        ? 'Settings unavailable'
+        : recordingState.status === 'requesting_permission'
+          ? 'Preparing recorder'
+          : recordingState.status === 'stopping'
+            ? 'Stopping recording'
+            : recordingState.status === 'processing'
+              ? 'Creating result'
+              : undefined;
   const recorderCue =
     recordingState.status === 'requesting_permission'
       ? 'Requesting microphone permission'
@@ -172,14 +186,20 @@ function RecordScreenContent({
             ? ''
             : getRecorderFailureMessage(recordingState.error)
           : '';
+  const visibleFlowErrorText = didSettingsLoadFail
+    ? SETTINGS_LOAD_FAILURE_MESSAGE
+    : flowErrorText;
 
   useEffect(() => {
     let isActive = true;
 
     async function loadDefaultSettings() {
       if (!settingsRepository) {
+        setSettingsLoadStatus('ready');
         return;
       }
+
+      setSettingsLoadStatus('loading');
 
       try {
         const loadedSettings = await settingsRepository.getSettings();
@@ -192,9 +212,11 @@ function RecordScreenContent({
         setTargetLanguageId(loadedSettings.targetLanguageId);
         setModelPresetId(loadedSettings.modelPresetId);
         setCleanupEnabled(loadedSettings.cleanupEnabled);
+        setSettingsLoadStatus('ready');
       } catch {
         if (isActive) {
-          setFlowErrorText('Could not load default settings.');
+          setSettingsLoadStatus('failed');
+          setFlowErrorText(SETTINGS_LOAD_FAILURE_MESSAGE);
         }
       }
     }
@@ -319,6 +341,13 @@ function RecordScreenContent({
   );
 
   const processStoppedRecording = useCallback(async () => {
+    if (!areSettingsReady) {
+      if (didSettingsLoadFail) {
+        setFlowErrorText(SETTINGS_LOAD_FAILURE_MESSAGE);
+      }
+      return;
+    }
+
     const operationGeneration = startOpenRouterOperation();
     const isCurrent = () => isOpenRouterOperationCurrent(operationGeneration);
 
@@ -368,9 +397,11 @@ function RecordScreenContent({
     }
   }, [
     activeRecordingController,
+    areSettingsReady,
     applyTranscriptionResult,
     applyTranslationResult,
     cleanupEnabled,
+    didSettingsLoadFail,
     isOpenRouterOperationCurrent,
     mode,
     modelPresetId,
@@ -406,6 +437,13 @@ function RecordScreenContent({
 
   async function handleTranslateText() {
     if (isManualTranslationPending) {
+      return;
+    }
+
+    if (!areSettingsReady) {
+      if (didSettingsLoadFail) {
+        setFlowErrorText(SETTINGS_LOAD_FAILURE_MESSAGE);
+      }
       return;
     }
 
@@ -473,6 +511,13 @@ function RecordScreenContent({
   }
 
   async function handleRecordPress() {
+    if (!areSettingsReady) {
+      if (didSettingsLoadFail) {
+        setFlowErrorText(SETTINGS_LOAD_FAILURE_MESSAGE);
+      }
+      return;
+    }
+
     if (isRecorderBusy) {
       return;
     }
@@ -588,12 +633,12 @@ function RecordScreenContent({
           <Pressable
             accessibilityLabel="Translate text"
             accessibilityRole="button"
-            accessibilityState={{ disabled: isManualTranslationPending }}
-            disabled={isManualTranslationPending}
+            accessibilityState={{ disabled: isManualTranslationPending || !areSettingsReady }}
+            disabled={isManualTranslationPending || !areSettingsReady}
             onPress={() => void handleTranslateText()}
             style={[
               styles.translateButton,
-              isManualTranslationPending && styles.translateButtonDisabled,
+              (isManualTranslationPending || !areSettingsReady) && styles.translateButtonDisabled,
             ]}
           >
             <Text style={styles.translateButtonText}>
@@ -607,10 +652,16 @@ function RecordScreenContent({
 
       <RecordingPanel
         busyLabel={recordingBusyLabel}
-        isDisabled={isRecorderBusy}
+        isDisabled={isRecorderBusy || !areSettingsReady}
         isRecording={isRecording}
         onRecordPress={handleRecordPress}
       />
+
+      {areSettingsLoading ? (
+        <Text accessibilityLiveRegion="polite" style={styles.settingsLoadText}>
+          Loading default settings
+        </Text>
+      ) : null}
 
       {recorderCue ? (
         <Text
@@ -625,13 +676,13 @@ function RecordScreenContent({
         </Text>
       ) : null}
 
-      {flowErrorText ? (
+      {visibleFlowErrorText ? (
         <Text
           accessibilityLiveRegion="assertive"
           accessibilityRole="alert"
           style={styles.flowErrorText}
         >
-          {flowErrorText}
+          {visibleFlowErrorText}
         </Text>
       ) : null}
 
@@ -796,6 +847,13 @@ const styles = StyleSheet.create({
     color: '#B91C1C',
     flexShrink: 1,
     fontSize: 14,
+    fontWeight: '700',
+    marginTop: -8,
+  },
+  settingsLoadText: {
+    color: '#64748B',
+    flexShrink: 1,
+    fontSize: 13,
     fontWeight: '700',
     marginTop: -8,
   },

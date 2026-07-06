@@ -21,18 +21,19 @@ function createTestAppDependencies(): AppDependencies {
 }
 
 describe('App shell', () => {
-  it('shows the primary tab labels', () => {
+  it('shows the primary tab labels', async () => {
     render(<AppShell dependencies={createTestAppDependencies()} />);
 
     expect(screen.getByRole('tab', { name: 'Record' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'History' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Settings' })).toBeTruthy();
+    expect(await screen.findByText('Tap to record')).toBeTruthy();
   });
 
-  it('renders the record screen as the primary tab content', () => {
+  it('renders the record screen as the primary tab content', async () => {
     render(<AppShell dependencies={createTestAppDependencies()} />);
 
-    expect(screen.getByText('Tap to record')).toBeTruthy();
+    expect(await screen.findByText('Tap to record')).toBeTruthy();
     expect(screen.getByText('Light cleanup on')).toBeTruthy();
   });
 

@@ -257,6 +257,16 @@ function createSettingsRepositoryMock(settings: AppSettings): SettingsRepository
   return createDemoSettingsRepository(settings);
 }
 
+function createDeferredSettingsRepository() {
+  const settingsDeferred = createDeferred<AppSettings>();
+  const settingsRepository: SettingsRepository = {
+    getSettings: jest.fn(() => settingsDeferred.promise),
+    saveSettings: jest.fn(async () => undefined),
+  };
+
+  return { settingsDeferred, settingsRepository };
+}
+
 function createProviderMock(
   overrides: Partial<TranscriptionProvider & TranslationProvider> = {},
 ): TranscriptionProvider & TranslationProvider {
@@ -438,6 +448,65 @@ describe('RecordScreen', () => {
     });
   });
 
+  it('blocks voice recording until saved settings finish loading', async () => {
+    const recordingController = createInjectedRecordingController();
+    const recordFlowProcessors = createScreenRecordFlowProcessors();
+    const { settingsDeferred, settingsRepository } = createDeferredSettingsRepository();
+
+    render(
+      <RecordScreen
+        recordFlowProcessors={recordFlowProcessors}
+        recordingController={recordingController}
+        settingsRepository={settingsRepository}
+      />,
+    );
+
+    expect(screen.getByText('Loading default settings')).toBeTruthy();
+    const loadingRecordButton = screen.getByRole('button', { name: 'Loading settings' });
+    expect(loadingRecordButton.props.accessibilityState).toMatchObject({ disabled: true });
+
+    fireEvent.press(loadingRecordButton);
+
+    expect(recordingController.start).not.toHaveBeenCalled();
+    expect(recordFlowProcessors.runTranscription).not.toHaveBeenCalled();
+
+    await act(async () => {
+      settingsDeferred.resolve({
+        defaultMode: 'transcribe',
+        sourceLanguageId: 'spanish',
+        targetLanguageId: 'arabic',
+        modelPresetId: 'fast',
+        cleanupEnabled: false,
+      });
+      await settingsDeferred.promise;
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText('Loading default settings')).toBeNull();
+      expect(
+        screen.getByRole('button', { name: 'Source language Spanish' }).props.accessibilityState,
+      ).toMatchObject({ selected: true });
+    });
+
+    fireEvent.press(screen.getByRole('button', { name: 'Tap to record' }));
+    await waitFor(() => {
+      expect(recordingController.start).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.press(screen.getByRole('button', { name: 'Stop recording' }));
+
+    await waitFor(() => {
+      expect(recordFlowProcessors.runTranscription).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sourceLanguageId: 'spanish',
+          modelPresetId: 'fast',
+          cleanupEnabled: false,
+        }),
+        { isCurrent: expect.any(Function) },
+      );
+    });
+  });
+
   it('loads saved defaults into manual translation inputs', async () => {
     const recordFlowProcessors = createScreenRecordFlowProcessors();
     const settingsRepository = createSettingsRepositoryMock({
@@ -477,6 +546,71 @@ describe('RecordScreen', () => {
         {
           sourceType: 'manual',
           text: 'Meet me at the office at noon.',
+          sourceLanguageId: 'english',
+          targetLanguageId: 'arabic',
+          modelPresetId: 'best_quality',
+        },
+        { isCurrent: expect.any(Function) },
+      );
+    });
+  });
+
+  it('blocks manual translation until saved settings finish loading', async () => {
+    const recordFlowProcessors = createScreenRecordFlowProcessors();
+    const { settingsDeferred, settingsRepository } = createDeferredSettingsRepository();
+
+    render(
+      <RecordScreen
+        recordFlowProcessors={recordFlowProcessors}
+        settingsRepository={settingsRepository}
+      />,
+    );
+
+    fireEvent.press(screen.getByRole('button', { name: 'Translate' }));
+    fireEvent.changeText(
+      screen.getByPlaceholderText('Type or paste text to translate'),
+      'Translate after settings load.',
+    );
+
+    const loadingTranslateButton = screen.getByRole('button', { name: 'Translate text' });
+    expect(screen.getByText('Loading default settings')).toBeTruthy();
+    expect(loadingTranslateButton.props.accessibilityState).toMatchObject({ disabled: true });
+
+    fireEvent.press(loadingTranslateButton);
+
+    expect(recordFlowProcessors.runTranslation).not.toHaveBeenCalled();
+
+    await act(async () => {
+      settingsDeferred.resolve({
+        defaultMode: 'translate',
+        sourceLanguageId: 'english',
+        targetLanguageId: 'arabic',
+        modelPresetId: 'best_quality',
+        cleanupEnabled: true,
+      });
+      await settingsDeferred.promise;
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText('Loading default settings')).toBeNull();
+      expect(
+        screen.getByRole('button', { name: 'Source language English' }).props.accessibilityState,
+      ).toMatchObject({ selected: true });
+      expect(
+        screen.getByRole('button', { name: 'Target language Arabic' }).props.accessibilityState,
+      ).toMatchObject({ selected: true });
+      expect(
+        screen.getByRole('button', { name: 'Best Quality' }).props.accessibilityState,
+      ).toMatchObject({ selected: true });
+    });
+
+    fireEvent.press(screen.getByRole('button', { name: 'Translate text' }));
+
+    await waitFor(() => {
+      expect(recordFlowProcessors.runTranslation).toHaveBeenCalledWith(
+        {
+          sourceType: 'manual',
+          text: 'Translate after settings load.',
           sourceLanguageId: 'english',
           targetLanguageId: 'arabic',
           modelPresetId: 'best_quality',
