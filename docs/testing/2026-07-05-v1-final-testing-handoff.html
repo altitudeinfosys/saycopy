@@ -102,7 +102,7 @@
       <li>Cloud-only OpenRouter transcription, cleanup, and translation through a user-entered SecureStore token.</li>
       <li>Transcribe and single-speaker Translate modes, including manual text translation.</li>
       <li>Short voice recordings capped at 60 seconds with temporary audio cleanup.</li>
-      <li>Editable results, Copy, native Share, manual tags, search, tag filters, delete, and text-only local history.</li>
+      <li>Editable results, Copy, native Share, manual tags, search, tag filters, delete, history detail actions, and text-only local history.</li>
       <li>Durable local SQLite runtime storage for history and non-secret settings.</li>
       <li>First-class English, Spanish, Arabic, and Auto-detect source-language handling; translate targets exclude Auto-detect.</li>
       <li>Fast, Balanced, and Best Quality model presets.</li>
@@ -123,7 +123,7 @@
         <tr>
           <td><code>npm test</code></td>
           <td>Passed</td>
-          <td>27 suites, 175 tests.</td>
+          <td>27 suites, 179 tests.</td>
         </tr>
         <tr>
           <td><code>npm run typecheck</code></td>
@@ -153,6 +153,11 @@
     <p>
       Verified head at approval: <code>8dca9b3 fix: block record actions until settings load</code>.
     </p>
+    <p>
+      A follow-up verifier reviewed the history detail action patch and approved it with no critical, high, medium, or low findings after
+      <code>npm test -- src/components/__tests__/TagEditor.test.tsx src/screens/__tests__/HistoryDetailScreen.test.tsx</code>
+      and <code>npm run typecheck</code> passed.
+    </p>
   </section>
 
   <section>
@@ -168,6 +173,7 @@
       <li>Edit a saved result in Record, then confirm History preview shows the edited text.</li>
       <li>Use Copy and Share from the edited result and confirm the edited text is used.</li>
       <li>Add tags from the result card, open History, filter by the tag, then delete the item.</li>
+      <li>Open History detail and verify editing, Copy, Share, add tag, remove tag, and delete all use the saved item correctly.</li>
       <li>Verify Arabic text remains readable in result, history list, and history detail views.</li>
       <li>Exercise failure cases: no token, denied microphone permission, offline/network failure, auth/payment/rate-limit/provider overload, and malformed provider response via mocked or controlled test conditions.</li>
     </ol>
@@ -188,7 +194,6 @@
   <section>
     <h2>Known Non-Blocking Gap</h2>
     <ul>
-      <li>History detail supports text editing and save, but detail-level copy/share/delete/tag management is not as complete as the Record result actions. This was rated Medium during final review and does not block the current internal stopping point.</li>
       <li>Visual overlap and large-text behavior have unit/style coverage, but they still need real simulator/device inspection before shipping to users.</li>
     </ul>
   </section>

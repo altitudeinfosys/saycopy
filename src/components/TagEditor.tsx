@@ -6,13 +6,15 @@ import type { Tag } from '../domain/history';
 type TagEditorProps = {
   readonly canAddTag: boolean;
   readonly onAddTag?: (tagName: string) => Promise<Tag | null>;
+  readonly onRemoveTag?: (tagName: string) => Promise<void>;
   readonly tags: readonly Tag[];
 };
 
-export default function TagEditor({ canAddTag, onAddTag, tags }: TagEditorProps) {
+export default function TagEditor({ canAddTag, onAddTag, onRemoveTag, tags }: TagEditorProps) {
   const [tagName, setTagName] = useState('');
   const [errorText, setErrorText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [removingTagId, setRemovingTagId] = useState<string | null>(null);
   const trimmedTagName = tagName.trim();
   const canSubmit = canAddTag && trimmedTagName.length > 0 && !isSaving;
 
@@ -41,14 +43,44 @@ export default function TagEditor({ canAddTag, onAddTag, tags }: TagEditorProps)
     }
   }
 
+  async function handleRemoveTag(tag: Tag) {
+    if (!onRemoveTag || removingTagId) {
+      return;
+    }
+
+    setRemovingTagId(tag.id);
+    setErrorText('');
+
+    try {
+      await onRemoveTag(tag.label);
+    } catch {
+      setErrorText('Could not remove tag.');
+    } finally {
+      setRemovingTagId(null);
+    }
+  }
+
   return (
     <View style={styles.container}>
       {tags.length > 0 ? (
         <View style={styles.tagRow}>
           {tags.map((tag) => (
-            <View key={tag.id} style={styles.tagPill}>
-              <Text style={styles.tagText}>{tag.label}</Text>
-            </View>
+            onRemoveTag ? (
+              <Pressable
+                accessibilityLabel={`Remove tag ${tag.label}`}
+                accessibilityRole="button"
+                disabled={removingTagId !== null}
+                key={tag.id}
+                onPress={() => void handleRemoveTag(tag)}
+                style={[styles.tagPill, styles.removableTagPill]}
+              >
+                <Text style={styles.tagText}>{tag.label}</Text>
+              </Pressable>
+            ) : (
+              <View key={tag.id} style={styles.tagPill}>
+                <Text style={styles.tagText}>{tag.label}</Text>
+              </View>
+            )
           ))}
         </View>
       ) : null}
@@ -101,12 +133,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tagPill: {
+    alignItems: 'center',
     backgroundColor: '#FFF7ED',
     borderColor: '#FED7AA',
     borderRadius: 999,
     borderWidth: 1,
+    justifyContent: 'center',
     paddingHorizontal: 10,
     paddingVertical: 6,
+  },
+  removableTagPill: {
+    minHeight: 44,
   },
   tagText: {
     color: '#9A3412',

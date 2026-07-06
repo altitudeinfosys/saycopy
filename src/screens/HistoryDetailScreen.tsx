@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { getHistoryPrimaryText, type HistoryItem } from '../domain/history';
+import ActionBar, { createResultActions, type ResultActions } from '../components/ActionBar';
+import TagEditor from '../components/TagEditor';
+import { getHistoryPrimaryText, type HistoryItem, type Tag } from '../domain/history';
 import type { HistoryRepository } from '../storage/sqlite/historyRepository';
 
 type HistoryDetailScreenProps = {
+  readonly actions?: ResultActions;
   readonly repository: HistoryRepository;
   readonly historyItemId: string;
   readonly onBack?: () => void;
@@ -24,14 +27,18 @@ function formatDateLabel(value: string): string {
 }
 
 export default function HistoryDetailScreen({
+  actions = createResultActions(),
   repository,
   historyItemId,
   onBack,
 }: HistoryDetailScreenProps) {
   const [historyItem, setHistoryItem] = useState<HistoryItem | null>(null);
   const [editedText, setEditedText] = useState('');
+  const [actionErrorText, setActionErrorText] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isTagEditorOpen, setIsTagEditorOpen] = useState(false);
   const [statusText, setStatusText] = useState('');
   const [errorText, setErrorText] = useState('');
 
@@ -97,6 +104,84 @@ export default function HistoryDetailScreen({
     }
   }
 
+  async function handleAddTag(tagName: string): Promise<Tag | null> {
+    if (!historyItem) {
+      throw new Error('History item is unavailable.');
+    }
+
+    const tag = await repository.assignTag(historyItem.id, tagName);
+    const normalizedLabel = tag.label.trim().toLowerCase();
+
+    setHistoryItem((currentItem) => {
+      if (!currentItem || currentItem.id !== historyItem.id || !normalizedLabel) {
+        return currentItem;
+      }
+
+      const currentTags = currentItem.tags ?? [];
+
+      if (
+        currentTags.some(
+          (currentTag) => currentTag.label.trim().toLowerCase() === normalizedLabel,
+        )
+      ) {
+        return currentItem;
+      }
+
+      return {
+        ...currentItem,
+        tags: [...currentTags, tag],
+      };
+    });
+    setStatusText('Updated tags');
+
+    return tag;
+  }
+
+  async function handleRemoveTag(tagName: string): Promise<void> {
+    if (!historyItem) {
+      return;
+    }
+
+    await repository.removeTag(historyItem.id, tagName);
+    const normalizedTagName = tagName.trim().toLowerCase();
+
+    setHistoryItem((currentItem) => {
+      if (!currentItem || currentItem.id !== historyItem.id) {
+        return currentItem;
+      }
+
+      return {
+        ...currentItem,
+        tags: (currentItem.tags ?? []).filter(
+          (currentTag) => currentTag.label.trim().toLowerCase() !== normalizedTagName,
+        ),
+      };
+    });
+    setStatusText('Updated tags');
+  }
+
+  async function handleDeletePress() {
+    if (!historyItem || isDeleting) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setErrorText('');
+    setStatusText('');
+
+    try {
+      await repository.deleteHistoryItem(historyItem.id);
+      setHistoryItem(null);
+      setEditedText('');
+      setErrorText('This history item was deleted.');
+      onBack?.();
+    } catch {
+      setErrorText('Could not delete this history item.');
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   if (isLoading) {
     return (
       <View style={styles.centerState}>
@@ -123,6 +208,8 @@ export default function HistoryDetailScreen({
       </View>
     );
   }
+
+  const historyTags = historyItem.tags ?? [];
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -166,9 +253,30 @@ export default function HistoryDetailScreen({
           </View>
         ) : null}
 
-        {historyItem.tags && historyItem.tags.length > 0 ? (
+        <ActionBar
+          actions={actions}
+          isTagEditorOpen={isTagEditorOpen}
+          onActionError={setActionErrorText}
+          onToggleTags={() => setIsTagEditorOpen((currentValue) => !currentValue)}
+          resultText={editedText}
+        />
+
+        {actionErrorText ? (
+          <Text accessibilityLiveRegion="assertive" accessibilityRole="alert" style={styles.errorText}>
+            {actionErrorText}
+          </Text>
+        ) : null}
+
+        {isTagEditorOpen ? (
+          <TagEditor
+            canAddTag
+            onAddTag={handleAddTag}
+            onRemoveTag={handleRemoveTag}
+            tags={historyTags}
+          />
+        ) : historyTags.length > 0 ? (
           <View style={styles.tagRow}>
-            {historyItem.tags.map((tag) => (
+            {historyTags.map((tag) => (
               <View key={tag.id} style={styles.tagPill}>
                 <Text style={styles.tagText}>{tag.label}</Text>
               </View>
@@ -195,6 +303,16 @@ export default function HistoryDetailScreen({
           style={[styles.primaryButton, isSaving && styles.buttonDisabled]}
         >
           <Text style={styles.primaryButtonText}>{isSaving ? 'Saving' : 'Save changes'}</Text>
+        </Pressable>
+
+        <Pressable
+          accessibilityLabel="Delete history item"
+          accessibilityRole="button"
+          disabled={isDeleting}
+          onPress={() => void handleDeletePress()}
+          style={[styles.dangerButton, isDeleting && styles.buttonDisabled]}
+        >
+          <Text style={styles.dangerButtonText}>{isDeleting ? 'Deleting' : 'Delete'}</Text>
         </Pressable>
       </View>
     </ScrollView>
@@ -314,6 +432,19 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  dangerButton: {
+    alignItems: 'center',
+    borderColor: '#FCA5A5',
+    borderRadius: 10,
+    borderWidth: 1,
+    justifyContent: 'center',
+    minHeight: 48,
+  },
+  dangerButtonText: {
+    color: '#B91C1C',
     fontSize: 15,
     fontWeight: '800',
   },

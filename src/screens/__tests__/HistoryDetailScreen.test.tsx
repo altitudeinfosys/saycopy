@@ -63,15 +63,38 @@ class MemoryHistoryRepository implements HistoryRepository {
     },
   );
 
-  deleteHistoryItem = jest.fn(async (): Promise<void> => undefined);
+  deleteHistoryItem = jest.fn(async (_id: string): Promise<void> => undefined);
   deleteAllHistoryItems = jest.fn(async (): Promise<void> => undefined);
   createTag = jest.fn(async (name: string): Promise<Tag> => ({ id: name, label: name }));
   findTag = jest.fn(async (): Promise<Tag | null> => null);
-  assignTag = jest.fn(async (_historyItemId: string, tagName: string): Promise<Tag> => ({
-    id: tagName,
-    label: tagName,
-  }));
-  removeTag = jest.fn(async (): Promise<void> => undefined);
+  assignTag = jest.fn(async (historyItemId: string, tagName: string): Promise<Tag> => {
+    const tag = { id: tagName.toLowerCase(), label: tagName };
+    this.items = this.items.map((item) =>
+      item.id === historyItemId
+        ? {
+            ...item,
+            tags: (item.tags ?? []).some(
+              (currentTag) => currentTag.label.toLowerCase() === tagName.toLowerCase(),
+            )
+              ? item.tags
+              : [...(item.tags ?? []), tag],
+          }
+        : item,
+    );
+    return tag;
+  });
+  removeTag = jest.fn(async (historyItemId: string, tagName: string): Promise<void> => {
+    this.items = this.items.map((item) =>
+      item.id === historyItemId
+        ? {
+            ...item,
+            tags: (item.tags ?? []).filter(
+              (currentTag) => currentTag.label.toLowerCase() !== tagName.toLowerCase(),
+            ),
+          }
+        : item,
+    );
+  });
   searchHistory = jest.fn(async (_options: HistorySearchOptions): Promise<HistoryItem[]> => {
     return this.items;
   });
@@ -179,6 +202,110 @@ describe('HistoryDetailScreen', () => {
     await waitFor(() => {
       expect(screen.getByLabelText('History text').props.value).toBe('تعديل عربي محفوظ.');
       expect(screen.getByText('Saved changes').props.accessibilityLiveRegion).toBe('polite');
+    });
+  });
+
+  it('copies and shares the edited history text', async () => {
+    const copyText = jest.fn(async () => undefined);
+    const shareText = jest.fn(async () => undefined);
+    const repository = new MemoryHistoryRepository([
+      {
+        id: 'history-1',
+        mode: 'transcribe',
+        sourceType: 'voice',
+        sourceLanguageId: 'english',
+        transcript: 'Original saved text',
+        createdAt: '2026-07-05T12:00:00.000Z',
+        updatedAt: '2026-07-05T12:00:00.000Z',
+        tags: [],
+      },
+    ]);
+
+    render(
+      <HistoryDetailScreen
+        actions={{ copyText, shareText }}
+        repository={repository}
+        historyItemId="history-1"
+      />,
+    );
+
+    const editor = await screen.findByLabelText('History text');
+    fireEvent.changeText(editor, 'Edited detail text');
+    fireEvent.press(screen.getByRole('button', { name: 'Copy' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Share' }));
+
+    await waitFor(() => {
+      expect(copyText).toHaveBeenCalledWith('Edited detail text');
+      expect(shareText).toHaveBeenCalledWith('Edited detail text');
+    });
+  });
+
+  it('adds and removes tags from history detail', async () => {
+    const repository = new MemoryHistoryRepository([
+      {
+        id: 'history-1',
+        mode: 'transcribe',
+        sourceType: 'voice',
+        sourceLanguageId: 'english',
+        transcript: 'Tagged text',
+        createdAt: '2026-07-05T12:00:00.000Z',
+        updatedAt: '2026-07-05T12:00:00.000Z',
+        tags: [{ id: 'tag-work', label: 'Work' }],
+      },
+    ]);
+
+    render(<HistoryDetailScreen repository={repository} historyItemId="history-1" />);
+
+    await screen.findByLabelText('History text');
+    fireEvent.press(screen.getByRole('button', { name: 'Tags' }));
+    fireEvent.changeText(screen.getByLabelText('Tag name'), 'Urgent');
+    fireEvent.press(screen.getByRole('button', { name: 'Add tag' }));
+
+    await waitFor(() => {
+      expect(repository.assignTag).toHaveBeenCalledWith('history-1', 'Urgent');
+      expect(screen.getByText('Urgent')).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByRole('button', { name: 'Remove tag Work' }));
+
+    await waitFor(() => {
+      expect(repository.removeTag).toHaveBeenCalledWith('history-1', 'Work');
+      expect(screen.queryByText('Work')).toBeNull();
+    });
+  });
+
+  it('deletes the history item from detail and returns to history', async () => {
+    const onBack = jest.fn();
+    const repository = new MemoryHistoryRepository([
+      {
+        id: 'history-1',
+        mode: 'transcribe',
+        sourceType: 'voice',
+        sourceLanguageId: 'english',
+        transcript: 'Delete me',
+        createdAt: '2026-07-05T12:00:00.000Z',
+        updatedAt: '2026-07-05T12:00:00.000Z',
+        tags: [],
+      },
+    ]);
+    repository.deleteHistoryItem.mockImplementation(async (id: string) => {
+      repository.removeItem(id);
+    });
+
+    render(
+      <HistoryDetailScreen
+        repository={repository}
+        historyItemId="history-1"
+        onBack={onBack}
+      />,
+    );
+
+    await screen.findByLabelText('History text');
+    fireEvent.press(screen.getByRole('button', { name: 'Delete history item' }));
+
+    await waitFor(() => {
+      expect(repository.deleteHistoryItem).toHaveBeenCalledWith('history-1');
+      expect(onBack).toHaveBeenCalledTimes(1);
     });
   });
 });
