@@ -622,6 +622,118 @@ describe('RecordScreen', () => {
     expect(screen.queryByTestId('result-editor')).toBeNull();
   });
 
+  it('cancels stale voice processing silently when a manual translation starts in translate mode', async () => {
+    const staleVoiceTranslationDeferred = createDeferred<FlowTextResult>();
+    const currentManualTranslationDeferred = createDeferred<FlowTextResult>();
+    const historyRepository = createHistoryRepositoryMock();
+    const translateText = jest.fn((input) =>
+      input.text === 'voice source text'
+        ? staleVoiceTranslationDeferred.promise
+        : currentManualTranslationDeferred.promise,
+    );
+    const provider = createProviderMock({
+      transcribeAudio: jest.fn(async () => ({
+        text: 'voice source text',
+        modelId: 'openai/whisper-large-v3',
+      })),
+      translateText,
+    });
+    const recordingController = createAudioRecordingController({
+      audioFileReader: { readBase64: jest.fn().mockResolvedValue('voice-translation-base64') },
+      nativeRecorder: createNativeAdapter(
+        createNativeSession({
+          uri: 'file:///tmp/voice-translation-cancelled.m4a',
+        }),
+      ),
+      temporaryAudio: { cleanup: jest.fn().mockResolvedValue(undefined) },
+    });
+    const recordFlowProcessors = createRuntimeRecordFlowProcessors({
+      historyRepository,
+      provider,
+    });
+
+    render(
+      <RecordScreen
+        recordFlowProcessors={recordFlowProcessors}
+        recordingController={recordingController}
+      />,
+    );
+
+    fireEvent.press(screen.getByRole('button', { name: 'Translate' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Tap to record' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Recording in progress')).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByRole('button', { name: 'Stop recording' }));
+
+    await waitFor(() => {
+      expect(translateText).toHaveBeenCalledWith(
+        expect.objectContaining({ text: 'voice source text' }),
+      );
+    });
+
+    fireEvent.changeText(screen.getByPlaceholderText('Type or paste text to translate'), 'Manual now.');
+    fireEvent.press(screen.getByRole('button', { name: 'Translate text' }));
+
+    await waitFor(() => {
+      expect(translateText).toHaveBeenCalledWith(
+        expect.objectContaining({ text: 'Manual now.' }),
+      );
+    });
+
+    await act(async () => {
+      staleVoiceTranslationDeferred.resolve({
+        text: 'Stale voice translated text.',
+        modelId: 'openai/gpt-4.1-mini',
+      });
+      await staleVoiceTranslationDeferred.promise;
+      await flushMicrotasks();
+    });
+
+    expect(screen.queryByText('OpenRouter operation was cancelled.')).toBeNull();
+    expect(historyRepository.createHistoryItem).not.toHaveBeenCalled();
+    expect(screen.queryByText('Saved to history')).toBeNull();
+  });
+
+  it('clears pending manual translation state immediately when recording starts', async () => {
+    const currentManualTranslationDeferred = createDeferred<FlowTextResult>();
+    const recordingController = createInjectedRecordingController();
+    const recordFlowProcessors = createRuntimeRecordFlowProcessors({
+      historyRepository: createHistoryRepositoryMock(),
+      provider: createProviderMock({
+        translateText: jest.fn(() => currentManualTranslationDeferred.promise),
+      }),
+    });
+
+    render(
+      <RecordScreen
+        recordFlowProcessors={recordFlowProcessors}
+        recordingController={recordingController}
+      />,
+    );
+
+    fireEvent.press(screen.getByRole('button', { name: 'Translate' }));
+    fireEvent.changeText(screen.getByPlaceholderText('Type or paste text to translate'), 'Manual now.');
+    fireEvent.press(screen.getByRole('button', { name: 'Translate text' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Translating' }).props.accessibilityState).toMatchObject({
+        disabled: true,
+      });
+    });
+
+    fireEvent.press(screen.getByRole('button', { name: 'Tap to record' }));
+
+    await waitFor(() => {
+      expect(recordingController.start).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole('button', { name: 'Translate text' }).props.accessibilityState).toMatchObject({
+        disabled: false,
+      });
+    });
+  });
+
   it('still saves and displays current manual translation results', async () => {
     const historyRepository = createHistoryRepositoryMock();
     const provider = createProviderMock({

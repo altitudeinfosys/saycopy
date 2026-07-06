@@ -130,7 +130,9 @@ export default function RecordScreen({
       : recordingState.status === 'processing'
         ? 'Creating result'
         : recordingState.status === 'failed'
-          ? getRecorderFailureMessage(recordingState.error)
+          ? isStaleOpenRouterOperationError(recordingState.error)
+            ? ''
+            : getRecorderFailureMessage(recordingState.error)
           : '';
 
   const invalidateOpenRouterOperations = useCallback(() => {
@@ -280,9 +282,6 @@ export default function RecordScreen({
       return;
     }
 
-    const operationGeneration = startOpenRouterOperation();
-    const isCurrent = () => isOpenRouterOperationCurrent(operationGeneration);
-
     setResultText('');
     setOriginalText('');
     setFlowErrorText('');
@@ -297,6 +296,10 @@ export default function RecordScreen({
       return;
     }
 
+    const operationGeneration = startOpenRouterOperation();
+    const isCurrent = () => isOpenRouterOperationCurrent(operationGeneration);
+
+    void activeRecordingController.cancel();
     setIsManualTranslationPending(true);
 
     try {
@@ -346,6 +349,7 @@ export default function RecordScreen({
     if (!isRecording) {
       try {
         invalidateOpenRouterOperations();
+        setIsManualTranslationPending(false);
         setFlowErrorText('');
         await activeRecordingController.start();
       } catch {
