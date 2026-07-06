@@ -228,7 +228,17 @@ export default function RecordScreen({
         throw new Error('Tags are unavailable for this result.');
       }
 
-      const tag = await historyRepository.assignTag(historyItemId, tagName);
+      let tag: Tag;
+      try {
+        tag = await historyRepository.assignTag(historyItemId, tagName);
+      } catch (error) {
+        if (currentHistoryItemIdRef.current !== historyItemId) {
+          return null;
+        }
+
+        throw error;
+      }
+
       if (currentHistoryItemIdRef.current !== historyItemId) {
         return null;
       }
@@ -521,6 +531,7 @@ export default function RecordScreen({
         <ResultCard
           actions={activeResultActions}
           canAddTag={Boolean(historyRepository && currentHistoryItemId)}
+          key={currentHistoryItemId ?? 'unsaved-result'}
           mode={resultMode}
           onAddTag={handleAddResultTag}
           onChangeText={setResultText}

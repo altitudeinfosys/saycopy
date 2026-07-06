@@ -907,29 +907,41 @@ describe('RecordScreen', () => {
 
   it('ignores stale tag completions after a newer result is visible', async () => {
     const staleTagDeferred = createDeferred<Tag>();
-    const baseHistoryRepository = createDemoHistoryRepository();
-    const historyRepository: HistoryRepository = {
-      ...baseHistoryRepository,
-      assignTag: jest.fn(() => staleTagDeferred.promise),
-    };
-    const provider = createProviderMock({
-      translateText: jest.fn(async (input) => ({
-        text:
-          input.text === 'First result source.'
-            ? 'First visible result.'
-            : 'Second visible result.',
-        modelId: 'openai/gpt-4.1-mini',
-      })),
-    });
-    const recordFlowProcessors = createRuntimeRecordFlowProcessors({
-      historyRepository,
-      provider,
+    const historyRepository = createHistoryRepositoryMock();
+    (historyRepository.assignTag as jest.Mock).mockReturnValue(staleTagDeferred.promise);
+    const recordingController = createInjectedRecordingController();
+    const recordFlowProcessors = createScreenRecordFlowProcessors({
+      runTranslation: jest.fn(async (input) => {
+        const sourceText = input.sourceType === 'manual' ? input.text : 'Recorded source text.';
+        const translatedText =
+          input.sourceType === 'manual' ? 'First visible result.' : 'Second visible result.';
+
+        return {
+          status: 'success' as const,
+          sourceType: input.sourceType,
+          sourceText,
+          translatedText,
+          primaryText: translatedText,
+          historyItem: {
+            id: input.sourceType === 'manual' ? 'history-1' : 'history-2',
+            mode: 'translate' as const,
+            sourceType: input.sourceType,
+            sourceLanguageId: input.sourceLanguageId,
+            targetLanguageId: input.targetLanguageId,
+            transcript: sourceText,
+            translatedText,
+            createdAt: '2026-07-05T18:50:00.000Z',
+            updatedAt: '2026-07-05T18:50:00.000Z',
+          },
+        };
+      }),
     });
 
     render(
       <RecordScreen
         historyRepository={historyRepository}
         recordFlowProcessors={recordFlowProcessors}
+        recordingController={recordingController}
       />,
     );
 
@@ -950,13 +962,16 @@ describe('RecordScreen', () => {
       expect(historyRepository.assignTag).toHaveBeenCalledWith('history-1', 'Stale tag');
     });
 
-    fireEvent.changeText(
-      screen.getByPlaceholderText('Type or paste text to translate'),
-      'Second result source.',
-    );
-    fireEvent.press(screen.getByRole('button', { name: 'Translate text' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Tap to record' }));
+
+    await waitFor(() => {
+      expect(recordingController.start).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.press(screen.getByRole('button', { name: 'Stop recording' }));
 
     expect(await screen.findByDisplayValue('Second visible result.')).toBeTruthy();
+    expect(screen.queryByPlaceholderText('Add a tag')).toBeNull();
 
     await act(async () => {
       staleTagDeferred.resolve({ id: 'tag-stale', label: 'Stale tag' });
@@ -964,10 +979,90 @@ describe('RecordScreen', () => {
       await flushMicrotasks();
     });
 
-    fireEvent.press(screen.getByRole('button', { name: 'Tags' }));
-
     expect(screen.queryByText('Stale tag')).toBeNull();
+    expect(screen.queryByDisplayValue('Stale tag')).toBeNull();
     expect(screen.queryByText('Could not add tag.')).toBeNull();
     expect(screen.getByTestId('result-editor').props.value).toBe('Second visible result.');
+
+    fireEvent.press(screen.getByRole('button', { name: 'Tags' }));
+
+    expect(screen.getByPlaceholderText('Add a tag').props.value).toBe('');
+  });
+
+  it('keeps stale tag failures silent after a newer result is visible', async () => {
+    const staleTagDeferred = createDeferred<Tag>();
+    const historyRepository = createHistoryRepositoryMock();
+    (historyRepository.assignTag as jest.Mock).mockReturnValue(staleTagDeferred.promise);
+    const recordingController = createInjectedRecordingController();
+    const recordFlowProcessors = createScreenRecordFlowProcessors({
+      runTranslation: jest.fn(async (input) => {
+        const sourceText = input.sourceType === 'manual' ? input.text : 'Recorded source text.';
+        const translatedText =
+          input.sourceType === 'manual' ? 'First failure result.' : 'Second failure result.';
+
+        return {
+          status: 'success' as const,
+          sourceType: input.sourceType,
+          sourceText,
+          translatedText,
+          primaryText: translatedText,
+          historyItem: {
+            id: input.sourceType === 'manual' ? 'history-1' : 'history-2',
+            mode: 'translate' as const,
+            sourceType: input.sourceType,
+            sourceLanguageId: input.sourceLanguageId,
+            targetLanguageId: input.targetLanguageId,
+            transcript: sourceText,
+            translatedText,
+            createdAt: '2026-07-05T18:55:00.000Z',
+            updatedAt: '2026-07-05T18:55:00.000Z',
+          },
+        };
+      }),
+    });
+
+    render(
+      <RecordScreen
+        historyRepository={historyRepository}
+        recordFlowProcessors={recordFlowProcessors}
+        recordingController={recordingController}
+      />,
+    );
+
+    fireEvent.press(screen.getByRole('button', { name: 'Translate' }));
+    fireEvent.changeText(
+      screen.getByPlaceholderText('Type or paste text to translate'),
+      'First failure source.',
+    );
+    fireEvent.press(screen.getByRole('button', { name: 'Translate text' }));
+
+    expect(await screen.findByDisplayValue('First failure result.')).toBeTruthy();
+
+    fireEvent.press(screen.getByRole('button', { name: 'Tags' }));
+    fireEvent.changeText(screen.getByPlaceholderText('Add a tag'), 'Failing tag');
+    fireEvent.press(screen.getByRole('button', { name: 'Add tag' }));
+
+    await waitFor(() => {
+      expect(historyRepository.assignTag).toHaveBeenCalledWith('history-1', 'Failing tag');
+    });
+
+    fireEvent.press(screen.getByRole('button', { name: 'Tap to record' }));
+
+    await waitFor(() => {
+      expect(recordingController.start).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.press(screen.getByRole('button', { name: 'Stop recording' }));
+
+    expect(await screen.findByDisplayValue('Second failure result.')).toBeTruthy();
+
+    await act(async () => {
+      staleTagDeferred.reject(new Error('stale tag write failed'));
+      await flushMicrotasks();
+    });
+
+    expect(screen.queryByText('Could not add tag.')).toBeNull();
+    expect(screen.queryByDisplayValue('Failing tag')).toBeNull();
+    expect(screen.getByTestId('result-editor').props.value).toBe('Second failure result.');
   });
 });
