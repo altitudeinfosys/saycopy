@@ -16,7 +16,10 @@ import { LANGUAGE_OPTIONS, type ConcreteLanguageId, type LanguageId } from '../d
 import { DEFAULT_MODEL_PRESET_ID, type ModelPresetId } from '../domain/modelPresets';
 import type { TranscriptionFlowResult } from '../flows/transcriptionFlow';
 import type { TranslationFlowResult } from '../flows/translationFlow';
-import type { RecordFlowProcessors } from '../runtime/appDependencies';
+import {
+  isStaleOpenRouterOperationError,
+  type RecordFlowProcessors,
+} from '../runtime/appDependencies';
 
 const DEFAULT_TARGET_LANGUAGE_ID = 'spanish' satisfies ConcreteLanguageId;
 const DEFAULT_SOURCE_LANGUAGE_ID = 'auto' satisfies LanguageId;
@@ -96,6 +99,7 @@ export default function RecordScreen({
   const [flowErrorText, setFlowErrorText] = useState('');
   const [savedHistoryCount, setSavedHistoryCount] = useState(0);
   const autoProcessedAudioUriRef = useRef<string | null>(null);
+  const operationGenerationRef = useRef(0);
   const [defaultRecordingController] = useState(createAudioRecordingController);
   const activeRecordingController = recordingController ?? defaultRecordingController;
   const recordingState = useSyncExternalStore(
@@ -129,11 +133,26 @@ export default function RecordScreen({
           ? getRecorderFailureMessage(recordingState.error)
           : '';
 
+  const invalidateOpenRouterOperations = useCallback(() => {
+    operationGenerationRef.current += 1;
+  }, []);
+
+  const startOpenRouterOperation = useCallback(() => {
+    operationGenerationRef.current += 1;
+
+    return operationGenerationRef.current;
+  }, []);
+
+  const isOpenRouterOperationCurrent = useCallback((operationGeneration: number) => {
+    return operationGenerationRef.current === operationGeneration;
+  }, []);
+
   useEffect(() => {
     return () => {
+      invalidateOpenRouterOperations();
       void activeRecordingController.cancel();
     };
-  }, [activeRecordingController]);
+  }, [activeRecordingController, invalidateOpenRouterOperations]);
 
   const saveResult = useCallback(
     (nextMode: RecordMode, nextResultText: string, nextOriginalText = '') => {
@@ -173,6 +192,9 @@ export default function RecordScreen({
   );
 
   const processStoppedRecording = useCallback(async () => {
+    const operationGeneration = startOpenRouterOperation();
+    const isCurrent = () => isOpenRouterOperationCurrent(operationGeneration);
+
     try {
       await activeRecordingController.processStoppedAudio(async (audio) => {
         if (!recordFlowProcessors) {
@@ -180,37 +202,52 @@ export default function RecordScreen({
         }
 
         if (mode === 'translate') {
-          applyTranslationResult(
-            await recordFlowProcessors.runTranslation({
+          const result = await recordFlowProcessors.runTranslation(
+            {
               sourceType: 'voice',
               audio,
               sourceLanguageId: DEFAULT_SOURCE_LANGUAGE_ID,
               targetLanguageId,
               modelPresetId,
-            }),
+            },
+            { isCurrent },
           );
+
+          if (isCurrent()) {
+            applyTranslationResult(result);
+          }
           return;
         }
 
-        applyTranscriptionResult(
-          await recordFlowProcessors.runTranscription({
+        const result = await recordFlowProcessors.runTranscription(
+          {
             audio,
             sourceLanguageId: DEFAULT_SOURCE_LANGUAGE_ID,
             modelPresetId,
             cleanupEnabled: true,
-          }),
+          },
+          { isCurrent },
         );
+
+        if (isCurrent()) {
+          applyTranscriptionResult(result);
+        }
       });
-    } catch {
+    } catch (error) {
+      if (isStaleOpenRouterOperationError(error) || !isCurrent()) {
+        return;
+      }
       // Failure details are surfaced through recorder state.
     }
   }, [
     activeRecordingController,
     applyTranscriptionResult,
     applyTranslationResult,
+    isOpenRouterOperationCurrent,
     mode,
     modelPresetId,
     recordFlowProcessors,
+    startOpenRouterOperation,
     targetLanguageId,
   ]);
 
@@ -243,6 +280,9 @@ export default function RecordScreen({
       return;
     }
 
+    const operationGeneration = startOpenRouterOperation();
+    const isCurrent = () => isOpenRouterOperationCurrent(operationGeneration);
+
     setResultText('');
     setOriginalText('');
     setFlowErrorText('');
@@ -260,28 +300,41 @@ export default function RecordScreen({
     setIsManualTranslationPending(true);
 
     try {
-      applyTranslationResult(
-        await recordFlowProcessors.runTranslation({
+      const result = await recordFlowProcessors.runTranslation(
+        {
           sourceType: 'manual',
           text: trimmedManualText,
           sourceLanguageId: DEFAULT_SOURCE_LANGUAGE_ID,
           targetLanguageId,
           modelPresetId,
-        }),
+        },
+        { isCurrent },
       );
+
+      if (isCurrent()) {
+        applyTranslationResult(result);
+      }
     } catch (error) {
+      if (isStaleOpenRouterOperationError(error) || !isCurrent()) {
+        return;
+      }
+
       setFlowErrorText(getFlowFailureMessage(error));
     } finally {
-      setIsManualTranslationPending(false);
+      if (isCurrent()) {
+        setIsManualTranslationPending(false);
+      }
     }
   }
 
   function handleModeChange(nextMode: RecordMode) {
+    invalidateOpenRouterOperations();
     setMode(nextMode);
     void activeRecordingController.cancel();
     setResultText('');
     setOriginalText('');
     setFlowErrorText('');
+    setIsManualTranslationPending(false);
     setSavedHistoryCount(0);
   }
 
@@ -292,6 +345,7 @@ export default function RecordScreen({
 
     if (!isRecording) {
       try {
+        invalidateOpenRouterOperations();
         setFlowErrorText('');
         await activeRecordingController.start();
       } catch {

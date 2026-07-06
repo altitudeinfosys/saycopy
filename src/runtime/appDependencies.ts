@@ -14,6 +14,7 @@ import type { HistoryRepository } from '../storage/sqlite/historyRepository';
 import { runTranscriptionFlow, type RunTranscriptionFlowInput } from '../flows/transcriptionFlow';
 import { runTranslationFlow, type RunTranslationFlowInput } from '../flows/translationFlow';
 import type {
+  FlowHistoryRepository,
   TemporaryAudioCleanup,
   TranscriptionProvider,
   TranslationProvider,
@@ -24,6 +25,10 @@ import { createOpenRouterProvider } from '../providers/openRouter/provider';
 export type RecordFlowProcessors = {
   readonly runTranscription: ReturnType<typeof createTranscriptionProcessor>;
   readonly runTranslation: ReturnType<typeof createTranslationProcessor>;
+};
+
+export type RecordFlowRunOptions = {
+  readonly isCurrent?: () => boolean;
 };
 
 export type AppDependencies = {
@@ -42,6 +47,21 @@ export type CreateAppDependenciesOptions = {
 };
 
 type OpenRouterProviderDependencies = TranscriptionProvider & TranslationProvider;
+
+export class StaleOpenRouterOperationError extends Error {
+  readonly code = 'stale_openrouter_operation';
+
+  constructor() {
+    super('OpenRouter operation was cancelled.');
+    this.name = 'StaleOpenRouterOperationError';
+  }
+}
+
+export function isStaleOpenRouterOperationError(
+  error: unknown,
+): error is StaleOpenRouterOperationError {
+  return error instanceof StaleOpenRouterOperationError;
+}
 
 export function createAppDependencies({
   fetch = createGlobalOpenRouterFetch(),
@@ -101,10 +121,10 @@ function createTranscriptionProcessor({
   readonly provider: TranscriptionProvider;
   readonly temporaryAudio?: TemporaryAudioCleanup;
 }) {
-  return (input: RunTranscriptionFlowInput) =>
+  return (input: RunTranscriptionFlowInput, options: RecordFlowRunOptions = {}) =>
     runTranscriptionFlow(
       {
-        historyRepository,
+        historyRepository: createGuardedHistoryRepository(historyRepository, options),
         provider,
         temporaryAudio,
       },
@@ -121,15 +141,34 @@ function createTranslationProcessor({
   readonly provider: TranslationProvider;
   readonly temporaryAudio?: TemporaryAudioCleanup;
 }) {
-  return (input: RunTranslationFlowInput) =>
+  return (input: RunTranslationFlowInput, options: RecordFlowRunOptions = {}) =>
     runTranslationFlow(
       {
-        historyRepository,
+        historyRepository: createGuardedHistoryRepository(historyRepository, options),
         provider,
         temporaryAudio,
       },
       input,
     );
+}
+
+function createGuardedHistoryRepository(
+  historyRepository: HistoryRepository,
+  options: RecordFlowRunOptions,
+): FlowHistoryRepository {
+  return {
+    async createHistoryItem(input) {
+      assertCurrentOperation(options);
+
+      return historyRepository.createHistoryItem(input);
+    },
+  };
+}
+
+function assertCurrentOperation(options: RecordFlowRunOptions): void {
+  if (options.isCurrent && !options.isCurrent()) {
+    throw new StaleOpenRouterOperationError();
+  }
 }
 
 function createGlobalOpenRouterFetch(): OpenRouterFetch {
