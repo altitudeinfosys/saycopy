@@ -334,6 +334,26 @@ export default function SettingsScreen({ settingsRepository, tokenStore }: Setti
             ))}
           </View>
         </View>
+
+        <View style={styles.controlGroup}>
+          <Text style={styles.controlLabel}>Light cleanup</Text>
+          <View style={styles.optionRow}>
+            <OptionButton
+              accessibilityLabel="Default cleanup On"
+              label="On"
+              onSelect={() => void saveSetting({ cleanupEnabled: true })}
+              selected={settings.cleanupEnabled}
+              value="on"
+            />
+            <OptionButton
+              accessibilityLabel="Default cleanup Off"
+              label="Off"
+              onSelect={() => void saveSetting({ cleanupEnabled: false })}
+              selected={!settings.cleanupEnabled}
+              value="off"
+            />
+          </View>
+        </View>
       </View>
 
       {messageText ? (

@@ -1,16 +1,17 @@
 import * as SecureStore from 'expo-secure-store';
 
-import {
-  createDemoHistoryRepository,
-  createDemoSettingsRepository,
-} from '../storage/demoAppRepositories';
-import type { SettingsRepository } from '../storage/settingsRepository';
+import { createSettingsRepository, type SettingsRepository } from '../storage/settingsRepository';
 import {
   createSecureTokenStore,
   type SecureStoreLike,
   type SecureTokenStore,
 } from '../storage/secureTokenStore';
-import type { HistoryRepository } from '../storage/sqlite/historyRepository';
+import {
+  createHistoryRepository,
+  type HistoryRepository,
+} from '../storage/sqlite/historyRepository';
+import { createExpoSqliteLocalDatabase } from '../storage/sqlite/expoSqliteDatabase';
+import type { LocalSqliteDatabase } from '../storage/sqlite/schema';
 import { runTranscriptionFlow, type RunTranscriptionFlowInput } from '../flows/transcriptionFlow';
 import { runTranslationFlow, type RunTranslationFlowInput } from '../flows/translationFlow';
 import type {
@@ -39,6 +40,7 @@ export type AppDependencies = {
 };
 
 export type CreateAppDependenciesOptions = {
+  readonly createLocalDatabase?: () => LocalSqliteDatabase;
   readonly fetch?: OpenRouterFetch;
   readonly historyRepository?: HistoryRepository;
   readonly secureStore?: SecureStoreLike;
@@ -64,12 +66,19 @@ export function isStaleOpenRouterOperationError(
 }
 
 export function createAppDependencies({
+  createLocalDatabase = createExpoSqliteLocalDatabase,
   fetch = createGlobalOpenRouterFetch(),
-  historyRepository = createDemoHistoryRepository(),
+  historyRepository: injectedHistoryRepository,
   secureStore = SecureStore,
-  settingsRepository = createDemoSettingsRepository(),
+  settingsRepository: injectedSettingsRepository,
   temporaryAudio,
 }: CreateAppDependenciesOptions = {}): AppDependencies {
+  const localDatabase =
+    injectedHistoryRepository && injectedSettingsRepository ? undefined : createLocalDatabase();
+  const historyRepository =
+    injectedHistoryRepository ?? createHistoryRepository(requireLocalDatabase(localDatabase));
+  const settingsRepository =
+    injectedSettingsRepository ?? createSettingsRepository(requireLocalDatabase(localDatabase));
   const tokenStore = createSecureTokenStore(secureStore);
   const openRouterClient = createOpenRouterClient({
     fetch,
@@ -169,6 +178,16 @@ function assertCurrentOperation(options: RecordFlowRunOptions): void {
   if (options.isCurrent && !options.isCurrent()) {
     throw new StaleOpenRouterOperationError();
   }
+}
+
+function requireLocalDatabase(
+  localDatabase: LocalSqliteDatabase | undefined,
+): LocalSqliteDatabase {
+  if (!localDatabase) {
+    throw new Error('Local SQLite database was not initialized.');
+  }
+
+  return localDatabase;
 }
 
 function createGlobalOpenRouterFetch(): OpenRouterFetch {

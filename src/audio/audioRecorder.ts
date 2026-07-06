@@ -1,4 +1,12 @@
+import {
+  RecordingPresets,
+  requestRecordingPermissionsAsync as requestExpoRecordingPermissionsAsync,
+  setAudioModeAsync as setExpoAudioModeAsync,
+  useAudioRecorder,
+  type AudioRecorder as ExpoAudioRecorder,
+} from 'expo-audio';
 import { File } from 'expo-file-system';
+import { useMemo } from 'react';
 
 import type { FlowAudioInput } from '../flows/types';
 import {
@@ -87,26 +95,17 @@ export type AudioRecordingController = {
   readonly subscribe: (listener: AudioRecordingStateListener) => () => void;
 };
 
-type ExpoAudioRecorder = {
-  readonly getStatus: () => {
-    readonly durationMillis?: number;
-    readonly url?: string | null;
-  };
-  readonly prepareToRecordAsync: () => Promise<void>;
-  readonly record: () => void;
-  readonly stop: () => Promise<void>;
+type ExpoAudioRecorderInstance = Pick<
+  ExpoAudioRecorder,
+  'getStatus' | 'prepareToRecordAsync' | 'record' | 'stop'
+> & {
   readonly uri?: string | null;
 };
 
-type ExpoAudioModule = {
-  readonly AudioModule: {
-    readonly AudioRecorder: new (options: Record<string, unknown>) => ExpoAudioRecorder;
-  };
-  readonly RecordingPresets: {
-    readonly HIGH_QUALITY: Record<string, unknown>;
-  };
-  readonly requestRecordingPermissionsAsync: () => Promise<{ readonly granted: boolean }>;
-  readonly setAudioModeAsync: (mode: {
+export type ExpoAudioRecorderAdapterDependencies = {
+  readonly recorder: ExpoAudioRecorderInstance;
+  readonly requestRecordingPermissionsAsync?: () => Promise<{ readonly granted: boolean }>;
+  readonly setAudioModeAsync?: (mode: {
     readonly allowsRecording: boolean;
     readonly playsInSilentMode: boolean;
   }) => Promise<void>;
@@ -151,13 +150,23 @@ function normalizeRecordingError(error: unknown) {
   return new AudioRecorderError('recording_unavailable', 'Recording failed.');
 }
 
-async function loadExpoAudioModule(): Promise<ExpoAudioModule> {
-  return import('expo-audio') as Promise<ExpoAudioModule>;
+function createUnavailableNativeRecorder(): AudioRecorderNativeAdapter {
+  async function throwUnavailable(): Promise<never> {
+    throw new AudioRecorderError(
+      'recording_unavailable',
+      'Recording is not configured for this screen.',
+    );
+  }
+
+  return {
+    requestRecordingPermission: throwUnavailable,
+    startRecording: throwUnavailable,
+  };
 }
 
 export function createAudioRecordingController({
   audioFileReader = expoAudioFileReader,
-  nativeRecorder = createExpoAudioRecorderAdapter(),
+  nativeRecorder = createUnavailableNativeRecorder(),
   temporaryAudio = createTemporaryAudioFileCleanup(),
   timer = defaultTimer,
 }: {
@@ -431,31 +440,20 @@ export function createAudioRecordingController({
   };
 }
 
-export function createExpoAudioRecorderAdapter(
-  expoAudioModule?: ExpoAudioModule,
-): AudioRecorderNativeAdapter {
-  async function getExpoAudioModule() {
-    return expoAudioModule ?? loadExpoAudioModule();
-  }
-
+export function createExpoAudioRecorderAdapter({
+  recorder,
+  requestRecordingPermissionsAsync = requestExpoRecordingPermissionsAsync,
+  setAudioModeAsync = setExpoAudioModeAsync,
+}: ExpoAudioRecorderAdapterDependencies): AudioRecorderNativeAdapter {
   return {
     async requestRecordingPermission() {
-      const { requestRecordingPermissionsAsync } = await getExpoAudioModule();
       const permission = await requestRecordingPermissionsAsync();
       return { granted: permission.granted };
     },
     async startRecording() {
-      const { AudioModule, RecordingPresets, setAudioModeAsync } = await getExpoAudioModule();
-
       await setAudioModeAsync({
         allowsRecording: true,
         playsInSilentMode: true,
-      });
-
-      const recorder = new AudioModule.AudioRecorder({
-        ...RecordingPresets.HIGH_QUALITY,
-        directory: 'cache',
-        extension: '.m4a',
       });
 
       await recorder.prepareToRecordAsync();
@@ -472,11 +470,25 @@ export function createExpoAudioRecorderAdapter(
           };
         },
         getTemporaryFileReference() {
+          const status = recorder.getStatus();
+
           return {
-            uri: recorder.uri,
+            uri: recorder.uri ?? status.url,
           };
         },
       };
     },
   };
+}
+
+export function useExpoAudioRecordingController(): AudioRecordingController {
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+
+  return useMemo(
+    () =>
+      createAudioRecordingController({
+        nativeRecorder: createExpoAudioRecorderAdapter({ recorder }),
+      }),
+    [recorder],
+  );
 }

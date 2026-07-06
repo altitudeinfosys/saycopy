@@ -17,7 +17,11 @@ import {
   createRecordFlowProcessors as createRuntimeRecordFlowProcessors,
   type RecordFlowProcessors,
 } from '../../runtime/appDependencies';
-import { createDemoHistoryRepository } from '../../storage/demoAppRepositories';
+import {
+  createDemoHistoryRepository,
+  createDemoSettingsRepository,
+} from '../../storage/demoAppRepositories';
+import type { AppSettings, SettingsRepository } from '../../storage/settingsRepository';
 import type {
   CreateHistoryItemInput,
   HistoryRepository,
@@ -249,6 +253,10 @@ function createHistoryRepositoryMock(): HistoryRepository {
   };
 }
 
+function createSettingsRepositoryMock(settings: AppSettings): SettingsRepository {
+  return createDemoSettingsRepository(settings);
+}
+
 function createProviderMock(
   overrides: Partial<TranscriptionProvider & TranslationProvider> = {},
 ): TranscriptionProvider & TranslationProvider {
@@ -360,8 +368,9 @@ describe('RecordScreen', () => {
     fireEvent.press(screen.getByRole('button', { name: 'Translate' }));
 
     expect(screen.getByPlaceholderText('Type or paste text to translate')).toBeTruthy();
+    expect(screen.getByText('Source language')).toBeTruthy();
     expect(screen.getByText('Target language')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Spanish' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Target language Spanish' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Translate text' })).toBeTruthy();
   });
 
@@ -375,10 +384,106 @@ describe('RecordScreen', () => {
 
     const manualInput = screen.getByLabelText('Text to translate');
     expect(manualInput.props.placeholder).toBe('Type or paste text to translate');
-    expectMinimumTouchTarget(screen.getByRole('button', { name: 'Spanish' }));
-    expectMinimumTouchTarget(screen.getByRole('button', { name: 'Arabic' }));
+    expectMinimumTouchTarget(screen.getByRole('button', { name: 'Target language Spanish' }));
+    expectMinimumTouchTarget(screen.getByRole('button', { name: 'Target language Arabic' }));
     expectMinimumTouchTarget(screen.getByRole('button', { name: 'Balanced' }));
     expectMinimumTouchTarget(screen.getByRole('button', { name: 'Translate text' }));
+  });
+
+  it('loads saved defaults into Record controls and voice transcription inputs', async () => {
+    const recordingController = createInjectedRecordingController();
+    const recordFlowProcessors = createScreenRecordFlowProcessors();
+    const settingsRepository = createSettingsRepositoryMock({
+      defaultMode: 'transcribe',
+      sourceLanguageId: 'spanish',
+      targetLanguageId: 'arabic',
+      modelPresetId: 'fast',
+      cleanupEnabled: false,
+    });
+
+    render(
+      <RecordScreen
+        recordFlowProcessors={recordFlowProcessors}
+        recordingController={recordingController}
+        settingsRepository={settingsRepository}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: 'Source language Spanish' }).props.accessibilityState,
+      ).toMatchObject({ selected: true });
+      expect(
+        screen.getByRole('button', { name: 'Fast' }).props.accessibilityState,
+      ).toMatchObject({ selected: true });
+      expect(screen.getByText('Light cleanup off')).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByRole('button', { name: 'Tap to record' }));
+    await waitFor(() => {
+      expect(recordingController.start).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.press(screen.getByRole('button', { name: 'Stop recording' }));
+
+    await waitFor(() => {
+      expect(recordFlowProcessors.runTranscription).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sourceLanguageId: 'spanish',
+          modelPresetId: 'fast',
+          cleanupEnabled: false,
+        }),
+        { isCurrent: expect.any(Function) },
+      );
+    });
+  });
+
+  it('loads saved defaults into manual translation inputs', async () => {
+    const recordFlowProcessors = createScreenRecordFlowProcessors();
+    const settingsRepository = createSettingsRepositoryMock({
+      defaultMode: 'translate',
+      sourceLanguageId: 'english',
+      targetLanguageId: 'arabic',
+      modelPresetId: 'best_quality',
+      cleanupEnabled: true,
+    });
+
+    render(
+      <RecordScreen
+        recordFlowProcessors={recordFlowProcessors}
+        settingsRepository={settingsRepository}
+      />,
+    );
+
+    expect(await screen.findByPlaceholderText('Type or paste text to translate')).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: 'Source language English' }).props.accessibilityState,
+    ).toMatchObject({ selected: true });
+    expect(
+      screen.getByRole('button', { name: 'Target language Arabic' }).props.accessibilityState,
+    ).toMatchObject({ selected: true });
+    expect(
+      screen.getByRole('button', { name: 'Best Quality' }).props.accessibilityState,
+    ).toMatchObject({ selected: true });
+
+    fireEvent.changeText(
+      screen.getByPlaceholderText('Type or paste text to translate'),
+      'Meet me at the office at noon.',
+    );
+    fireEvent.press(screen.getByRole('button', { name: 'Translate text' }));
+
+    await waitFor(() => {
+      expect(recordFlowProcessors.runTranslation).toHaveBeenCalledWith(
+        {
+          sourceType: 'manual',
+          text: 'Meet me at the office at noon.',
+          sourceLanguageId: 'english',
+          targetLanguageId: 'arabic',
+          modelPresetId: 'best_quality',
+        },
+        { isCurrent: expect.any(Function) },
+      );
+    });
   });
 
   it('shows warm active recording treatment before producing an editable saved result', async () => {
@@ -518,7 +623,7 @@ describe('RecordScreen', () => {
           sourceType: 'manual',
           text: 'Meet me at the office at noon.',
           sourceLanguageId: 'auto',
-          targetLanguageId: 'spanish',
+          targetLanguageId: 'english',
           modelPresetId: 'balanced',
         },
         { isCurrent: expect.any(Function) },
@@ -976,6 +1081,103 @@ describe('RecordScreen', () => {
       expect(screen.getByTestId('result-editor').props.value).toBe('');
     });
     expect(screen.getByText('Translated output')).toBeTruthy();
+  });
+
+  it('persists edited voice transcription text to the saved history preview', async () => {
+    const historyRepository = createDemoHistoryRepository();
+    const recordingController = createInjectedRecordingController();
+    const provider = createProviderMock({
+      transcribeAudio: jest.fn(async () => ({
+        text: 'Raw transcript for edit.',
+        modelId: 'openai/whisper-large-v3',
+      })),
+      cleanupTranscript: jest.fn(async () => ({
+        text: 'Original saved transcript.',
+        modelId: 'openai/gpt-4.1-mini',
+      })),
+    });
+    const recordFlowProcessors = createRuntimeRecordFlowProcessors({
+      historyRepository,
+      provider,
+    });
+
+    const { unmount } = render(
+      <RecordScreen
+        historyRepository={historyRepository}
+        recordFlowProcessors={recordFlowProcessors}
+        recordingController={recordingController}
+      />,
+    );
+
+    fireEvent.press(screen.getByRole('button', { name: 'Tap to record' }));
+    await waitFor(() => {
+      expect(recordingController.start).toHaveBeenCalledTimes(1);
+    });
+    fireEvent.press(screen.getByRole('button', { name: 'Stop recording' }));
+
+    expect(await screen.findByDisplayValue('Original saved transcript.')).toBeTruthy();
+    fireEvent.changeText(screen.getByTestId('result-editor'), 'Edited persisted transcript.');
+
+    await waitFor(async () => {
+      await expect(historyRepository.listHistoryItems()).resolves.toMatchObject([
+        {
+          transcript: 'Edited persisted transcript.',
+        },
+      ]);
+    });
+
+    unmount();
+    render(<HistoryScreen repository={historyRepository} />);
+
+    expect(await screen.findByText('Edited persisted transcript.')).toBeTruthy();
+    expect(screen.queryByText('Original saved transcript.')).toBeNull();
+  });
+
+  it('persists edited translation text while preserving the original source text', async () => {
+    const historyRepository = createDemoHistoryRepository();
+    const provider = createProviderMock({
+      translateText: jest.fn(async () => ({
+        text: 'Original translated text.',
+        modelId: 'openai/gpt-4.1-mini',
+      })),
+    });
+    const recordFlowProcessors = createRuntimeRecordFlowProcessors({
+      historyRepository,
+      provider,
+    });
+
+    const { unmount } = render(
+      <RecordScreen
+        historyRepository={historyRepository}
+        recordFlowProcessors={recordFlowProcessors}
+      />,
+    );
+
+    fireEvent.press(screen.getByRole('button', { name: 'Translate' }));
+    fireEvent.changeText(
+      screen.getByPlaceholderText('Type or paste text to translate'),
+      'Translate this original source.',
+    );
+    fireEvent.press(screen.getByRole('button', { name: 'Translate text' }));
+
+    expect(await screen.findByDisplayValue('Original translated text.')).toBeTruthy();
+    fireEvent.changeText(screen.getByTestId('result-editor'), 'Edited persisted translation.');
+
+    await waitFor(async () => {
+      await expect(historyRepository.listHistoryItems()).resolves.toMatchObject([
+        {
+          mode: 'translate',
+          transcript: 'Translate this original source.',
+          translatedText: 'Edited persisted translation.',
+        },
+      ]);
+    });
+
+    unmount();
+    render(<HistoryScreen repository={historyRepository} />);
+
+    expect(await screen.findByText('Edited persisted translation.')).toBeTruthy();
+    expect(screen.queryByText('Original translated text.')).toBeNull();
   });
 
   it('adds result card tags through the shared repository so History can filter by them', async () => {

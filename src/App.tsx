@@ -11,9 +11,17 @@ const tabs = ['Record', 'History', 'Settings'] as const;
 
 type AppTab = (typeof tabs)[number];
 
+type AppProps = {
+  readonly dependencies?: AppDependencies;
+};
+
 export default function App() {
+  return <AppShell />;
+}
+
+export function AppShell({ dependencies: injectedDependencies }: AppProps = {}) {
   const [activeTab, setActiveTab] = useState<AppTab>('Record');
-  const [dependencies] = useState(createAppDependencies);
+  const [dependencies] = useState(() => injectedDependencies ?? createAppDependencies());
 
   return (
     <View style={styles.container}>
@@ -43,6 +51,7 @@ function renderActiveTab(activeTab: AppTab, dependencies: AppDependencies) {
       <RecordScreen
         historyRepository={dependencies.historyRepository}
         recordFlowProcessors={dependencies.recordFlowProcessors}
+        settingsRepository={dependencies.settingsRepository}
       />
     );
   }

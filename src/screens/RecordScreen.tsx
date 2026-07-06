@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import {
-  createAudioRecordingController,
   type AudioRecordingController,
   type AudioRecordingState,
+  useExpoAudioRecordingController,
 } from '../audio/audioRecorder';
 import LanguageSelect from '../components/LanguageSelect';
 import ModeSegmentedControl, { type RecordMode } from '../components/ModeSegmentedControl';
@@ -15,23 +15,26 @@ import { createResultActions, type ResultActions } from '../components/ActionBar
 import type { AppError } from '../domain/errors';
 import type { HistoryItem, Tag } from '../domain/history';
 import { LANGUAGE_OPTIONS, type ConcreteLanguageId, type LanguageId } from '../domain/languages';
-import { DEFAULT_MODEL_PRESET_ID, type ModelPresetId } from '../domain/modelPresets';
+import type { ModelPresetId } from '../domain/modelPresets';
 import type { TranscriptionFlowResult } from '../flows/transcriptionFlow';
 import type { TranslationFlowResult } from '../flows/translationFlow';
 import {
   isStaleOpenRouterOperationError,
   type RecordFlowProcessors,
 } from '../runtime/appDependencies';
+import { DEFAULT_APP_SETTINGS, type SettingsRepository } from '../storage/settingsRepository';
 import type { HistoryRepository } from '../storage/sqlite/historyRepository';
-
-const DEFAULT_TARGET_LANGUAGE_ID = 'spanish' satisfies ConcreteLanguageId;
-const DEFAULT_SOURCE_LANGUAGE_ID = 'auto' satisfies LanguageId;
 
 type RecordScreenProps = {
   readonly historyRepository?: HistoryRepository;
   readonly recordFlowProcessors?: RecordFlowProcessors;
   readonly recordingController?: AudioRecordingController;
   readonly resultActions?: ResultActions;
+  readonly settingsRepository?: SettingsRepository;
+};
+
+type RecordScreenContentProps = Omit<RecordScreenProps, 'recordingController'> & {
+  readonly recordingController: AudioRecordingController;
 };
 
 function getLanguageLabel(languageId: LanguageId) {
@@ -87,17 +90,40 @@ function isAppError(value: unknown): value is AppError {
   );
 }
 
-export default function RecordScreen({
+export default function RecordScreen(props: RecordScreenProps = {}) {
+  if (props.recordingController) {
+    return <RecordScreenContent {...props} recordingController={props.recordingController} />;
+  }
+
+  return <RecordScreenWithDefaultController {...props} />;
+}
+
+function RecordScreenWithDefaultController(
+  props: Omit<RecordScreenProps, 'recordingController'>,
+) {
+  const recordingController = useExpoAudioRecordingController();
+
+  return <RecordScreenContent {...props} recordingController={recordingController} />;
+}
+
+function RecordScreenContent({
   historyRepository,
   recordFlowProcessors,
   recordingController,
   resultActions,
-}: RecordScreenProps = {}) {
-  const [mode, setMode] = useState<RecordMode>('transcribe');
-  const [targetLanguageId, setTargetLanguageId] = useState<ConcreteLanguageId>(
-    DEFAULT_TARGET_LANGUAGE_ID,
+  settingsRepository,
+}: RecordScreenContentProps) {
+  const [mode, setMode] = useState<RecordMode>(DEFAULT_APP_SETTINGS.defaultMode);
+  const [sourceLanguageId, setSourceLanguageId] = useState<LanguageId>(
+    DEFAULT_APP_SETTINGS.sourceLanguageId,
   );
-  const [modelPresetId, setModelPresetId] = useState<ModelPresetId>(DEFAULT_MODEL_PRESET_ID);
+  const [targetLanguageId, setTargetLanguageId] = useState<ConcreteLanguageId>(
+    DEFAULT_APP_SETTINGS.targetLanguageId,
+  );
+  const [modelPresetId, setModelPresetId] = useState<ModelPresetId>(
+    DEFAULT_APP_SETTINGS.modelPresetId,
+  );
+  const [cleanupEnabled, setCleanupEnabled] = useState(DEFAULT_APP_SETTINGS.cleanupEnabled);
   const [manualText, setManualText] = useState('');
   const [isManualTranslationPending, setIsManualTranslationPending] = useState(false);
   const [resultMode, setResultMode] = useState<RecordMode>('transcribe');
@@ -110,9 +136,8 @@ export default function RecordScreen({
   const autoProcessedAudioUriRef = useRef<string | null>(null);
   const currentHistoryItemIdRef = useRef<string | null>(null);
   const operationGenerationRef = useRef(0);
-  const [defaultRecordingController] = useState(createAudioRecordingController);
   const [defaultResultActions] = useState(createResultActions);
-  const activeRecordingController = recordingController ?? defaultRecordingController;
+  const activeRecordingController = recordingController;
   const activeResultActions = resultActions ?? defaultResultActions;
   const recordingState = useSyncExternalStore(
     activeRecordingController.subscribe,
@@ -147,6 +172,39 @@ export default function RecordScreen({
             ? ''
             : getRecorderFailureMessage(recordingState.error)
           : '';
+
+  useEffect(() => {
+    let isActive = true;
+
+    async function loadDefaultSettings() {
+      if (!settingsRepository) {
+        return;
+      }
+
+      try {
+        const loadedSettings = await settingsRepository.getSettings();
+        if (!isActive) {
+          return;
+        }
+
+        setMode(loadedSettings.defaultMode);
+        setSourceLanguageId(loadedSettings.sourceLanguageId);
+        setTargetLanguageId(loadedSettings.targetLanguageId);
+        setModelPresetId(loadedSettings.modelPresetId);
+        setCleanupEnabled(loadedSettings.cleanupEnabled);
+      } catch {
+        if (isActive) {
+          setFlowErrorText('Could not load default settings.');
+        }
+      }
+    }
+
+    void loadDefaultSettings();
+
+    return () => {
+      isActive = false;
+    };
+  }, [settingsRepository]);
 
   const invalidateOpenRouterOperations = useCallback(() => {
     operationGenerationRef.current += 1;
@@ -275,7 +333,7 @@ export default function RecordScreen({
             {
               sourceType: 'voice',
               audio,
-              sourceLanguageId: DEFAULT_SOURCE_LANGUAGE_ID,
+              sourceLanguageId,
               targetLanguageId,
               modelPresetId,
             },
@@ -291,9 +349,9 @@ export default function RecordScreen({
         const result = await recordFlowProcessors.runTranscription(
           {
             audio,
-            sourceLanguageId: DEFAULT_SOURCE_LANGUAGE_ID,
+            sourceLanguageId,
             modelPresetId,
-            cleanupEnabled: true,
+            cleanupEnabled,
           },
           { isCurrent },
         );
@@ -312,10 +370,12 @@ export default function RecordScreen({
     activeRecordingController,
     applyTranscriptionResult,
     applyTranslationResult,
+    cleanupEnabled,
     isOpenRouterOperationCurrent,
     mode,
     modelPresetId,
     recordFlowProcessors,
+    sourceLanguageId,
     startOpenRouterOperation,
     targetLanguageId,
   ]);
@@ -376,7 +436,7 @@ export default function RecordScreen({
         {
           sourceType: 'manual',
           text: trimmedManualText,
-          sourceLanguageId: DEFAULT_SOURCE_LANGUAGE_ID,
+          sourceLanguageId,
           targetLanguageId,
           modelPresetId,
         },
@@ -437,6 +497,43 @@ export default function RecordScreen({
     }
   }
 
+  const handleResultTextChange = useCallback(
+    (nextText: string) => {
+      setResultText(nextText);
+
+      const historyItemId = currentHistoryItemIdRef.current;
+      if (!historyRepository || !historyItemId) {
+        return;
+      }
+
+      const updateInput =
+        resultMode === 'translate'
+          ? {
+              primaryText: nextText,
+              sourceText: originalText,
+              translatedText: nextText,
+            }
+          : {
+              primaryText: nextText,
+            };
+
+      void (async () => {
+        try {
+          await historyRepository.updateHistoryText(historyItemId, updateInput);
+        } catch {
+          if (currentHistoryItemIdRef.current === historyItemId) {
+            setFlowErrorText('Could not update saved history.');
+          }
+        }
+      })();
+    },
+    [historyRepository, originalText, resultMode],
+  );
+
+  function handleSourceLanguageChange(languageId: LanguageId) {
+    setSourceLanguageId(languageId);
+  }
+
   function handleTargetLanguageChange(languageId: LanguageId) {
     if (languageId !== 'auto') {
       setTargetLanguageId(languageId);
@@ -451,11 +548,20 @@ export default function RecordScreen({
           <Text style={styles.screenStatus}>{mode === 'transcribe' ? 'Transcribe' : 'Translate'}</Text>
         </View>
         <View style={styles.cleanupPill}>
-          <Text style={styles.cleanupText}>Light cleanup on</Text>
+          <Text style={styles.cleanupText}>
+            {cleanupEnabled ? 'Light cleanup on' : 'Light cleanup off'}
+          </Text>
         </View>
       </View>
 
       <ModeSegmentedControl value={mode} onChange={handleModeChange} />
+
+      <LanguageSelect
+        includeAuto
+        label="Source language"
+        onChange={handleSourceLanguageChange}
+        value={sourceLanguageId}
+      />
 
       {mode === 'translate' ? (
         <View style={styles.translatePanel}>
@@ -547,7 +653,7 @@ export default function RecordScreen({
           key={currentHistoryItemId ?? 'unsaved-result'}
           mode={resultMode}
           onAddTag={handleAddResultTag}
-          onChangeText={setResultText}
+          onChangeText={handleResultTextChange}
           originalText={originalText}
           tags={currentResultTags}
           value={resultText}

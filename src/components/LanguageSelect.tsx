@@ -29,7 +29,7 @@ export default function LanguageSelect({
           return (
             <Pressable
               key={language.id}
-              accessibilityLabel={language.label}
+              accessibilityLabel={`${label} ${language.label}`}
               accessibilityRole="button"
               accessibilityState={{ selected }}
               onPress={() => onChange(language.id)}

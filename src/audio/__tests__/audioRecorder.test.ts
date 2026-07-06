@@ -1,3 +1,11 @@
+import { renderHook } from '@testing-library/react-native';
+import {
+  RecordingPresets,
+  requestRecordingPermissionsAsync,
+  setAudioModeAsync,
+  useAudioRecorder,
+} from 'expo-audio';
+
 import type { FlowAudioInput } from '../../flows/types';
 import {
   createAudioRecordingController,
@@ -5,11 +13,27 @@ import {
   type AudioRecorderNativeAdapter,
   type AudioRecordingControllerTimer,
   type NativeAudioRecordingSession,
+  useExpoAudioRecordingController,
 } from '../audioRecorder';
+
+jest.mock('expo-audio', () => ({
+  RecordingPresets: {
+    HIGH_QUALITY: {
+      extension: '.m4a',
+      sampleRate: 44100,
+    },
+  },
+  requestRecordingPermissionsAsync: jest.fn(),
+  setAudioModeAsync: jest.fn(),
+  useAudioRecorder: jest.fn(),
+}));
 
 const mockExpoRecorder = {
   getStatus: jest.fn(() => ({
+    canRecord: false,
     durationMillis: 1000,
+    isRecording: false,
+    mediaServicesDidReset: false,
     url: 'file:///tmp/expo-recording.m4a',
   })),
   prepareToRecordAsync: jest.fn().mockResolvedValue(undefined),
@@ -17,27 +41,8 @@ const mockExpoRecorder = {
   stop: jest.fn().mockResolvedValue(undefined),
   uri: 'file:///tmp/expo-recording.m4a',
 };
-const mockExpoAudioRecorderConstructor = jest.fn(() => mockExpoRecorder);
 const mockRequestRecordingPermissionsAsync = jest.fn().mockResolvedValue({ granted: true });
 const mockSetAudioModeAsync = jest.fn().mockResolvedValue(undefined);
-const mockRecordingPreset = {
-  android: {
-    audioEncoder: 'aac',
-    outputFormat: 'mpeg4',
-  },
-  bitRate: 128000,
-  extension: '.m4a',
-  ios: {
-    audioQuality: 127,
-    outputFormat: 'aac ',
-  },
-  numberOfChannels: 2,
-  sampleRate: 44100,
-  web: {
-    bitsPerSecond: 128000,
-    mimeType: 'audio/mp4',
-  },
-};
 
 function createDeferred<T>() {
   let reject!: (reason?: unknown) => void;
@@ -263,21 +268,42 @@ describe('createAudioRecordingController', () => {
     await controller.cancel();
   });
 
-  it('lets the controller own the duration cap instead of passing forDuration to Expo', async () => {
+  it('adapts an explicit public Expo recorder instance without the private AudioModule constructor', async () => {
     const adapter = createExpoAudioRecorderAdapter({
-      AudioModule: {
-        AudioRecorder: mockExpoAudioRecorderConstructor,
-      },
-      RecordingPresets: {
-        HIGH_QUALITY: mockRecordingPreset,
-      },
+      recorder: mockExpoRecorder,
       requestRecordingPermissionsAsync: mockRequestRecordingPermissionsAsync,
       setAudioModeAsync: mockSetAudioModeAsync,
     });
 
-    await adapter.startRecording();
+    const permission = await adapter.requestRecordingPermission();
+    const session = await adapter.startRecording();
+    const stoppedRecording = await session.stop();
 
+    expect(permission).toEqual({ granted: true });
+    expect(mockSetAudioModeAsync).toHaveBeenCalledWith({
+      allowsRecording: true,
+      playsInSilentMode: true,
+    });
+    expect(mockExpoRecorder.prepareToRecordAsync).toHaveBeenCalledWith();
     expect(mockExpoRecorder.record).toHaveBeenCalledWith();
+    expect(stoppedRecording).toEqual({
+      durationMs: 1000,
+      uri: 'file:///tmp/expo-recording.m4a',
+    });
+  });
+
+  it('creates the default recording controller from the public Expo audio hook and preset', () => {
+    const mockedUseAudioRecorder = useAudioRecorder as jest.MockedFunction<
+      typeof useAudioRecorder
+    >;
+    mockedUseAudioRecorder.mockReturnValue(mockExpoRecorder as never);
+
+    const { result } = renderHook(() => useExpoAudioRecordingController());
+
+    expect(mockedUseAudioRecorder).toHaveBeenCalledWith(RecordingPresets.HIGH_QUALITY);
+    expect(requestRecordingPermissionsAsync).toBeDefined();
+    expect(setAudioModeAsync).toBeDefined();
+    expect(result.current?.getState()).toEqual({ status: 'idle' });
   });
 
   it('cleans temporary audio after successful result creation', async () => {

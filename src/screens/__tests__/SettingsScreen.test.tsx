@@ -232,6 +232,7 @@ describe('SettingsScreen', () => {
     fireEvent.press(screen.getByRole('button', { name: 'Default source language Spanish' }));
     fireEvent.press(screen.getByRole('button', { name: 'Default target language Arabic' }));
     fireEvent.press(screen.getByRole('button', { name: 'Default preset Fast' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Default cleanup Off' }));
 
     await waitFor(() => {
       expect(settingsRepository.settings).toMatchObject({
@@ -239,12 +240,14 @@ describe('SettingsScreen', () => {
         sourceLanguageId: 'spanish',
         targetLanguageId: 'arabic',
         modelPresetId: 'fast',
+        cleanupEnabled: false,
       });
     });
     expect(settingsRepository.saveSettings).toHaveBeenCalledWith({ defaultMode: 'translate' });
     expect(settingsRepository.saveSettings).toHaveBeenCalledWith({ sourceLanguageId: 'spanish' });
     expect(settingsRepository.saveSettings).toHaveBeenCalledWith({ targetLanguageId: 'arabic' });
     expect(settingsRepository.saveSettings).toHaveBeenCalledWith({ modelPresetId: 'fast' });
+    expect(settingsRepository.saveSettings).toHaveBeenCalledWith({ cleanupEnabled: false });
   });
 
   it('does not roll back an unrelated saved default when a later default save fails', async () => {
