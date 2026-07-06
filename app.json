@@ -1,6 +1,7 @@
 {
   "expo": {
     "name": "Tarek Wisper",
+    "owner": "altitudeinfosys",
     "slug": "tarek-wisper",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -14,6 +15,11 @@
       "expo-secure-store",
       "expo-sqlite",
       "expo-asset"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "146688ee-d90f-4ee9-8107-7633a1168c04"
+      }
+    }
   }
 }
