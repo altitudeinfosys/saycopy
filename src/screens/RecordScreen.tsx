@@ -11,7 +11,9 @@ import ModeSegmentedControl, { type RecordMode } from '../components/ModeSegment
 import ModelPresetSelect from '../components/ModelPresetSelect';
 import RecordingPanel from '../components/RecordingPanel';
 import ResultCard from '../components/ResultCard';
+import { createResultActions, type ResultActions } from '../components/ActionBar';
 import type { AppError } from '../domain/errors';
+import type { HistoryItem, Tag } from '../domain/history';
 import { LANGUAGE_OPTIONS, type ConcreteLanguageId, type LanguageId } from '../domain/languages';
 import { DEFAULT_MODEL_PRESET_ID, type ModelPresetId } from '../domain/modelPresets';
 import type { TranscriptionFlowResult } from '../flows/transcriptionFlow';
@@ -20,13 +22,16 @@ import {
   isStaleOpenRouterOperationError,
   type RecordFlowProcessors,
 } from '../runtime/appDependencies';
+import type { HistoryRepository } from '../storage/sqlite/historyRepository';
 
 const DEFAULT_TARGET_LANGUAGE_ID = 'spanish' satisfies ConcreteLanguageId;
 const DEFAULT_SOURCE_LANGUAGE_ID = 'auto' satisfies LanguageId;
 
 type RecordScreenProps = {
+  readonly historyRepository?: HistoryRepository;
   readonly recordFlowProcessors?: RecordFlowProcessors;
   readonly recordingController?: AudioRecordingController;
+  readonly resultActions?: ResultActions;
 };
 
 function getLanguageLabel(languageId: LanguageId) {
@@ -83,8 +88,10 @@ function isAppError(value: unknown): value is AppError {
 }
 
 export default function RecordScreen({
+  historyRepository,
   recordFlowProcessors,
   recordingController,
+  resultActions,
 }: RecordScreenProps = {}) {
   const [mode, setMode] = useState<RecordMode>('transcribe');
   const [targetLanguageId, setTargetLanguageId] = useState<ConcreteLanguageId>(
@@ -96,19 +103,24 @@ export default function RecordScreen({
   const [resultMode, setResultMode] = useState<RecordMode>('transcribe');
   const [resultText, setResultText] = useState('');
   const [originalText, setOriginalText] = useState('');
+  const [currentHistoryItemId, setCurrentHistoryItemId] = useState<string | null>(null);
+  const [currentResultTags, setCurrentResultTags] = useState<Tag[]>([]);
   const [flowErrorText, setFlowErrorText] = useState('');
   const [savedHistoryCount, setSavedHistoryCount] = useState(0);
   const autoProcessedAudioUriRef = useRef<string | null>(null);
   const operationGenerationRef = useRef(0);
   const [defaultRecordingController] = useState(createAudioRecordingController);
+  const [defaultResultActions] = useState(createResultActions);
   const activeRecordingController = recordingController ?? defaultRecordingController;
+  const activeResultActions = resultActions ?? defaultResultActions;
   const recordingState = useSyncExternalStore(
     activeRecordingController.subscribe,
     activeRecordingController.getState,
     activeRecordingController.getState,
   );
 
-  const hasResult = resultText.length > 0;
+  const hasSavedResult = currentHistoryItemId !== null;
+  const hasResult = resultText.length > 0 || hasSavedResult;
   const trimmedManualText = manualText.trim();
   const targetLanguageLabel = useMemo(
     () => getLanguageLabel(targetLanguageId),
@@ -157,10 +169,17 @@ export default function RecordScreen({
   }, [activeRecordingController, invalidateOpenRouterOperations]);
 
   const saveResult = useCallback(
-    (nextMode: RecordMode, nextResultText: string, nextOriginalText = '') => {
+    (
+      nextMode: RecordMode,
+      nextResultText: string,
+      nextOriginalText = '',
+      historyItem?: HistoryItem,
+    ) => {
       setResultMode(nextMode);
       setResultText(nextResultText);
       setOriginalText(nextOriginalText);
+      setCurrentHistoryItemId(historyItem?.id ?? null);
+      setCurrentResultTags([...(historyItem?.tags ?? [])]);
       setFlowErrorText('');
       setSavedHistoryCount((currentCount) => currentCount + 1);
     },
@@ -169,7 +188,7 @@ export default function RecordScreen({
 
   const applyTranscriptionResult = useCallback(
     (result: TranscriptionFlowResult) => {
-      saveResult('transcribe', result.transcript);
+      saveResult('transcribe', result.transcript, '', result.historyItem);
 
       if (result.status === 'cleanup_failed') {
         setFlowErrorText(result.notice.message);
@@ -184,13 +203,39 @@ export default function RecordScreen({
         setResultMode('translate');
         setResultText(result.primaryText);
         setOriginalText(result.sourceText);
+        setCurrentHistoryItemId(null);
+        setCurrentResultTags([]);
         setFlowErrorText(result.error.message);
         return;
       }
 
-      saveResult('translate', result.translatedText, result.sourceText);
+      saveResult('translate', result.translatedText, result.sourceText, result.historyItem);
     },
     [saveResult],
+  );
+
+  const handleAddResultTag = useCallback(
+    async (tagName: string) => {
+      if (!historyRepository || !currentHistoryItemId) {
+        throw new Error('Tags are unavailable for this result.');
+      }
+
+      const tag = await historyRepository.assignTag(currentHistoryItemId, tagName);
+      const normalizedLabel = tag.label.trim().toLowerCase();
+      setCurrentResultTags((currentTags) => {
+        if (
+          !normalizedLabel ||
+          currentTags.some((currentTag) => currentTag.label.trim().toLowerCase() === normalizedLabel)
+        ) {
+          return currentTags;
+        }
+
+        return [...currentTags, tag];
+      });
+
+      return tag;
+    },
+    [currentHistoryItemId, historyRepository],
   );
 
   const processStoppedRecording = useCallback(async () => {
@@ -285,6 +330,8 @@ export default function RecordScreen({
     setResultText('');
     setOriginalText('');
     setFlowErrorText('');
+    setCurrentHistoryItemId(null);
+    setCurrentResultTags([]);
 
     if (!trimmedManualText) {
       setFlowErrorText('Enter text to translate.');
@@ -337,6 +384,8 @@ export default function RecordScreen({
     setResultText('');
     setOriginalText('');
     setFlowErrorText('');
+    setCurrentHistoryItemId(null);
+    setCurrentResultTags([]);
     setIsManualTranslationPending(false);
     setSavedHistoryCount(0);
   }
@@ -458,9 +507,13 @@ export default function RecordScreen({
 
       {hasResult ? (
         <ResultCard
+          actions={activeResultActions}
+          canAddTag={Boolean(historyRepository && currentHistoryItemId)}
           mode={resultMode}
+          onAddTag={handleAddResultTag}
           onChangeText={setResultText}
           originalText={originalText}
+          tags={currentResultTags}
           value={resultText}
         />
       ) : null}

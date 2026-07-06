@@ -39,7 +39,12 @@ export default function App() {
 
 function renderActiveTab(activeTab: AppTab, dependencies: AppDependencies) {
   if (activeTab === 'Record') {
-    return <RecordScreen recordFlowProcessors={dependencies.recordFlowProcessors} />;
+    return (
+      <RecordScreen
+        historyRepository={dependencies.historyRepository}
+        recordFlowProcessors={dependencies.recordFlowProcessors}
+      />
+    );
   }
 
   if (activeTab === 'History') {

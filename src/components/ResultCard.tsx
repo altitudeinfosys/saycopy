@@ -1,17 +1,34 @@
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 
+import type { Tag } from '../domain/history';
+import ActionBar, { type ResultActions } from './ActionBar';
 import type { RecordMode } from './ModeSegmentedControl';
+import TagEditor from './TagEditor';
 
 type ResultCardProps = {
+  readonly actions: ResultActions;
+  readonly canAddTag?: boolean;
   readonly mode: RecordMode;
+  readonly onAddTag?: (tagName: string) => Promise<Tag>;
   readonly value: string;
   readonly onChangeText: (value: string) => void;
   readonly originalText?: string;
+  readonly tags?: readonly Tag[];
 };
 
-const ACTIONS = ['Copy', 'Share', 'Tags'] as const;
-
-export default function ResultCard({ mode, value, onChangeText, originalText }: ResultCardProps) {
+export default function ResultCard({
+  actions,
+  canAddTag = false,
+  mode,
+  onAddTag,
+  onChangeText,
+  originalText,
+  tags = [],
+  value,
+}: ResultCardProps) {
+  const [actionErrorText, setActionErrorText] = useState('');
+  const [isTagEditorOpen, setIsTagEditorOpen] = useState(false);
   const isTranslateMode = mode === 'translate';
 
   return (
@@ -38,19 +55,19 @@ export default function ResultCard({ mode, value, onChangeText, originalText }: 
         </View>
       ) : null}
 
-      <View style={styles.actionRow}>
-        {ACTIONS.map((action) => (
-          <Pressable
-            key={action}
-            accessibilityLabel={action}
-            accessibilityRole="button"
-            onPress={() => undefined}
-            style={styles.actionButton}
-          >
-            <Text style={styles.actionText}>{action}</Text>
-          </Pressable>
-        ))}
-      </View>
+      <ActionBar
+        actions={actions}
+        isTagEditorOpen={isTagEditorOpen}
+        onActionError={setActionErrorText}
+        onToggleTags={() => setIsTagEditorOpen((currentValue) => !currentValue)}
+        resultText={value}
+      />
+
+      {actionErrorText ? <Text style={styles.errorText}>{actionErrorText}</Text> : null}
+
+      {isTagEditorOpen ? (
+        <TagEditor canAddTag={canAddTag} onAddTag={onAddTag} tags={tags} />
+      ) : null}
     </View>
   );
 }
@@ -112,22 +129,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
-  actionRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  actionButton: {
-    alignItems: 'center',
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
-    borderWidth: 1,
-    flex: 1,
-    minHeight: 40,
-    justifyContent: 'center',
-  },
-  actionText: {
-    color: '#334155',
-    fontSize: 14,
+  errorText: {
+    color: '#B91C1C',
+    fontSize: 13,
     fontWeight: '700',
   },
 });

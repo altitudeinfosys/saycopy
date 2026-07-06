@@ -16,10 +16,12 @@ import {
   createRecordFlowProcessors as createRuntimeRecordFlowProcessors,
   type RecordFlowProcessors,
 } from '../../runtime/appDependencies';
+import { createDemoHistoryRepository } from '../../storage/demoAppRepositories';
 import type {
   CreateHistoryItemInput,
   HistoryRepository,
 } from '../../storage/sqlite/historyRepository';
+import HistoryScreen from '../HistoryScreen';
 import RecordScreen from '../RecordScreen';
 
 function createDeferred<T>() {
@@ -267,6 +269,38 @@ async function flushMicrotasks(count = 5): Promise<void> {
   for (let index = 0; index < count; index += 1) {
     await Promise.resolve();
   }
+}
+
+async function renderManualTranslationResult({
+  historyRepository,
+  recordFlowProcessors = createScreenRecordFlowProcessors(),
+  resultActions,
+}: {
+  readonly historyRepository?: HistoryRepository;
+  readonly recordFlowProcessors?: RecordFlowProcessors;
+  readonly resultActions?: {
+    readonly copyText: jest.Mock;
+    readonly shareText: jest.Mock;
+  };
+} = {}) {
+  render(
+    <RecordScreen
+      historyRepository={historyRepository}
+      recordFlowProcessors={recordFlowProcessors}
+      resultActions={resultActions}
+    />,
+  );
+
+  fireEvent.press(screen.getByRole('button', { name: 'Translate' }));
+  fireEvent.changeText(
+    screen.getByPlaceholderText('Type or paste text to translate'),
+    'Meet me at the office at noon.',
+  );
+  fireEvent.press(screen.getByRole('button', { name: 'Translate text' }));
+
+  await screen.findByText('Translated output');
+
+  return { recordFlowProcessors };
 }
 
 describe('RecordScreen', () => {
@@ -764,5 +798,110 @@ describe('RecordScreen', () => {
         translatedText: 'Current translated text.',
       }),
     );
+  });
+
+  it('copies the currently edited result text', async () => {
+    const copyText = jest.fn().mockResolvedValue(undefined);
+    const shareText = jest.fn().mockResolvedValue(undefined);
+
+    await renderManualTranslationResult({
+      resultActions: { copyText, shareText },
+    });
+
+    fireEvent.changeText(screen.getByTestId('result-editor'), 'Edited text for clipboard.');
+    fireEvent.press(screen.getByRole('button', { name: 'Copy' }));
+
+    await waitFor(() => {
+      expect(copyText).toHaveBeenCalledWith('Edited text for clipboard.');
+    });
+    expect(shareText).not.toHaveBeenCalled();
+  });
+
+  it('shares the currently edited result text', async () => {
+    const copyText = jest.fn().mockResolvedValue(undefined);
+    const shareText = jest.fn().mockResolvedValue(undefined);
+
+    await renderManualTranslationResult({
+      resultActions: { copyText, shareText },
+    });
+
+    fireEvent.changeText(screen.getByTestId('result-editor'), 'Edited text for native share.');
+    fireEvent.press(screen.getByRole('button', { name: 'Share' }));
+
+    await waitFor(() => {
+      expect(shareText).toHaveBeenCalledWith('Edited text for native share.');
+    });
+    expect(copyText).not.toHaveBeenCalled();
+  });
+
+  it('keeps the saved result card visible when edited text becomes empty', async () => {
+    await renderManualTranslationResult();
+
+    fireEvent.changeText(screen.getByTestId('result-editor'), '');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('result-editor').props.value).toBe('');
+    });
+    expect(screen.getByText('Translated output')).toBeTruthy();
+  });
+
+  it('adds result card tags through the shared repository so History can filter by them', async () => {
+    const historyRepository = createDemoHistoryRepository();
+    const provider = createProviderMock({
+      translateText: jest.fn(async () => ({
+        text: 'Shared repository translated text.',
+        modelId: 'openai/gpt-4.1-mini',
+      })),
+    });
+    const recordFlowProcessors = createRuntimeRecordFlowProcessors({
+      historyRepository,
+      provider,
+    });
+
+    const { unmount } = render(
+      <RecordScreen
+        historyRepository={historyRepository}
+        recordFlowProcessors={recordFlowProcessors}
+      />,
+    );
+
+    fireEvent.press(screen.getByRole('button', { name: 'Translate' }));
+    fireEvent.changeText(screen.getByPlaceholderText('Type or paste text to translate'), 'Client update');
+    fireEvent.press(screen.getByRole('button', { name: 'Translate text' }));
+
+    expect(await screen.findByText('Translated output')).toBeTruthy();
+
+    fireEvent.press(screen.getByRole('button', { name: 'Tags' }));
+    fireEvent.changeText(screen.getByPlaceholderText('Add a tag'), 'Client');
+    fireEvent.press(screen.getByRole('button', { name: 'Add tag' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Client')).toBeTruthy();
+    });
+
+    unmount();
+    render(<HistoryScreen repository={historyRepository} />);
+
+    expect(await screen.findByRole('button', { name: 'Filter by Client' })).toBeTruthy();
+
+    fireEvent.press(screen.getByRole('button', { name: 'Filter by Client' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Shared repository translated text.')).toBeTruthy();
+    });
+  });
+
+  it('shows a tag error without adding the failed tag locally', async () => {
+    const historyRepository = createHistoryRepositoryMock();
+    (historyRepository.assignTag as jest.Mock).mockRejectedValue(new Error('tag write failed'));
+
+    await renderManualTranslationResult({ historyRepository });
+
+    fireEvent.press(screen.getByRole('button', { name: 'Tags' }));
+    fireEvent.changeText(screen.getByPlaceholderText('Add a tag'), 'Blocked');
+    fireEvent.press(screen.getByRole('button', { name: 'Add tag' }));
+
+    expect(await screen.findByText('Could not add tag.')).toBeTruthy();
+    expect(screen.queryByText('Blocked')).toBeNull();
   });
 });

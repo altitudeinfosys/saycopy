@@ -48,8 +48,30 @@ class MemoryHistoryRepository implements HistoryRepository {
   });
 
   updateHistoryText = jest.fn(
-    async (_id: string, _input: UpdateHistoryTextInput): Promise<HistoryItem | null> => {
-      throw new Error('Not needed in screen tests');
+    async (id: string, input: UpdateHistoryTextInput): Promise<HistoryItem | null> => {
+      const currentItem = this.items.find((item) => item.id === id);
+      if (!currentItem) {
+        return null;
+      }
+
+      const updatedItem: HistoryItem =
+        currentItem.mode === 'translate'
+          ? {
+              ...currentItem,
+              transcript: input.sourceText ?? currentItem.transcript,
+              translatedText:
+                input.translatedText ?? input.primaryText ?? currentItem.translatedText,
+              updatedAt: '2026-07-05T12:10:00.000Z',
+            }
+          : {
+              ...currentItem,
+              transcript: input.primaryText ?? currentItem.transcript,
+              updatedAt: '2026-07-05T12:10:00.000Z',
+            };
+
+      this.items = this.items.map((item) => (item.id === id ? updatedItem : item));
+
+      return updatedItem;
     },
   );
 
@@ -247,6 +269,34 @@ describe('HistoryScreen', () => {
       expect(repository.deleteHistoryItem).toHaveBeenCalledWith('history-1');
       expect(screen.queryByText('Delete this note')).toBeNull();
       expect(screen.getByText('Keep this note')).toBeTruthy();
+    });
+  });
+
+  it('refreshes the list preview after saving edits in detail and returning', async () => {
+    const repository = new MemoryHistoryRepository([
+      createHistoryItem({
+        id: 'history-1',
+        text: 'Original preview text',
+        createdAt: '2026-07-05T12:00:00.000Z',
+      }),
+    ]);
+
+    render(<HistoryScreen repository={repository} />);
+    expect(await screen.findByText('Original preview text')).toBeTruthy();
+
+    fireEvent.press(screen.getByRole('button', { name: 'Open Original preview text' }));
+
+    const editor = await screen.findByLabelText('History text');
+    fireEvent.changeText(editor, 'Edited preview text');
+    fireEvent.press(screen.getByRole('button', { name: 'Save changes' }));
+
+    expect(await screen.findByText('Saved changes')).toBeTruthy();
+
+    fireEvent.press(screen.getByRole('button', { name: 'Back to history' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Edited preview text')).toBeTruthy();
+      expect(screen.queryByText('Original preview text')).toBeNull();
     });
   });
 });
