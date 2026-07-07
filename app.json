@@ -14,8 +14,22 @@
         "ITSAppUsesNonExemptEncryption": false
       }
     },
+    "android": {
+      "package": "com.tarekalaaddin.tarekwisper",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#F8FAFC"
+      }
+    },
     "plugins": [
-      "expo-audio",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow Tarek Wisper to use the microphone for transcription and translation recordings.",
+          "recordAudioAndroid": true
+        }
+      ],
       "expo-secure-store",
       "expo-sqlite",
       "expo-asset"
