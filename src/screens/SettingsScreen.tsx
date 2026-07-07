@@ -172,6 +172,11 @@ export default function SettingsScreen({ settingsRepository, tokenStore }: Setti
     await saveSetting({ customModelId: '' });
   }
 
+  async function handleSelectRecommendedModel(modelPresetId: ModelPresetId) {
+    setCustomModelInput('');
+    await saveSetting({ customModelId: '', modelPresetId });
+  }
+
   async function saveSetting(nextSettings: Partial<AppSettings>) {
     const currentSettings = settingsRef.current;
     if (!currentSettings) {
@@ -296,12 +301,39 @@ export default function SettingsScreen({ settingsRepository, tokenStore }: Setti
         <View style={styles.controlGroup}>
           <Text style={styles.controlLabel}>Recommended models</Text>
           <View style={styles.modelList}>
-            {MODEL_PRESETS.map((preset) => (
-              <View key={preset.id} style={styles.modelRow}>
-                <Text style={styles.modelLabel}>{preset.label}</Text>
-                <Text style={styles.modelId}>{preset.currentModelCandidate}</Text>
-              </View>
-            ))}
+            {MODEL_PRESETS.map((preset) => {
+              const isSelectedRecommendedModel =
+                !settings.customModelId && settings.modelPresetId === preset.id;
+
+              return (
+                <Pressable
+                  key={preset.id}
+                  accessibilityLabel={`Recommended model ${preset.label}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isSelectedRecommendedModel }}
+                  onPress={() => void handleSelectRecommendedModel(preset.id)}
+                  style={[
+                    styles.modelRow,
+                    isSelectedRecommendedModel && styles.modelRowSelected,
+                  ]}
+                >
+                  <View style={styles.modelRowHeader}>
+                    <Text
+                      style={[
+                        styles.modelLabel,
+                        isSelectedRecommendedModel && styles.modelLabelSelected,
+                      ]}
+                    >
+                      {preset.label}
+                    </Text>
+                    {isSelectedRecommendedModel ? (
+                      <Text style={styles.modelSelectedText}>Selected</Text>
+                    ) : null}
+                  </View>
+                  <Text style={styles.modelId}>{preset.currentModelCandidate}</Text>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
 
@@ -321,22 +353,36 @@ export default function SettingsScreen({ settingsRepository, tokenStore }: Setti
             Leave blank to use the recommended preset. Custom models apply to cleanup and
             translation; speech transcription still uses Whisper.
           </Text>
-          <View style={styles.buttonRow}>
+          <View style={styles.modelButtonColumn}>
             <Pressable
               accessibilityLabel="Save custom model"
               accessibilityRole="button"
               onPress={() => void handleSaveCustomModel()}
-              style={styles.primaryButton}
+              style={[styles.primaryButton, styles.fullWidthButton]}
             >
-              <Text style={styles.primaryButtonText}>Save custom model</Text>
+              <Text
+                adjustsFontSizeToFit
+                minimumFontScale={0.75}
+                numberOfLines={1}
+                style={styles.primaryButtonText}
+              >
+                Save custom
+              </Text>
             </Pressable>
             <Pressable
               accessibilityLabel="Use recommended preset"
               accessibilityRole="button"
               onPress={() => void handleUseRecommendedPreset()}
-              style={styles.secondaryButton}
+              style={[styles.secondaryButton, styles.fullWidthButton]}
             >
-              <Text style={styles.secondaryButtonText}>Use recommended</Text>
+              <Text
+                adjustsFontSizeToFit
+                minimumFontScale={0.75}
+                numberOfLines={1}
+                style={styles.secondaryButtonText}
+              >
+                Use recommended preset
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -571,6 +617,14 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     opacity: 0.55,
   },
+  modelButtonColumn: {
+    gap: 10,
+  },
+  fullWidthButton: {
+    flex: 0,
+    flexBasis: 'auto',
+    width: '100%',
+  },
   controlGroup: {
     gap: 10,
   },
@@ -616,19 +670,40 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     gap: 3,
+    minHeight: 44,
     paddingHorizontal: 10,
     paddingVertical: 8,
+  },
+  modelRowSelected: {
+    backgroundColor: '#E0F2FE',
+    borderColor: '#38BDF8',
+  },
+  modelRowHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'space-between',
   },
   modelLabel: {
     color: '#111827',
     fontSize: 13,
     fontWeight: '800',
   },
+  modelLabelSelected: {
+    color: '#075985',
+  },
   modelId: {
     color: '#475569',
     flexShrink: 1,
     fontSize: 12,
     fontWeight: '700',
+  },
+  modelSelectedText: {
+    color: '#075985',
+    flexShrink: 1,
+    fontSize: 11,
+    fontWeight: '800',
   },
   modelHelp: {
     color: '#64748B',

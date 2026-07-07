@@ -250,13 +250,26 @@ describe('SettingsScreen', () => {
     expect(settingsRepository.saveSettings).toHaveBeenCalledWith({ cleanupEnabled: false });
   });
 
-  it('shows recommended model IDs and saves an optional custom OpenRouter model', async () => {
+  it('shows recommended model IDs and lets users choose either a recommended or custom OpenRouter model', async () => {
     const { settingsRepository } = renderSettingsScreen();
 
     await screen.findByText('OpenRouter models');
 
     expect(screen.getByText('Recommended models')).toBeTruthy();
     expect(screen.getByText('openai/gpt-4.1-mini')).toBeTruthy();
+
+    fireEvent.press(screen.getByRole('button', { name: 'Recommended model Fast' }));
+
+    await waitFor(() => {
+      expect(settingsRepository.settings).toMatchObject({
+        customModelId: '',
+        modelPresetId: 'fast',
+      });
+    });
+    expect(settingsRepository.saveSettings).toHaveBeenCalledWith({
+      customModelId: '',
+      modelPresetId: 'fast',
+    });
 
     fireEvent.changeText(
       screen.getByLabelText('Custom OpenRouter model ID'),
