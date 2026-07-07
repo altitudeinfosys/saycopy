@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tarek-Wisper V1 Design</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f6f8fb;
+      --panel: #ffffff;
+      --panel-2: #eef3f8;
+      --text: #152033;
+      --muted: #5b6878;
+      --line: #d9e1eb;
+      --accent: #0d6bcb;
+      --accent-2: #0b7f6d;
+      --warn: #8a5a00;
+      --bad: #ad2d1f;
+      --code: #edf2f7;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f131a;
+        --panel: #171d27;
+        --panel-2: #202838;
+        --text: #edf3fb;
+        --muted: #a9b4c3;
+        --line: #30394a;
+        --accent: #75b8ff;
+        --accent-2: #5dd0bd;
+        --warn: #f0c36a;
+        --bad: #ff8c7c;
+        --code: #242c3b;
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 16px;
+      line-height: 1.55;
+    }
+
+    main {
+      width: min(1100px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 32px 0 56px;
+    }
+
+    header, section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+
+    h1, h2, h3 {
+      margin: 0;
+      line-height: 1.16;
+      letter-spacing: 0;
+    }
+
+    h1 { font-size: clamp(32px, 4vw, 48px); }
+    h2 { font-size: 24px; margin-bottom: 12px; }
+    h3 { font-size: 18px; margin: 20px 0 8px; }
+    p { margin: 9px 0; }
+    ul, ol { margin: 9px 0; padding-left: 22px; }
+    li { margin: 6px 0; }
+    a { color: var(--accent); }
+
+    code {
+      background: var(--code);
+      border-radius: 6px;
+      padding: 2px 5px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.92em;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      font-size: 14px;
+    }
+
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--line);
+      padding: 10px 12px;
+    }
+
+    th {
+      background: var(--panel-2);
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    .muted { color: var(--muted); }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      min-height: 26px;
+      padding: 3px 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .card {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+
+    .callout {
+      border-left: 4px solid var(--accent);
+      background: var(--panel-2);
+      border-radius: 0 8px 8px 0;
+      padding: 12px 15px;
+      margin: 14px 0;
+    }
+
+    .callout strong { color: var(--accent); }
+    .warn { border-left-color: var(--warn); }
+    .warn strong { color: var(--warn); }
+    .bad { border-left-color: var(--bad); }
+    .bad strong { color: var(--bad); }
+    .good { border-left-color: var(--accent-2); }
+    .good strong { color: var(--accent-2); }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(130px, 1fr));
+      gap: 10px;
+      margin: 16px 0;
+    }
+
+    .step {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 13px;
+      min-height: 120px;
+    }
+
+    .step .n {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    @media (max-width: 860px) {
+      .flow { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="muted">Design doc for review</p>
+    <h1>Tarek-Wisper V1</h1>
+    <p>
+      Focused cloud MVP for an iOS-first Expo/React Native app that records short speech clips,
+      transcribes them, optionally translates them, and stores local text history with simple
+      search and tags.
+    </p>
+    <div class="meta">
+      <span class="tag">Date: 2026-07-05</span>
+      <span class="tag">Status: Awaiting user design approval</span>
+      <span class="tag">Branch: main</span>
+      <span class="tag">Latest synced commit: 74727d0</span>
+      <span class="tag">Artifact: HTML</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>Decision Summary</h2>
+    <div class="callout good">
+      <p>
+        <strong>Approved direction:</strong> Approach A, the Focused Cloud MVP. V1 is account-free,
+        iOS-first, cloud-only, OpenRouter-primary, short-clip oriented, and stores text history only
+        on the device.
+      </p>
+    </div>
+    <ul>
+      <li>Framework: Expo/React Native with TypeScript, targeting iOS first and keeping Android feasible later.</li>
+      <li>Navigation: three main tabs: Record, History, and Settings.</li>
+      <li>Modes: Record tab contains Transcribe and Translate modes.</li>
+      <li>Recording: tap once to start, tap again to stop, with an approximately 60-second V1 cap.</li>
+      <li>Provider: OpenRouter is the primary provider for speech-to-text, translation, and light cleanup.</li>
+      <li>Languages: English, Spanish, Arabic, and Auto-detect are first-class choices.</li>
+      <li>Translation: single-speaker only in V1. Conversation mode is intentionally deferred.</li>
+      <li>History: successful text results auto-save locally. Audio is temporary and deleted after result creation.</li>
+      <li>Output: result text is editable before copy/share; saved history reflects the edited visible result.</li>
+      <li>Distribution gate: before Expo preview builds, EAS builds, TestFlight, or similar external build steps, stop and tell the user.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Non-Goals</h2>
+    <ul>
+      <li>No accounts, login, team sharing, backend API, or synced history in V1.</li>
+      <li>No offline or local speech models in V1.</li>
+      <li>No long-audio chunking, diarization, live conversation mode, or continuous dictation in V1.</li>
+      <li>No full OpenRouter model picker in the primary V1 UI.</li>
+      <li>No nested folders, AI auto-tagging, or complex taxonomy management.</li>
+      <li>No embedded shared production OpenRouter token in the app bundle.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Architecture</h2>
+    <p>
+      The app should be built as a small, layered Expo app. UI screens call application services;
+      application services call provider and storage adapters; provider and storage adapters wrap
+      SDKs or platform APIs. This keeps the OpenRouter dependency, audio recording implementation,
+      and local persistence independently testable.
+    </p>
+    <div class="grid">
+      <div class="card">
+        <h3>UI Layer</h3>
+        <p>Record, History, Settings, result editor, tag controls, empty states, permission states, and error states.</p>
+      </div>
+      <div class="card">
+        <h3>App Services</h3>
+        <p>Recording session state, transcription flow, translation flow, cleanup flow, history mutations, and settings state.</p>
+      </div>
+      <div class="card">
+        <h3>Adapters</h3>
+        <p>OpenRouter client, audio recorder, secure token store, SQLite history store, clipboard/share wrappers, file cleanup.</p>
+      </div>
+      <div class="card">
+        <h3>Domain Types</h3>
+        <p>Language options, mode options, model presets, history item shape, provider result shape, and typed error categories.</p>
+      </div>
+    </div>
+
+    <h3>Recommended Module Boundaries</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Area</th>
+          <th>Purpose</th>
+          <th>Dependencies</th>
+          <th>Test focus</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>audio</code></td>
+          <td>Start/stop short recordings, expose duration, return temporary file URI, enforce cap.</td>
+          <td><code>expo-audio</code>, file cleanup adapter.</td>
+          <td>State transitions, cap behavior, stop/cancel cleanup calls.</td>
+        </tr>
+        <tr>
+          <td><code>providers/openrouter</code></td>
+          <td>STT, cleanup, translation, request shaping, response parsing, provider error mapping.</td>
+          <td>Fetch API and secure token provider.</td>
+          <td>Request bodies, language omission for Auto, error categorization.</td>
+        </tr>
+        <tr>
+          <td><code>history</code></td>
+          <td>Persist local text results, edit saved fields, delete items, search, tag filter.</td>
+          <td><code>expo-sqlite</code>.</td>
+          <td>Migrations, search queries, tag joins, edits, deletes.</td>
+        </tr>
+        <tr>
+          <td><code>settings</code></td>
+          <td>OpenRouter token, default language choices, preset choice, cleanup default.</td>
+          <td><code>expo-secure-store</code> for token, SQLite or app settings table for non-secret values.</td>
+          <td>Token present/missing states, non-secret defaults, reset behavior.</td>
+        </tr>
+        <tr>
+          <td><code>flows</code></td>
+          <td>Orchestrate record-to-result, manual-text-to-translation, result editing, and auto-save.</td>
+          <td>Audio, OpenRouter, history, settings.</td>
+          <td>Happy paths, partial failures, no-audio and no-token states.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Provider Flow</h2>
+    <p>
+      OpenRouter is used through two stable provider methods: a dedicated speech-to-text call and
+      chat completions for translation and cleanup. The app should keep these behind an internal
+      provider interface so another provider can be added later without rewriting screens.
+    </p>
+
+    <div class="flow">
+      <div class="step">
+        <div class="n">1</div>
+        <strong>Record</strong>
+        <p>Use <code>expo-audio</code> to record a short clip into app cache. The default output format should be <code>.m4a</code> unless implementation testing shows a better OpenRouter-compatible format.</p>
+      </div>
+      <div class="step">
+        <div class="n">2</div>
+        <strong>Transcribe</strong>
+        <p>Base64 encode the temporary audio and call <code>/api/v1/audio/transcriptions</code> with <code>model</code>, <code>input_audio</code>, and optional <code>language</code>.</p>
+      </div>
+      <div class="step">
+        <div class="n">3</div>
+        <strong>Cleanup</strong>
+        <p>In Transcribe mode, send transcript text to chat completions for light cleanup unless the user disables cleanup.</p>
+      </div>
+      <div class="step">
+        <div class="n">4</div>
+        <strong>Translate</strong>
+        <p>In Translate mode, send the transcript or manual source text to chat completions with source/target language instructions.</p>
+      </div>
+      <div class="step">
+        <div class="n">5</div>
+        <strong>Save</strong>
+        <p>Delete temporary audio after the result object is created. Auto-save visible text fields to local SQLite history.</p>
+      </div>
+    </div>
+
+    <h3>OpenRouter Details</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Capability</th>
+          <th>Endpoint</th>
+          <th>V1 usage</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Speech to text</td>
+          <td><code>POST https://openrouter.ai/api/v1/audio/transcriptions</code></td>
+          <td>Use JSON body with base64 audio. Include <code>language</code> for English, Spanish, and Arabic. Omit <code>language</code> for Auto-detect.</td>
+        </tr>
+        <tr>
+          <td>Translation</td>
+          <td><code>POST https://openrouter.ai/api/v1/chat/completions</code></td>
+          <td>Use low-temperature text prompts that return only translated text. Target language must be explicit.</td>
+        </tr>
+        <tr>
+          <td>Light cleanup</td>
+          <td><code>POST https://openrouter.ai/api/v1/chat/completions</code></td>
+          <td>Fix punctuation, capitalization, spacing, obvious filler, and small transcription artifacts while preserving meaning.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Model Presets</h3>
+    <p>
+      V1 should expose presets, not a model picker. Presets map to model IDs in a central registry
+      so implementation can update defaults without changing UI logic. Current live OpenRouter
+      catalog candidates checked on 2026-07-05:
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Preset</th>
+          <th>Current candidate</th>
+          <th>Use</th>
+          <th>Fallback candidate</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Fast</td>
+          <td><code>google/gemini-3.1-flash-lite</code></td>
+          <td>Default for quick cleanup and everyday translation when speed/cost matter most.</td>
+          <td><code>openai/gpt-4o-mini</code></td>
+        </tr>
+        <tr>
+          <td>Balanced</td>
+          <td><code>openai/gpt-4.1-mini</code></td>
+          <td>Default recommended preset for V1 if real-device tests show good translation quality and latency.</td>
+          <td><code>google/gemini-2.5-flash</code></td>
+        </tr>
+        <tr>
+          <td>Best Quality</td>
+          <td><code>anthropic/claude-sonnet-4.6</code></td>
+          <td>User-selected option for harder translation or cleanup where cost and latency are less important.</td>
+          <td><code>anthropic/claude-sonnet-4.5</code></td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      The STT model should also be registry-backed. The OpenRouter STT reference currently shows
+      <code>openai/whisper-large-v3</code> as an example. Final STT default should be verified with real English,
+      Spanish, and Arabic clips during implementation before any readiness claim.
+    </p>
+  </section>
+
+  <section>
+    <h2>Screens</h2>
+
+    <h3>Record Tab</h3>
+    <p>
+      Record is the primary working surface. It should show a compact mode switch for Transcribe
+      and Translate, language selectors, the recording control, processing state, and the latest
+      editable result. It should not feel like a marketing screen or tutorial.
+    </p>
+    <ul>
+      <li>Top controls: mode segmented control, model preset menu, source language selector.</li>
+      <li>Translate-only controls: target language selector and optional manual text input area.</li>
+      <li>Recording control: one large tap target that toggles start/stop and displays elapsed time.</li>
+      <li>Limit state: at about 60 seconds, stop recording and move into processing automatically.</li>
+      <li>Processing state: show stage-specific status such as transcribing, cleaning up, or translating.</li>
+      <li>Result editor: editable text area for final transcript or emphasized translation.</li>
+      <li>Translate result layout: translated output first and visually emphasized; original transcription/source text below.</li>
+      <li>Actions: Copy, Share, edit tags, delete result from history if already saved, retry failed stage where possible.</li>
+    </ul>
+
+    <h3>History Tab</h3>
+    <p>
+      History is a local text archive. It should be optimized for finding recent results quickly,
+      not for managing a document library.
+    </p>
+    <ul>
+      <li>Search input filters across primary result text, source text, translated text, language names, and tags.</li>
+      <li>Tag filter row shows user-created tags plus an All state.</li>
+      <li>Chronological list groups items by recent date buckets or simply sorts newest first for V1.</li>
+      <li>Each row shows mode, primary text preview, date/time, language pair when relevant, and tags.</li>
+      <li>Detail view supports editing visible text fields, adding/removing tags, Copy, Share, and Delete.</li>
+      <li>Empty states should be direct: no history yet, no search matches, or no items for a tag.</li>
+    </ul>
+
+    <h3>Settings Tab</h3>
+    <p>
+      Settings should separate secrets, defaults, and product behavior. The user must be able to
+      understand whether the app is ready to call OpenRouter.
+    </p>
+    <ul>
+      <li>OpenRouter token: secure entry, save, replace, clear, and present/missing status. Do not display the full saved token.</li>
+      <li>Defaults: mode, source language, target language, model preset, cleanup enabled.</li>
+      <li>Recording: clip length cap shown as V1 behavior; background recording remains disabled in V1.</li>
+      <li>History: local-only explanation, delete all history action with confirmation.</li>
+      <li>About: working name, version, privacy notes, and provider links.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Data Model and Local Storage</h2>
+    <p>
+      V1 should use <code>expo-sqlite</code> for local text history and non-secret settings. It gives
+      durable relational storage for search, tags, edits, and future migrations without requiring a
+      backend. The OpenRouter token should use <code>expo-secure-store</code>, which is built for encrypted
+      local key-value secrets and uses iOS Keychain services.
+    </p>
+
+    <h3>Persistence Rules</h3>
+    <ul>
+      <li>Audio files are temporary processing inputs only. Store them in cache and delete after success, cancel, or unrecoverable failure cleanup.</li>
+      <li>History stores text only: user-visible final transcript, original/source text for translation, translated text, language metadata, tags, and timestamps.</li>
+      <li>Do not store hidden raw provider output in V1 history. Intermediate raw text may exist in memory during processing and should be discarded after result creation.</li>
+      <li>If cleanup fails after transcription succeeds, show the raw transcript as the editable result and save that visible text if the result is accepted.</li>
+      <li>Manual translation inputs are text and can be saved as the source text for translation history items.</li>
+      <li>Token is stored only in SecureStore. Do not copy it into SQLite, logs, error messages, or source-controlled files.</li>
+    </ul>
+
+    <h3>SQLite Tables</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Table</th>
+          <th>Fields</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>history_items</code></td>
+          <td>
+            <code>id</code>, <code>mode</code>, <code>source_type</code>, <code>source_language</code>,
+            <code>target_language</code>, <code>primary_text</code>, <code>source_text</code>,
+            <code>translated_text</code>, <code>model_preset</code>, <code>stt_model_id</code>,
+            <code>text_model_id</code>, <code>created_at</code>, <code>updated_at</code>
+          </td>
+          <td>
+            <code>primary_text</code> drives list previews and Copy/Share defaults. For Transcribe it is the transcript.
+            For Translate it is the translated output.
+          </td>
+        </tr>
+        <tr>
+          <td><code>tags</code></td>
+          <td><code>id</code>, <code>name</code>, <code>normalized_name</code>, <code>created_at</code></td>
+          <td>Unique by normalized name. Names are user-defined and manually applied.</td>
+        </tr>
+        <tr>
+          <td><code>history_item_tags</code></td>
+          <td><code>history_item_id</code>, <code>tag_id</code></td>
+          <td>Join table for many-to-many tags.</td>
+        </tr>
+        <tr>
+          <td><code>app_settings</code></td>
+          <td><code>key</code>, <code>value_json</code>, <code>updated_at</code></td>
+          <td>Non-secret defaults only. Model preset and language defaults can live here.</td>
+        </tr>
+        <tr>
+          <td><code>schema_migrations</code></td>
+          <td><code>version</code>, <code>applied_at</code></td>
+          <td>Simple migration tracking from day one.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Search</h3>
+    <p>
+      V1 search can start with normalized <code>LIKE</code> queries over relevant text fields and tag names.
+      If performance becomes poor with real data, add SQLite FTS in a later migration. Search should be
+      case-insensitive and should match Arabic text as stored; advanced stemming is out of scope.
+    </p>
+  </section>
+
+  <section>
+    <h2>Error Handling</h2>
+    <p>
+      Errors should be typed in the application layer and displayed as short, actionable messages.
+      The app should preserve user work whenever a partial result exists.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Scenario</th>
+          <th>User-facing behavior</th>
+          <th>Internal handling</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>No OpenRouter token</td>
+          <td>Record and manual translation actions prompt the user to add a token in Settings.</td>
+          <td>Provider client fails before network request with <code>missing_token</code>.</td>
+        </tr>
+        <tr>
+          <td>Microphone permission denied</td>
+          <td>Record button shows permission blocked state and points to system settings when the app cannot ask again.</td>
+          <td>Audio adapter exposes permission status and does not start recorder.</td>
+        </tr>
+        <tr>
+          <td>No network or timeout</td>
+          <td>Show retry option. If no transcript exists, do not save an empty history item.</td>
+          <td>Map fetch failures and timeout to <code>network_unavailable</code> or <code>timeout</code>.</td>
+        </tr>
+        <tr>
+          <td>Provider authentication or payment error</td>
+          <td>Explain that the OpenRouter token or account needs attention.</td>
+          <td>Map 401, 402, and related error bodies without logging the token.</td>
+        </tr>
+        <tr>
+          <td>Rate limit or provider overload</td>
+          <td>Offer retry after a short delay and preserve local audio only until the retry/cancel decision.</td>
+          <td>Map 429, 502, 503, 524, and 529 to retryable provider states where appropriate.</td>
+        </tr>
+        <tr>
+          <td>Cleanup failure after STT success</td>
+          <td>Show raw transcript as editable output with a small cleanup-failed notice.</td>
+          <td>Discard audio after creating the text result; save only visible edited text.</td>
+        </tr>
+        <tr>
+          <td>Translation failure after STT success</td>
+          <td>Show original transcription and allow retry translation, copy original, or abandon result.</td>
+          <td>Keep text in memory for retry; do not auto-save as a translation until translated output exists.</td>
+        </tr>
+        <tr>
+          <td>Audio cleanup failure</td>
+          <td>No prominent user interruption unless cleanup repeatedly fails.</td>
+          <td>Log a non-secret diagnostic in development builds and retry deletion opportunistically.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Privacy and Security</h2>
+    <ul>
+      <li>All AI processing in V1 is cloud-based through the user's OpenRouter token.</li>
+      <li>The app must make cloud usage clear in Settings and in initial no-token states.</li>
+      <li>SecureStore holds the OpenRouter token. SQLite holds only non-secret settings and text history.</li>
+      <li>Audio should remain in app cache and should be deleted after result creation, cancel, or unrecoverable error cleanup.</li>
+      <li>Do not include provider request/response bodies in production logs.</li>
+      <li>Do not send saved history anywhere in V1 unless the user explicitly uses native Share or Copy into another app.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Testing Strategy</h2>
+    <p>
+      The implementation phase should establish a useful unit test suite before claiming the app is
+      ready. Browser-level or simulator-level checks are not enough because most important behavior
+      is orchestration, persistence, and error mapping.
+    </p>
+
+    <h3>Unit Tests</h3>
+    <ul>
+      <li>OpenRouter STT request builder: language mapping, Auto-detect omission, base64 field shape, model ID selection.</li>
+      <li>OpenRouter chat request builder: cleanup prompt, translation prompt, target language requirement, preset model mapping.</li>
+      <li>Provider error mapper: 400, 401, 402, 404, 429, 500, 502, 503, 524, 529, network errors, and malformed responses.</li>
+      <li>Recording state machine: idle, recording, stopping, processing, cancel, max-duration stop, retry states.</li>
+      <li>Flow orchestration: transcribe success, cleanup fallback, translation success, translation partial failure, manual text translation.</li>
+      <li>History repository: migrations, insert, edit, delete, tag creation, tag filtering, search, delete-all.</li>
+      <li>Settings repository: non-secret defaults and SecureStore token present/missing states through mocks.</li>
+    </ul>
+
+    <h3>Integration and Device Checks</h3>
+    <ul>
+      <li>Run the app on an iOS simulator for navigation, layout, settings, local storage, and mocked provider flows.</li>
+      <li>Run real microphone recording on a physical iPhone before readiness; simulator microphone behavior is not enough for acceptance.</li>
+      <li>Use short real samples in English, Spanish, and Arabic to benchmark STT quality, latency, translation quality, and cleanup behavior.</li>
+      <li>Verify audio files are deleted after success, cancel, and failed provider flows.</li>
+      <li>Verify native Copy and Share behavior on device.</li>
+      <li>Verify large text and Arabic text layout in result editor, history list, and detail view.</li>
+    </ul>
+
+    <h3>Builder and Verifier Method</h3>
+    <p>
+      After the user approves this design and then approves the implementation plan, development
+      should use a builder/verifier loop. The builder implements a small slice. The verifier reviews
+      it independently against the design, tests, and product behavior. Fixes repeat until the slice
+      passes. This should happen before any Expo preview build or external distribution step.
+    </p>
+  </section>
+
+  <section>
+    <h2>Implementation Slices</h2>
+    <p>
+      This is not the implementation plan; it is the design-level breakdown that the later plan
+      should expand into ordered tasks.
+    </p>
+    <ol>
+      <li>Project scaffold and quality baseline after design and plan approval.</li>
+      <li>Domain types, settings storage, token storage, and OpenRouter client tests.</li>
+      <li>SQLite schema, migrations, history repository, tags, and search tests.</li>
+      <li>Record tab mocked provider flow and result editor.</li>
+      <li>Audio recording adapter, 60-second cap, temporary file cleanup, and physical-device checks.</li>
+      <li>Live OpenRouter STT, cleanup, and translation provider integration.</li>
+      <li>History tab, detail/edit/delete/tag flows, Copy and Share.</li>
+      <li>Settings polish, no-token/permission/offline/provider error states.</li>
+      <li>End-to-end verification, accessibility/layout pass, and readiness review.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Effort Estimate</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Area</th>
+          <th>Estimated effort</th>
+          <th>Risk</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Expo scaffold, navigation, baseline tooling</td>
+          <td>0.5-1 day</td>
+          <td>Low after approval, assuming standard Expo setup.</td>
+        </tr>
+        <tr>
+          <td>OpenRouter provider, presets, token storage</td>
+          <td>1-1.5 days</td>
+          <td>Medium because live model behavior and errors need verification.</td>
+        </tr>
+        <tr>
+          <td>Audio recording and cleanup</td>
+          <td>1-2 days</td>
+          <td>Medium because real-device recording and file lifecycle must be proven.</td>
+        </tr>
+        <tr>
+          <td>Record/Translate UI and result editor</td>
+          <td>1-2 days</td>
+          <td>Medium due to Arabic text and compact mobile layouts.</td>
+        </tr>
+        <tr>
+          <td>SQLite history, search, tags, detail editing</td>
+          <td>1-1.5 days</td>
+          <td>Low to medium if migrations and repository tests are established early.</td>
+        </tr>
+        <tr>
+          <td>Error states, privacy states, verification, polish</td>
+          <td>1-2 days</td>
+          <td>Medium because provider and permission edges drive user trust.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Practical estimate: about 6-10 focused engineering days for a good V1 internal build, before
+      any App Store packaging or broader beta process. This estimate assumes no new backend and no
+      long-audio chunking.
+    </p>
+  </section>
+
+  <section>
+    <h2>Open Questions Deferred Out of V1</h2>
+    <ul>
+      <li>Final product name and app icon direction.</li>
+      <li>Supabase or another backend for v2 synced history.</li>
+      <li>Advanced OpenRouter model picker.</li>
+      <li>Conversation mode for two-person translation.</li>
+      <li>Offline/local STT and long-audio chunking.</li>
+      <li>AI auto-tagging or richer organization.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Sources Checked</h2>
+    <ul>
+      <li><a href="https://openrouter.ai/docs/api/api-reference/stt/create-transcription">OpenRouter STT API reference</a> for <code>/api/v1/audio/transcriptions</code>, base64 audio input, language handling, response shape, and documented error statuses.</li>
+      <li><a href="https://openrouter.ai/docs/api/api-reference/chat/create-a-chat-completion">OpenRouter chat completions API reference</a> for text-model request structure, auth header, streaming flag, response, and usage fields.</li>
+      <li><a href="https://openrouter.ai/api/v1/models">OpenRouter live model catalog</a> for current text-model preset candidates checked on 2026-07-05.</li>
+      <li><a href="https://docs.expo.dev/versions/latest/sdk/audio/">Expo Audio documentation</a> for <code>expo-audio</code>, recording hooks, permissions, cache recording behavior, and background recording configuration.</li>
+      <li><a href="https://docs.expo.dev/versions/latest/sdk/securestore/">Expo SecureStore documentation</a> for encrypted local key-value storage and iOS Keychain-backed token storage behavior.</li>
+      <li><a href="https://docs.expo.dev/versions/latest/sdk/sqlite/">Expo SQLite documentation</a> for local persistent SQLite storage and async database APIs.</li>
+      <li><a href="../requirements/mobile-transcription-translation-requirements.html">Requirements capture</a> for approved product scope and user decisions.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Self-Review</h2>
+    <ul>
+      <li>Placeholder scan: no unresolved placeholders, empty sections, or implementation-only stubs remain.</li>
+      <li>Internal consistency: the design is cloud-only, account-free, iOS-first, OpenRouter-primary, and text-history-only throughout.</li>
+      <li>Scope check: V1 is small enough for one implementation plan and explicitly defers backend sync, offline STT, conversation mode, and long-audio chunking.</li>
+      <li>Ambiguity check: raw provider output is not stored in V1 history; visible edited text is the saved source of truth.</li>
+      <li>Process check: implementation remains gated until the user approves this design and then approves a separate HTML implementation plan.</li>
+    </ul>
+  </section>
+</main>
+</body>
+</html>

@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tarek-Wisper V1 Final Testing Handoff</title>
+  <style>
+    body {
+      margin: 0;
+      background: #f8fafc;
+      color: #111827;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 40px 22px 64px;
+    }
+    h1, h2, h3 {
+      line-height: 1.15;
+      margin: 0 0 12px;
+    }
+    h1 {
+      font-size: 34px;
+    }
+    h2 {
+      border-top: 1px solid #dbe4ef;
+      font-size: 24px;
+      margin-top: 34px;
+      padding-top: 24px;
+    }
+    h3 {
+      font-size: 18px;
+      margin-top: 20px;
+    }
+    p {
+      margin: 0 0 14px;
+    }
+    ul, ol {
+      margin: 0 0 16px 22px;
+      padding: 0;
+    }
+    li {
+      margin: 7px 0;
+    }
+    code {
+      background: #e2e8f0;
+      border-radius: 5px;
+      padding: 2px 5px;
+    }
+    table {
+      border-collapse: collapse;
+      margin: 12px 0 18px;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid #d8e1ec;
+      padding: 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #eef4fb;
+      font-weight: 700;
+    }
+    .status {
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      border-radius: 10px;
+      color: #065f46;
+      font-weight: 700;
+      margin: 18px 0;
+      padding: 14px 16px;
+    }
+    .warning {
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-radius: 10px;
+      color: #9a3412;
+      margin: 18px 0;
+      padding: 14px 16px;
+    }
+    .muted {
+      color: #475569;
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Tarek-Wisper V1 Final Testing Handoff</h1>
+  <p class="muted">Generated July 5, 2026, after the builder/verifier implementation loop on branch <code>feature/tarek-wisper-v1</code>.</p>
+
+  <div class="status">
+    Internal implementation stopping point reached. Automated checks and independent final verifier passed with no open critical, high, medium, or low findings.
+  </div>
+
+  <section>
+    <h2>Current Scope</h2>
+    <ul>
+      <li>iOS-first Expo/React Native app with Record, History, and Settings tabs.</li>
+      <li>Cloud-only OpenRouter transcription, cleanup, and translation through a user-entered SecureStore token.</li>
+      <li>Transcribe and single-speaker Translate modes, including manual text translation.</li>
+      <li>Short voice recordings capped at 60 seconds with temporary audio cleanup.</li>
+      <li>Editable results, Copy, native Share, manual tags, search, tag filters, delete, history detail actions, and text-only local history.</li>
+      <li>Durable local SQLite runtime storage for history and non-secret settings.</li>
+      <li>First-class English, Spanish, Arabic, and Auto-detect source-language handling; translate targets exclude Auto-detect.</li>
+      <li>Fast, Balanced, and Best Quality model presets.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Automated Verification</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Command</th>
+          <th>Result</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>npm test</code></td>
+          <td>Passed</td>
+          <td>27 suites, 179 tests.</td>
+        </tr>
+        <tr>
+          <td><code>npm run typecheck</code></td>
+          <td>Passed</td>
+          <td>TypeScript completed with <code>tsc --noEmit</code>.</td>
+        </tr>
+        <tr>
+          <td><code>npm run lint</code></td>
+          <td>Passed</td>
+          <td>ESLint completed with no reported errors.</td>
+        </tr>
+        <tr>
+          <td><code>npx expo-doctor</code></td>
+          <td>Passed</td>
+          <td>18 of 18 checks passed.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Independent Final Review</h2>
+    <p>
+      A final verifier subagent reviewed the current head after the blocker fixes and approved it with no open findings.
+      The verifier specifically rechecked durable SQLite runtime wiring, public <code>expo-audio</code> recording API usage, edited-result history persistence, settings-to-Record flow inputs, and the settings-load guard before Record actions.
+    </p>
+    <p>
+      Verified head at approval: <code>8dca9b3 fix: block record actions until settings load</code>.
+    </p>
+    <p>
+      A follow-up verifier reviewed the history detail action patch and approved it with no critical, high, medium, or low findings after
+      <code>npm test -- src/components/__tests__/TagEditor.test.tsx src/screens/__tests__/HistoryDetailScreen.test.tsx</code>
+      and <code>npm run typecheck</code> passed.
+    </p>
+  </section>
+
+  <section>
+    <h2>Manual Local Test Plan</h2>
+    <ol>
+      <li>Run <code>npm test</code>, <code>npm run typecheck</code>, <code>npm run lint</code>, and <code>npx expo-doctor</code>.</li>
+      <li>Start local Expo only when ready to manually inspect runtime behavior: <code>npx expo start</code>.</li>
+      <li>Open iOS Simulator from Expo CLI or run <code>npx expo start --ios</code>.</li>
+      <li>Open Settings, enter a personal OpenRouter token, choose source language, target language, model preset, and cleanup default.</li>
+      <li>Record a short Transcribe clip and confirm the transcript saves to History as text only.</li>
+      <li>Record a Translate clip and confirm translated output is emphasized, original text remains visible, and the result saves only after translation succeeds.</li>
+      <li>Translate manual text to Spanish, Arabic, and English.</li>
+      <li>Edit a saved result in Record, then confirm History preview shows the edited text.</li>
+      <li>Use Copy and Share from the edited result and confirm the edited text is used.</li>
+      <li>Add tags from the result card, open History, filter by the tag, then delete the item.</li>
+      <li>Open History detail and verify editing, Copy, Share, add tag, remove tag, and delete all use the saved item correctly.</li>
+      <li>Verify Arabic text remains readable in result, history list, and history detail views.</li>
+      <li>Exercise failure cases: no token, denied microphone permission, offline/network failure, auth/payment/rate-limit/provider overload, and malformed provider response via mocked or controlled test conditions.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Manual Test Status</h2>
+    <div class="warning">
+      iOS Simulator and physical iPhone runtime smoke tests were not completed in this agent environment.
+      <code>xcrun simctl list devices booted</code> did not return promptly and was interrupted. No Expo preview build, EAS build, TestFlight build, or external installable build was run.
+    </div>
+    <p>
+      Live OpenRouter testing also remains pending because no user-entered token/local runtime was available to the agent.
+      See <code>docs/testing/2026-07-05-v1-live-test-notes.html</code> for the live-test template and fields to fill after a local runtime test.
+    </p>
+  </section>
+
+  <section>
+    <h2>Known Non-Blocking Gap</h2>
+    <ul>
+      <li>Visual overlap and large-text behavior have unit/style coverage, but they still need real simulator/device inspection before shipping to users.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Build Restrictions</h2>
+    <ul>
+      <li>Stop before any EAS preview build, TestFlight build, or external distribution step and ask for explicit user approval.</li>
+      <li>Do not embed a shared production OpenRouter token. Tokens must be entered by the user in Settings and stored through SecureStore.</li>
+      <li>Do not claim live provider readiness until the pending local Expo runtime test is completed with a user-entered token.</li>
+    </ul>
+  </section>
+</main>
+</body>
+</html>

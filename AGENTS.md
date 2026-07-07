@@ -9,6 +9,12 @@
 - If dirty local changes, conflicts, missing remotes, or worktree constraints prevent updating from main, stop and report the blocker before creating a branch, worktree, or starting implementation.
 - For a brand-new repository with no remote yet, record that upstream sync is not applicable, initialize on `main`, and add the remote before future implementation work.
 
+## Main Branch Protection
+
+- Do not commit, push, merge, rebase, or otherwise apply agent-authored changes directly to `main`.
+- All agent-authored implementation, documentation, configuration, and release changes must land through a feature branch and pull request unless the user explicitly overrides this rule for a one-off emergency.
+- Do not perform local merges into `main` as a shortcut for integration testing; test the feature branch or pull request branch instead.
+
 ## Artifact Format
 
 - All durable project artifacts created by agents must be HTML files unless the user explicitly requests a different format.
