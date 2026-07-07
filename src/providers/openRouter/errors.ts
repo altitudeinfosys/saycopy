@@ -27,6 +27,7 @@ export function mapOpenRouterHttpError(status: number, payload?: unknown): AppEr
     case 500:
     case 502:
     case 503:
+    case 504:
     case 524:
     case 529:
       return createAppError('provider_unavailable', 'OpenRouter is temporarily unavailable.', {

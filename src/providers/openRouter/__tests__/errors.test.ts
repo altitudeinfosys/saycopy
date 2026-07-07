@@ -31,6 +31,7 @@ describe('OpenRouter error mapper', () => {
     [500, 'provider_unavailable', true],
     [502, 'provider_unavailable', true],
     [503, 'provider_unavailable', true],
+    [504, 'provider_unavailable', true],
     [524, 'provider_unavailable', true],
     [529, 'provider_unavailable', true],
   ] as const)('maps HTTP %i to %s', (status, category, retryable) => {

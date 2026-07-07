@@ -268,6 +268,87 @@ describe('createAudioRecordingController', () => {
     await controller.cancel();
   });
 
+  it('blocks a new start while stopped audio cancellation cleanup is pending', async () => {
+    const cleanupDeferred = createDeferred<void>();
+    const firstSession = createSession({ uri: 'file:///tmp/cancel-before-restart.m4a' });
+    const secondSession = createSession({ uri: 'file:///tmp/restart-after-cancel.m4a' });
+    const nativeRecorder: AudioRecorderNativeAdapter = {
+      requestRecordingPermission: jest.fn().mockResolvedValue({ granted: true }),
+      startRecording: jest.fn().mockResolvedValueOnce(firstSession).mockResolvedValueOnce(secondSession),
+    };
+    const cleanup = {
+      cleanup: jest.fn().mockReturnValueOnce(cleanupDeferred.promise).mockResolvedValue(undefined),
+    };
+    const controller = createAudioRecordingController({
+      audioFileReader: { readBase64: jest.fn().mockResolvedValue('cancel-before-restart-base64') },
+      nativeRecorder,
+      temporaryAudio: cleanup,
+    });
+
+    await controller.start();
+    await controller.stop();
+
+    const cancelPromise = controller.cancel();
+    expect(controller.getState()).toEqual({ status: 'stopping' });
+
+    await controller.start();
+
+    expect(nativeRecorder.startRecording).toHaveBeenCalledTimes(1);
+    expect(controller.getState()).toEqual({ status: 'stopping' });
+
+    cleanupDeferred.resolve();
+    await cancelPromise;
+
+    expect(cleanup.cleanup).toHaveBeenCalledWith({
+      uri: 'file:///tmp/cancel-before-restart.m4a',
+    });
+    expect(controller.getState()).toEqual({ status: 'idle' });
+
+    await controller.start();
+
+    expect(nativeRecorder.startRecording).toHaveBeenCalledTimes(2);
+    expect(controller.getState()).toEqual({ status: 'recording' });
+
+    await controller.cancel();
+  });
+
+  it('does not open a native session when cancel interrupts restart cleanup', async () => {
+    const cleanupBeforeRestart = createDeferred<void>();
+    const firstSession = createSession({ uri: 'file:///tmp/restart-cancel-first.m4a' });
+    const secondSession = createSession({ uri: 'file:///tmp/restart-cancel-second.m4a' });
+    const nativeRecorder: AudioRecorderNativeAdapter = {
+      requestRecordingPermission: jest.fn().mockResolvedValue({ granted: true }),
+      startRecording: jest.fn().mockResolvedValueOnce(firstSession).mockResolvedValueOnce(secondSession),
+    };
+    const cleanup = {
+      cleanup: jest.fn().mockReturnValueOnce(cleanupBeforeRestart.promise).mockResolvedValue(undefined),
+    };
+    const controller = createAudioRecordingController({
+      audioFileReader: { readBase64: jest.fn().mockResolvedValue('restart-cancel-base64') },
+      nativeRecorder,
+      temporaryAudio: cleanup,
+    });
+
+    await controller.start();
+    await controller.stop();
+
+    const restartPromise = controller.start();
+    expect(cleanup.cleanup).toHaveBeenCalledWith({
+      uri: 'file:///tmp/restart-cancel-first.m4a',
+    });
+
+    const cancelPromise = controller.cancel();
+    expect(controller.getState()).toEqual({ status: 'stopping' });
+
+    cleanupBeforeRestart.resolve();
+    await Promise.all([restartPromise, cancelPromise]);
+
+    expect(nativeRecorder.requestRecordingPermission).toHaveBeenCalledTimes(1);
+    expect(nativeRecorder.startRecording).toHaveBeenCalledTimes(1);
+    expect(secondSession.stop).not.toHaveBeenCalled();
+    expect(controller.getState()).toEqual({ status: 'idle' });
+  });
+
   it('adapts an explicit public Expo recorder instance without the private AudioModule constructor', async () => {
     const adapter = createExpoAudioRecorderAdapter({
       recorder: mockExpoRecorder,

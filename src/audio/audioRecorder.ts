@@ -276,6 +276,10 @@ export function createAudioRecordingController({
     }
   }
 
+  function isStartBlocked() {
+    return state.status === 'recording' || state.status === 'stopping' || state.status === 'processing';
+  }
+
   return {
     async cancel() {
       if (cancelPromise) {
@@ -330,7 +334,24 @@ export function createAudioRecordingController({
       }
 
       if ((state.status === 'stopped' || state.status === 'processing') && state.audio) {
-        await cleanupStoppedAudio(state.audio);
+        const audio = state.audio;
+        emit({ status: 'stopping' });
+        cancelPromise = (async () => {
+          try {
+            await cleanupStoppedAudio(audio);
+          } finally {
+            session = undefined;
+            stopPromise = undefined;
+
+            if (transitionGeneration === cancelGeneration) {
+              emit({ status: 'idle' });
+            }
+
+            cancelPromise = undefined;
+          }
+        })();
+
+        return cancelPromise;
       }
 
       session = undefined;
@@ -377,51 +398,57 @@ export function createAudioRecordingController({
         return startPromise;
       }
 
+      if (isStartBlocked()) {
+        return;
+      }
+
       startPromise = (async () => {
-        const operationGeneration = transitionGeneration;
-        clearMaxDurationTimer();
-
-        if (state.status === 'recording' || state.status === 'stopping' || state.status === 'processing') {
-          return;
-        }
-
-        if (state.status === 'stopped' && state.audio) {
-          await cleanupStoppedAudio(state.audio);
-        }
-
-        emit({ status: 'requesting_permission' });
-
         try {
-          const permission = await nativeRecorder.requestRecordingPermission();
+          const operationGeneration = transitionGeneration;
+          clearMaxDurationTimer();
 
-          if (!permission.granted) {
-            throw new AudioRecorderError(
-              'permission_denied',
-              'Microphone permission is required to record.',
-            );
+          if (state.status === 'stopped' && state.audio) {
+            await cleanupStoppedAudio(state.audio);
           }
 
-          const startedSession = await nativeRecorder.startRecording();
-
-          if (operationGeneration !== transitionGeneration) {
-            await stopAndCleanupSession(startedSession);
+          if (operationGeneration !== transitionGeneration || isStartBlocked()) {
             return;
           }
 
-          session = startedSession;
-          emit({ status: 'recording' });
-          maxDurationTimer = timer.setTimeout(() => {
-            void stopRecording('max_duration');
-          }, MAX_RECORDING_DURATION_MS);
-        } catch (error) {
-          const primaryError = normalizeRecordingError(error);
-          session = undefined;
+          emit({ status: 'requesting_permission' });
 
-          if (operationGeneration === transitionGeneration) {
-            emit({ error: primaryError, status: 'failed' });
+          try {
+            const permission = await nativeRecorder.requestRecordingPermission();
+
+            if (!permission.granted) {
+              throw new AudioRecorderError(
+                'permission_denied',
+                'Microphone permission is required to record.',
+              );
+            }
+
+            const startedSession = await nativeRecorder.startRecording();
+
+            if (operationGeneration !== transitionGeneration) {
+              await stopAndCleanupSession(startedSession);
+              return;
+            }
+
+            session = startedSession;
+            emit({ status: 'recording' });
+            maxDurationTimer = timer.setTimeout(() => {
+              void stopRecording('max_duration');
+            }, MAX_RECORDING_DURATION_MS);
+          } catch (error) {
+            const primaryError = normalizeRecordingError(error);
+            session = undefined;
+
+            if (operationGeneration === transitionGeneration) {
+              emit({ error: primaryError, status: 'failed' });
+            }
+
+            throw primaryError;
           }
-
-          throw primaryError;
         } finally {
           startPromise = undefined;
         }
