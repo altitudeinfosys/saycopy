@@ -30,6 +30,7 @@ export type FlowCleanupTranscriptInput = {
   readonly text: string;
   readonly sourceLanguageId: LanguageId;
   readonly modelPresetId: ModelPresetId;
+  readonly customModelId?: string;
 };
 
 export type FlowTranslateTextInput = {
@@ -37,6 +38,7 @@ export type FlowTranslateTextInput = {
   readonly sourceLanguageId: LanguageId;
   readonly targetLanguageId: ConcreteLanguageId;
   readonly modelPresetId: ModelPresetId;
+  readonly customModelId?: string;
 };
 
 export type TranscriptionProvider = {

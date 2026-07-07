@@ -1,6 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import RecordScreen from './screens/RecordScreen';
 import HistoryScreen from './screens/HistoryScreen';
@@ -24,24 +25,26 @@ export function AppShell({ dependencies: injectedDependencies }: AppProps = {}) 
   const [dependencies] = useState(() => injectedDependencies ?? createAppDependencies());
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
-      <View style={styles.content}>{renderActiveTab(activeTab, dependencies)}</View>
-      <View accessibilityRole="tablist" style={styles.tabBar}>
-        {tabs.map((tab) => (
-          <Pressable
-            key={tab}
-            accessibilityLabel={tab}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: activeTab === tab }}
-            onPress={() => setActiveTab(tab)}
-            style={styles.tab}
-          >
-            <Text style={[styles.tabLabel, activeTab === tab && styles.tabLabelActive]}>{tab}</Text>
-          </Pressable>
-        ))}
-      </View>
-    </View>
+    <SafeAreaProvider>
+      <SafeAreaView edges={['top']} style={styles.container} testID="app-top-safe-area">
+        <StatusBar style="dark" />
+        <View style={styles.content}>{renderActiveTab(activeTab, dependencies)}</View>
+        <View accessibilityRole="tablist" style={styles.tabBar}>
+          {tabs.map((tab) => (
+            <Pressable
+              key={tab}
+              accessibilityLabel={tab}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: activeTab === tab }}
+              onPress={() => setActiveTab(tab)}
+              style={styles.tab}
+            >
+              <Text style={[styles.tabLabel, activeTab === tab && styles.tabLabelActive]}>{tab}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 

@@ -58,7 +58,7 @@ describe('OpenRouter request builders', () => {
     it('builds a low-temperature chat request with the selected model preset', () => {
       const request = buildCleanupChatRequest({
         text: ' um hello world ',
-        modelPreset: getModelPreset('fast'),
+        modelId: getModelPreset('fast').currentModelCandidate,
       });
 
       expect(request.path).toBe('/api/v1/chat/completions');
@@ -84,7 +84,7 @@ describe('OpenRouter request builders', () => {
       const request = buildTranslationChatRequest({
         text: 'Good morning',
         targetLanguageId: 'arabic',
-        modelPreset: getModelPreset('balanced'),
+        modelId: getModelPreset('balanced').currentModelCandidate,
       });
 
       expect(request).toEqual({
@@ -112,7 +112,7 @@ describe('OpenRouter request builders', () => {
       if (false) {
         buildTranslationChatRequest({
           text: 'Hello',
-          modelPreset: getModelPreset('balanced'),
+          modelId: getModelPreset('balanced').currentModelCandidate,
           // @ts-expect-error Translation targets must be concrete languages.
           targetLanguageId: 'auto',
         });

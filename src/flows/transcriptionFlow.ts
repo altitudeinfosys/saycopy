@@ -13,6 +13,7 @@ export type RunTranscriptionFlowInput = {
   readonly audio: FlowAudioInput;
   readonly sourceLanguageId: LanguageId;
   readonly modelPresetId: ModelPresetId;
+  readonly customModelId?: string;
   readonly cleanupEnabled: boolean;
 };
 
@@ -62,6 +63,7 @@ export async function runTranscriptionFlow(
             text: sttResult.text,
             sourceLanguageId: input.sourceLanguageId,
             modelPresetId: input.modelPresetId,
+            customModelId: input.customModelId,
           })
         ).text;
       } catch {

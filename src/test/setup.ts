@@ -1,4 +1,10 @@
 import { cleanup } from '@testing-library/react-native';
+import type { ReactNode } from 'react';
+
+type SafeAreaMockProps = {
+  readonly children?: ReactNode;
+  readonly [key: string]: unknown;
+};
 
 const mockExpoAudioRecorder = {
   getStatus: jest.fn(() => ({
@@ -25,5 +31,18 @@ jest.mock('expo-audio', () => ({
   setAudioModeAsync: jest.fn().mockResolvedValue(undefined),
   useAudioRecorder: jest.fn(() => mockExpoAudioRecorder),
 }));
+
+jest.mock('react-native-safe-area-context', () => {
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+
+  return {
+    SafeAreaProvider: ({ children }: SafeAreaMockProps) =>
+      React.createElement(React.Fragment, null, children),
+    SafeAreaView: ({ children, ...props }: SafeAreaMockProps) =>
+      React.createElement(View, props, children),
+    useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+  };
+});
 
 afterEach(cleanup);

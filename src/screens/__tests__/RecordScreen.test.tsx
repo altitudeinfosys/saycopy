@@ -501,7 +501,44 @@ describe('RecordScreen', () => {
           sourceLanguageId: 'spanish',
           targetLanguageId: 'arabic',
           modelPresetId: 'balanced',
+          customModelId: '',
         },
+        { isCurrent: expect.any(Function) },
+      );
+    });
+  });
+
+  it('passes a saved custom OpenRouter model override into manual translation', async () => {
+    const recordFlowProcessors = createScreenRecordFlowProcessors();
+    const settingsRepository = createSettingsRepositoryMock({
+      defaultMode: 'translate',
+      sourceLanguageId: 'english',
+      targetLanguageId: 'spanish',
+      modelPresetId: 'balanced',
+      customModelId: 'mistralai/mistral-small-3.2-24b-instruct',
+      cleanupEnabled: true,
+    });
+
+    render(
+      <RecordScreen
+        recordFlowProcessors={recordFlowProcessors}
+        settingsRepository={settingsRepository}
+      />,
+    );
+
+    fireEvent.changeText(
+      await screen.findByPlaceholderText('Type or paste text to translate'),
+      'Please translate this.',
+    );
+    fireEvent.press(screen.getByRole('button', { name: 'Translate text' }));
+
+    await waitFor(() => {
+      expect(recordFlowProcessors.runTranslation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sourceType: 'manual',
+          modelPresetId: 'balanced',
+          customModelId: 'mistralai/mistral-small-3.2-24b-instruct',
+        }),
         { isCurrent: expect.any(Function) },
       );
     });
@@ -515,6 +552,7 @@ describe('RecordScreen', () => {
       sourceLanguageId: 'spanish',
       targetLanguageId: 'arabic',
       modelPresetId: 'fast',
+      customModelId: 'google/gemini-2.5-flash',
       cleanupEnabled: false,
     });
 
@@ -552,6 +590,7 @@ describe('RecordScreen', () => {
         expect.objectContaining({
           sourceLanguageId: 'spanish',
           modelPresetId: 'fast',
+          customModelId: 'google/gemini-2.5-flash',
           cleanupEnabled: false,
         }),
         { isCurrent: expect.any(Function) },
@@ -587,6 +626,7 @@ describe('RecordScreen', () => {
         sourceLanguageId: 'spanish',
         targetLanguageId: 'arabic',
         modelPresetId: 'fast',
+        customModelId: 'google/gemini-2.5-flash',
         cleanupEnabled: false,
       });
       await settingsDeferred.promise;
@@ -613,6 +653,7 @@ describe('RecordScreen', () => {
         expect.objectContaining({
           sourceLanguageId: 'spanish',
           modelPresetId: 'fast',
+          customModelId: 'google/gemini-2.5-flash',
           cleanupEnabled: false,
         }),
         { isCurrent: expect.any(Function) },
@@ -627,6 +668,7 @@ describe('RecordScreen', () => {
       sourceLanguageId: 'english',
       targetLanguageId: 'arabic',
       modelPresetId: 'best_quality',
+      customModelId: 'anthropic/claude-sonnet-4.6',
       cleanupEnabled: true,
     });
 
@@ -662,6 +704,7 @@ describe('RecordScreen', () => {
           sourceLanguageId: 'english',
           targetLanguageId: 'arabic',
           modelPresetId: 'best_quality',
+          customModelId: 'anthropic/claude-sonnet-4.6',
         },
         { isCurrent: expect.any(Function) },
       );
@@ -699,6 +742,7 @@ describe('RecordScreen', () => {
         sourceLanguageId: 'english',
         targetLanguageId: 'arabic',
         modelPresetId: 'best_quality',
+        customModelId: '',
         cleanupEnabled: true,
       });
       await settingsDeferred.promise;
@@ -730,6 +774,7 @@ describe('RecordScreen', () => {
           sourceLanguageId: 'english',
           targetLanguageId: 'arabic',
           modelPresetId: 'best_quality',
+          customModelId: '',
         },
         { isCurrent: expect.any(Function) },
       );
@@ -778,6 +823,7 @@ describe('RecordScreen', () => {
         },
         sourceLanguageId: 'auto',
         modelPresetId: 'balanced',
+        customModelId: '',
         cleanupEnabled: true,
       },
       { isCurrent: expect.any(Function) },
@@ -908,6 +954,7 @@ describe('RecordScreen', () => {
           sourceLanguageId: 'auto',
           targetLanguageId: 'english',
           modelPresetId: 'balanced',
+          customModelId: '',
         },
         { isCurrent: expect.any(Function) },
       );

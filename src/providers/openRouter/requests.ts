@@ -4,7 +4,6 @@ import {
   type ConcreteLanguageId,
   type LanguageId,
 } from '../../domain/languages';
-import type { ModelPreset } from '../../domain/modelPresets';
 
 export type OpenRouterAudioFormat = 'm4a';
 
@@ -62,14 +61,14 @@ export function buildTranscriptionRequest({
 }
 
 export function buildCleanupChatRequest({
+  modelId,
   text,
-  modelPreset,
 }: {
+  readonly modelId: string;
   readonly text: string;
-  readonly modelPreset: ModelPreset;
 }): OpenRouterRequestDescriptor<OpenRouterChatRequestBody> {
   return buildChatRequest({
-    modelPreset,
+    modelId,
     systemPrompt:
       'Lightly clean up the transcription. Fix punctuation, capitalization, spacing, ' +
       'obvious filler, and small transcription artifacts while you preserve meaning. ' +
@@ -79,29 +78,29 @@ export function buildCleanupChatRequest({
 }
 
 export function buildTranslationChatRequest({
+  modelId,
   text,
   targetLanguageId,
-  modelPreset,
 }: {
+  readonly modelId: string;
   readonly text: string;
   readonly targetLanguageId: ConcreteLanguageId;
-  readonly modelPreset: ModelPreset;
 }): OpenRouterRequestDescriptor<OpenRouterChatRequestBody> {
   const targetLanguage = getConcreteLanguageLabel(targetLanguageId);
 
   return buildChatRequest({
-    modelPreset,
+    modelId,
     systemPrompt: `Translate the user text into ${targetLanguage}. Return only the translated text.`,
     text,
   });
 }
 
 function buildChatRequest({
-  modelPreset,
+  modelId,
   systemPrompt,
   text,
 }: {
-  readonly modelPreset: ModelPreset;
+  readonly modelId: string;
   readonly systemPrompt: string;
   readonly text: string;
 }): OpenRouterRequestDescriptor<OpenRouterChatRequestBody> {
@@ -109,7 +108,7 @@ function buildChatRequest({
     path: CHAT_COMPLETIONS_PATH,
     method: 'POST',
     body: {
-      model: modelPreset.currentModelCandidate,
+      model: modelId,
       temperature: LOW_TEMPERATURE,
       messages: [
         { role: 'system', content: systemPrompt },

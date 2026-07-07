@@ -65,7 +65,7 @@ describe('OpenRouter client', () => {
 
   const chatRequest = buildCleanupChatRequest({
     text: ' hello ',
-    modelPreset: getModelPreset('balanced'),
+    modelId: getModelPreset('balanced').currentModelCandidate,
   });
 
   it('fails before network when the token is missing', async () => {

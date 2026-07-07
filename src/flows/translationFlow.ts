@@ -16,6 +16,7 @@ export type RunVoiceTranslationFlowInput = {
   readonly sourceLanguageId: LanguageId;
   readonly targetLanguageId: ConcreteLanguageId;
   readonly modelPresetId: ModelPresetId;
+  readonly customModelId?: string;
 };
 
 export type RunManualTranslationFlowInput = {
@@ -24,6 +25,7 @@ export type RunManualTranslationFlowInput = {
   readonly sourceLanguageId: LanguageId;
   readonly targetLanguageId: ConcreteLanguageId;
   readonly modelPresetId: ModelPresetId;
+  readonly customModelId?: string;
 };
 
 export type RunTranslationFlowInput =
@@ -86,6 +88,7 @@ export async function runTranslationFlow(
         sourceLanguageId: input.sourceLanguageId,
         targetLanguageId: input.targetLanguageId,
         modelPresetId: input.modelPresetId,
+        customModelId: input.customModelId,
       });
     } catch (error) {
       if (input.sourceType === 'voice') {

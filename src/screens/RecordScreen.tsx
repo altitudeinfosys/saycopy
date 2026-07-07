@@ -127,6 +127,7 @@ function RecordScreenContent({
   const [modelPresetId, setModelPresetId] = useState<ModelPresetId>(
     DEFAULT_APP_SETTINGS.modelPresetId,
   );
+  const [customModelId, setCustomModelId] = useState(DEFAULT_APP_SETTINGS.customModelId);
   const [cleanupEnabled, setCleanupEnabled] = useState(DEFAULT_APP_SETTINGS.cleanupEnabled);
   const [manualText, setManualText] = useState('');
   const [areRecordingOptionsExpanded, setAreRecordingOptionsExpanded] = useState(false);
@@ -232,6 +233,7 @@ function RecordScreenContent({
         setSourceLanguageId(loadedSettings.sourceLanguageId);
         setTargetLanguageId(loadedSettings.targetLanguageId);
         setModelPresetId(loadedSettings.modelPresetId);
+        setCustomModelId(loadedSettings.customModelId);
         setCleanupEnabled(loadedSettings.cleanupEnabled);
         setAreRecordingOptionsExpanded(false);
         setIsManualTextExpanded(loadedSettings.defaultMode === 'translate');
@@ -392,6 +394,7 @@ function RecordScreenContent({
               sourceLanguageId,
               targetLanguageId,
               modelPresetId,
+              customModelId,
             },
             { isCurrent },
           );
@@ -407,6 +410,7 @@ function RecordScreenContent({
             audio,
             sourceLanguageId,
             modelPresetId,
+            customModelId,
             cleanupEnabled,
           },
           { isCurrent },
@@ -428,6 +432,7 @@ function RecordScreenContent({
     applyTranscriptionResult,
     applyTranslationResult,
     cleanupEnabled,
+    customModelId,
     didSettingsLoadFail,
     isOpenRouterOperationCurrent,
     mode,
@@ -520,6 +525,7 @@ function RecordScreenContent({
           sourceLanguageId,
           targetLanguageId,
           modelPresetId,
+          customModelId,
         },
         { isCurrent },
       );

@@ -53,3 +53,19 @@ export function getModelPreset(presetId: ModelPresetId): ModelPreset {
 
   return preset;
 }
+
+export function normalizeCustomModelId(customModelId: string | undefined): string {
+  return customModelId?.trim() ?? '';
+}
+
+export function getEffectiveChatModelId({
+  customModelId,
+  modelPresetId,
+}: {
+  readonly customModelId?: string;
+  readonly modelPresetId: ModelPresetId;
+}): string {
+  const normalizedCustomModelId = normalizeCustomModelId(customModelId);
+
+  return normalizedCustomModelId || getModelPreset(modelPresetId).currentModelCandidate;
+}

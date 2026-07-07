@@ -250,6 +250,37 @@ describe('SettingsScreen', () => {
     expect(settingsRepository.saveSettings).toHaveBeenCalledWith({ cleanupEnabled: false });
   });
 
+  it('shows recommended model IDs and saves an optional custom OpenRouter model', async () => {
+    const { settingsRepository } = renderSettingsScreen();
+
+    await screen.findByText('OpenRouter models');
+
+    expect(screen.getByText('Recommended models')).toBeTruthy();
+    expect(screen.getByText('openai/gpt-4.1-mini')).toBeTruthy();
+
+    fireEvent.changeText(
+      screen.getByLabelText('Custom OpenRouter model ID'),
+      '  mistralai/mistral-small-3.2-24b-instruct  ',
+    );
+    fireEvent.press(screen.getByRole('button', { name: 'Save custom model' }));
+
+    await waitFor(() => {
+      expect(settingsRepository.settings.customModelId).toBe(
+        'mistralai/mistral-small-3.2-24b-instruct',
+      );
+    });
+    expect(settingsRepository.saveSettings).toHaveBeenCalledWith({
+      customModelId: 'mistralai/mistral-small-3.2-24b-instruct',
+    });
+
+    fireEvent.press(screen.getByRole('button', { name: 'Use recommended preset' }));
+
+    await waitFor(() => {
+      expect(settingsRepository.settings.customModelId).toBe('');
+    });
+    expect(settingsRepository.saveSettings).toHaveBeenCalledWith({ customModelId: '' });
+  });
+
   it('does not roll back an unrelated saved default when a later default save fails', async () => {
     const settingsRepository = new RejectingSourceLanguageSettingsRepository();
     renderSettingsScreen({ settingsRepository });

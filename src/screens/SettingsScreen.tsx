@@ -78,6 +78,7 @@ export default function SettingsScreen({ settingsRepository, tokenStore }: Setti
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [tokenStatus, setTokenStatus] = useState<TokenStatus | null>(null);
   const [tokenInput, setTokenInput] = useState('');
+  const [customModelInput, setCustomModelInput] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isTokenUpdatePending, setIsTokenUpdatePending] = useState(false);
   const [messageText, setMessageText] = useState('');
@@ -98,6 +99,7 @@ export default function SettingsScreen({ settingsRepository, tokenStore }: Setti
 
         setSettings(loadedSettings);
         settingsRef.current = loadedSettings;
+        setCustomModelInput(loadedSettings.customModelId);
         setTokenStatus(loadedTokenStatus);
         setErrorText('');
       } catch {
@@ -159,6 +161,17 @@ export default function SettingsScreen({ settingsRepository, tokenStore }: Setti
     }, 'Token cleared');
   }
 
+  async function handleSaveCustomModel() {
+    const customModelId = customModelInput.trim();
+    setCustomModelInput(customModelId);
+    await saveSetting({ customModelId });
+  }
+
+  async function handleUseRecommendedPreset() {
+    setCustomModelInput('');
+    await saveSetting({ customModelId: '' });
+  }
+
   async function saveSetting(nextSettings: Partial<AppSettings>) {
     const currentSettings = settingsRef.current;
     if (!currentSettings) {
@@ -207,6 +220,8 @@ export default function SettingsScreen({ settingsRepository, tokenStore }: Setti
       </View>
     );
   }
+
+  const selectedPreset = MODEL_PRESETS.find((preset) => preset.id === settings.modelPresetId);
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -263,6 +278,67 @@ export default function SettingsScreen({ settingsRepository, tokenStore }: Setti
           >
             <Text style={styles.secondaryButtonText}>Clear token</Text>
           </Pressable>
+        </View>
+      </View>
+
+      <View style={styles.surface}>
+        <View style={styles.sectionHeader}>
+          <View style={styles.sectionTitleGroup}>
+            <Text style={styles.sectionTitle}>OpenRouter models</Text>
+            <Text style={styles.sectionSubtitle}>
+              {settings.customModelId
+                ? `Using custom: ${settings.customModelId}`
+                : `Using recommended: ${selectedPreset?.label ?? 'Balanced'}`}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.controlGroup}>
+          <Text style={styles.controlLabel}>Recommended models</Text>
+          <View style={styles.modelList}>
+            {MODEL_PRESETS.map((preset) => (
+              <View key={preset.id} style={styles.modelRow}>
+                <Text style={styles.modelLabel}>{preset.label}</Text>
+                <Text style={styles.modelId}>{preset.currentModelCandidate}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.controlGroup}>
+          <Text style={styles.controlLabel}>Custom OpenRouter model</Text>
+          <TextInput
+            accessibilityLabel="Custom OpenRouter model ID"
+            autoCapitalize="none"
+            autoCorrect={false}
+            onChangeText={setCustomModelInput}
+            placeholder="provider/model-id"
+            placeholderTextColor="#94A3B8"
+            style={styles.tokenInput}
+            value={customModelInput}
+          />
+          <Text style={styles.modelHelp}>
+            Leave blank to use the recommended preset. Custom models apply to cleanup and
+            translation; speech transcription still uses Whisper.
+          </Text>
+          <View style={styles.buttonRow}>
+            <Pressable
+              accessibilityLabel="Save custom model"
+              accessibilityRole="button"
+              onPress={() => void handleSaveCustomModel()}
+              style={styles.primaryButton}
+            >
+              <Text style={styles.primaryButtonText}>Save custom model</Text>
+            </Pressable>
+            <Pressable
+              accessibilityLabel="Use recommended preset"
+              accessibilityRole="button"
+              onPress={() => void handleUseRecommendedPreset()}
+              style={styles.secondaryButton}
+            >
+              <Text style={styles.secondaryButtonText}>Use recommended</Text>
+            </Pressable>
+          </View>
         </View>
       </View>
 
@@ -408,10 +484,20 @@ const styles = StyleSheet.create({
     gap: 12,
     justifyContent: 'space-between',
   },
+  sectionTitleGroup: {
+    flexShrink: 1,
+    gap: 3,
+  },
   sectionTitle: {
     color: '#111827',
     fontSize: 18,
     fontWeight: '800',
+  },
+  sectionSubtitle: {
+    color: '#64748B',
+    flexShrink: 1,
+    fontSize: 13,
+    fontWeight: '700',
   },
   statusPill: {
     alignSelf: 'flex-start',
@@ -520,6 +606,35 @@ const styles = StyleSheet.create({
   },
   optionButtonTextSelected: {
     color: '#075985',
+  },
+  modelList: {
+    gap: 8,
+  },
+  modelRow: {
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  modelLabel: {
+    color: '#111827',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  modelId: {
+    color: '#475569',
+    flexShrink: 1,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  modelHelp: {
+    color: '#64748B',
+    flexShrink: 1,
+    fontSize: 12,
+    lineHeight: 17,
   },
   savedText: {
     color: '#047857',

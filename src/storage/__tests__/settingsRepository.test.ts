@@ -23,9 +23,11 @@ describe('settings repository', () => {
       sourceLanguageId: 'auto',
       targetLanguageId: 'english',
       modelPresetId: DEFAULT_MODEL_PRESET_ID,
+      customModelId: '',
       cleanupEnabled: true,
     });
     expect(DEFAULT_APP_SETTINGS.modelPresetId).toBe('balanced');
+    expect(DEFAULT_APP_SETTINGS.customModelId).toBe('');
   });
 
   it('returns valid persisted settings', async () => {
@@ -36,6 +38,7 @@ describe('settings repository', () => {
       sourceLanguageId: 'spanish',
       targetLanguageId: 'arabic',
       modelPresetId: 'fast',
+      customModelId: 'mistralai/mistral-small-3.2-24b-instruct',
       cleanupEnabled: false,
     });
 
@@ -44,6 +47,7 @@ describe('settings repository', () => {
       sourceLanguageId: 'spanish',
       targetLanguageId: 'arabic',
       modelPresetId: 'fast',
+      customModelId: 'mistralai/mistral-small-3.2-24b-instruct',
       cleanupEnabled: false,
     });
   });
@@ -66,6 +70,10 @@ describe('settings repository', () => {
     await database.execute(
       'INSERT OR REPLACE INTO app_settings (key, value_json, updated_at) VALUES (?, ?, ?)',
       ['modelPresetId', JSON.stringify('expensive'), '2026-07-05T12:00:00.000Z'],
+    );
+    await database.execute(
+      'INSERT OR REPLACE INTO app_settings (key, value_json, updated_at) VALUES (?, ?, ?)',
+      ['customModelId', JSON.stringify(1234), '2026-07-05T12:00:00.000Z'],
     );
     await database.execute(
       'INSERT OR REPLACE INTO app_settings (key, value_json, updated_at) VALUES (?, ?, ?)',

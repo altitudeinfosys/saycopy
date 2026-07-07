@@ -12,6 +12,7 @@ export type AppSettings = {
   readonly sourceLanguageId: LanguageId;
   readonly targetLanguageId: ConcreteLanguageId;
   readonly modelPresetId: ModelPresetId;
+  readonly customModelId: string;
   readonly cleanupEnabled: boolean;
 };
 
@@ -35,6 +36,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   sourceLanguageId: 'auto',
   targetLanguageId: 'english',
   modelPresetId: DEFAULT_MODEL_PRESET_ID,
+  customModelId: '',
   cleanupEnabled: true,
 };
 
@@ -81,6 +83,7 @@ export function createSettingsRepository(
     const rows = await database.query<AppSettingRow>('SELECT * FROM app_settings');
     const persistedValues = readPersistedValues(rows);
     const modelPresetValue = persistedValues.modelPresetId;
+    const customModelValue = persistedValues.customModelId;
 
     return {
       defaultMode: isHistoryMode(persistedValues.defaultMode)
@@ -96,6 +99,10 @@ export function createSettingsRepository(
         typeof modelPresetValue === 'string' && isModelPresetId(modelPresetValue)
           ? modelPresetValue
           : DEFAULT_APP_SETTINGS.modelPresetId,
+      customModelId:
+        typeof customModelValue === 'string'
+          ? customModelValue.trim()
+          : DEFAULT_APP_SETTINGS.customModelId,
       cleanupEnabled:
         typeof persistedValues.cleanupEnabled === 'boolean'
           ? persistedValues.cleanupEnabled

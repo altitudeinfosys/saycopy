@@ -1,4 +1,4 @@
-import { getModelPreset } from '../../domain/modelPresets';
+import { getEffectiveChatModelId } from '../../domain/modelPresets';
 import type {
   FlowCleanupTranscriptInput,
   FlowTextResult,
@@ -41,33 +41,33 @@ export function createOpenRouterProvider({
   }
 
   async function cleanupTranscript(input: FlowCleanupTranscriptInput): Promise<FlowTextResult> {
-    const modelPreset = getModelPreset(input.modelPresetId);
+    const modelId = getEffectiveChatModelId(input);
     const result = await client.requestChatCompletion(
       buildCleanupChatRequest({
         text: input.text,
-        modelPreset,
+        modelId,
       }),
     );
 
     return {
       text: result.content,
-      modelId: modelPreset.currentModelCandidate,
+      modelId,
     };
   }
 
   async function translateText(input: FlowTranslateTextInput): Promise<FlowTextResult> {
-    const modelPreset = getModelPreset(input.modelPresetId);
+    const modelId = getEffectiveChatModelId(input);
     const result = await client.requestChatCompletion(
       buildTranslationChatRequest({
         text: input.text,
         targetLanguageId: input.targetLanguageId,
-        modelPreset,
+        modelId,
       }),
     );
 
     return {
       text: result.content,
-      modelId: modelPreset.currentModelCandidate,
+      modelId,
     };
   }
 
