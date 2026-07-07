@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tarek Wisper Android V1 MVP Implementation Plan</title>
+    <style>
+      body {
+        color: #0f172a;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.55;
+        margin: 0 auto;
+        max-width: 920px;
+        padding: 32px 20px 48px;
+      }
+
+      h1,
+      h2 {
+        line-height: 1.2;
+      }
+
+      h1 {
+        font-size: 2rem;
+        margin-bottom: 0.25rem;
+      }
+
+      h2 {
+        border-top: 1px solid #e2e8f0;
+        margin-top: 2rem;
+        padding-top: 1.25rem;
+      }
+
+      code {
+        background: #f1f5f9;
+        border-radius: 4px;
+        padding: 0.1rem 0.25rem;
+      }
+
+      ul {
+        padding-left: 1.35rem;
+      }
+
+      .meta {
+        color: #475569;
+        margin-top: 0;
+      }
+
+      .callout {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 14px 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Tarek Wisper Android V1 MVP Implementation Plan</h1>
+    <p class="meta">Created July 6, 2026 from branch <code>codex/android-v1-mvp</code>, based on <code>origin/feature/tarek-wisper-v1</code>.</p>
+
+    <section class="callout">
+      <p><strong>Goal:</strong> make the current Expo V1 MVP explicitly Android-ready without diverging from the iOS implementation or running an external Android build.</p>
+      <p><strong>Approach:</strong> keep one shared React Native code path, add Android app metadata and permission configuration, close Android layout gaps, and extend tests around the Android-sensitive behavior. External EAS Android preview builds are intentionally out of scope until the user approves them.</p>
+    </section>
+
+    <h2>Current Findings</h2>
+    <ul>
+      <li><code>app.json</code> has iOS bundle metadata but no explicit <code>android.package</code>, <code>android.versionCode</code>, adaptive icon, or Android permission rationale.</li>
+      <li><code>npx expo config --type public</code> currently resolves Android support and audio permissions through <code>expo-audio</code>, including <code>android.permission.RECORD_AUDIO</code>.</li>
+      <li><code>expo-audio</code> is already used through an adapter in <code>src/audio/audioRecorder.ts</code>; the adapter can be tested without native private APIs.</li>
+      <li>Secure token storage uses <code>expo-secure-store</code>, SQLite uses <code>expo-sqlite</code>, and copy/share use Expo Clipboard plus React Native Share. These are cross-platform dependencies already covered by unit tests at the abstraction level.</li>
+      <li>The app wraps only the top safe area. Android gesture/navigation bars make bottom inset coverage around the tab bar worth fixing and testing.</li>
+      <li>Baseline checks pass after installing dependencies: <code>npm test</code>, <code>npm run typecheck</code>, <code>npm run lint</code>, and <code>npm run doctor</code>.</li>
+      <li>Local Node is <code>20.19.1</code>; React Native 0.86 packages warn that they require <code>20.19.4</code> or newer.</li>
+    </ul>
+
+    <h2>Implementation Tasks</h2>
+    <ol>
+      <li>
+        <strong>Android Expo config.</strong>
+        Update <code>app.json</code> with an Android package name, initial version code, adaptive icon using the existing icon asset, and explicit <code>expo-audio</code> plugin options for microphone permission and Android recording.
+      </li>
+      <li>
+        <strong>EAS profile clarity.</strong>
+        Add Android preview profile settings in <code>eas.json</code> that mirror the internal preview intent without invoking an Android EAS build.
+      </li>
+      <li>
+        <strong>Safe-area/layout hardening.</strong>
+        Update <code>src/App.tsx</code> so the app accounts for bottom safe-area insets around the tab bar while keeping existing top inset behavior.
+      </li>
+      <li>
+        <strong>Tests.</strong>
+        Extend Jest coverage for Android config shape, audio adapter permission options where practical, and bottom safe-area behavior. Keep tests deterministic and avoid native Android build dependencies.
+      </li>
+      <li>
+        <strong>Verification.</strong>
+        Run <code>npm test</code>, <code>npm run typecheck</code>, <code>npm run lint</code>, <code>npm run doctor</code>, and <code>npx expo config --type public</code>. Stop before any Android EAS preview build or deploy step.
+      </li>
+    </ol>
+
+    <h2>Known Non-Goals For This Pass</h2>
+    <ul>
+      <li>No <code>eas build --platform android</code>, Play Store upload, or other external build/deploy action without user approval.</li>
+      <li>No native <code>android/</code> directory generation unless later verification shows managed config is insufficient.</li>
+      <li>No broad UI redesign; Android changes should preserve the current V1 MVP experience.</li>
+    </ul>
+  </body>
+</html>
