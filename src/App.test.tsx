@@ -25,6 +25,7 @@ describe('App shell', () => {
     render(<AppShell dependencies={createTestAppDependencies()} />);
 
     expect(screen.getByTestId('app-top-safe-area').props.edges).toContain('top');
+    expect(screen.getByTestId('app-top-safe-area').props.edges).toContain('bottom');
     expect(screen.getByRole('tab', { name: 'Record' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'History' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Settings' })).toBeTruthy();

@@ -26,7 +26,7 @@ export function AppShell({ dependencies: injectedDependencies }: AppProps = {}) 
 
   return (
     <SafeAreaProvider>
-      <SafeAreaView edges={['top']} style={styles.container} testID="app-top-safe-area">
+      <SafeAreaView edges={['top', 'bottom']} style={styles.container} testID="app-top-safe-area">
         <StatusBar style="dark" />
         <View style={styles.content}>{renderActiveTab(activeTab, dependencies)}</View>
         <View accessibilityRole="tablist" style={styles.tabBar}>
