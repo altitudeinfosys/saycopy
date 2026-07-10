@@ -21,6 +21,7 @@
       <li>Split model configuration into separate transcription and translation/cleanup sections. Persist a selected transcription model, send it to OpenRouter's transcription endpoint for voice flows, and retain the existing translation/cleanup presets and arbitrary custom model field.</li>
       <li>Offer compatible transcription recommendations for fast, balanced, and highest-quality use, while allowing an arbitrary OpenRouter transcription model ID. Let custom fields save through the keyboard Done action.</li>
       <li>Add separate searchable selectors for transcription and translation. The translation selector will load current text-output models from OpenRouter's Models API. The transcription selector will show models intended for the dedicated speech-to-text endpoint, rather than presenting every audio-capable chat model as compatible.</li>
+      <li>Seed the transcription selector with compatible speech-to-text models because OpenRouter's general Models API can omit models served only through the dedicated transcription endpoint.</li>
       <li>Move Copy, Share, and Tags before the editable result input so the commands remain visible and actionable when the keyboard is displayed.</li>
     </ol>
     <h2>Verification</h2>

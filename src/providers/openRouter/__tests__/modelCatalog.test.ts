@@ -31,7 +31,7 @@ describe('OpenRouter model catalog', () => {
     await expect(catalog.listTextModels()).rejects.toThrow('Could not read OpenRouter models.');
   });
 
-  it('limits the transcription catalog to speech-to-text model IDs', async () => {
+  it('includes supported transcription models even when the general catalog omits them', async () => {
     const catalog = createOpenRouterModelCatalog(async () => ({
       ok: true,
       json: async () => ({
@@ -45,7 +45,21 @@ describe('OpenRouter model catalog', () => {
 
     await expect(catalog.listTranscriptionModels()).resolves.toEqual([
       { id: 'openai/gpt-4o-transcribe', name: 'GPT-4o Transcribe' },
+      { id: 'openai/whisper-large-v3-turbo', name: 'OpenAI: Whisper Large V3 Turbo' },
       { id: 'openai/whisper-large-v3', name: 'Whisper Large V3' },
+    ]);
+  });
+
+  it('keeps the supported transcription models available when the catalog cannot load', async () => {
+    const catalog = createOpenRouterModelCatalog(async () => ({
+      ok: false,
+      json: async () => ({}),
+    }));
+
+    await expect(catalog.listTranscriptionModels()).resolves.toEqual([
+      { id: 'openai/gpt-4o-transcribe', name: 'OpenAI: GPT-4o Transcribe' },
+      { id: 'openai/whisper-large-v3', name: 'OpenAI: Whisper Large V3' },
+      { id: 'openai/whisper-large-v3-turbo', name: 'OpenAI: Whisper Large V3 Turbo' },
     ]);
   });
 });
