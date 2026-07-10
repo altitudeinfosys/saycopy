@@ -8,6 +8,28 @@ export type ModelPreset = {
   readonly fallbackModelCandidate: string;
 };
 
+export type TranscriptionModelRecommendation = {
+  readonly label: string;
+  readonly modelId: string;
+};
+
+export const DEFAULT_TRANSCRIPTION_MODEL_ID = 'openai/whisper-large-v3';
+
+export const TRANSCRIPTION_MODEL_RECOMMENDATIONS = [
+  {
+    label: 'Fast',
+    modelId: 'openai/whisper-large-v3-turbo',
+  },
+  {
+    label: 'Balanced',
+    modelId: DEFAULT_TRANSCRIPTION_MODEL_ID,
+  },
+  {
+    label: 'Best Quality',
+    modelId: 'openai/gpt-4o-transcribe',
+  },
+] as const satisfies readonly TranscriptionModelRecommendation[];
+
 export const MODEL_PRESETS = [
   {
     id: 'fast',

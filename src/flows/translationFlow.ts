@@ -17,6 +17,7 @@ export type RunVoiceTranslationFlowInput = {
   readonly targetLanguageId: ConcreteLanguageId;
   readonly modelPresetId: ModelPresetId;
   readonly customModelId?: string;
+  readonly transcriptionModelId?: string;
 };
 
 export type RunManualTranslationFlowInput = {
@@ -79,6 +80,7 @@ export async function runTranslationFlow(
             audio: input.audio,
             sourceLanguageId: input.sourceLanguageId,
             modelPresetId: input.modelPresetId,
+            transcriptionModelId: input.transcriptionModelId,
           })
         : { text: input.text };
     let translationResult;

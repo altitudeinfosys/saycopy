@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import type { ReactTestInstance } from 'react-test-renderer';
-import { StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 
 import {
   createAudioRecordingController,
@@ -357,6 +357,10 @@ describe('RecordScreen', () => {
     expect(screen.queryByText('Source language')).toBeNull();
     expect(screen.queryByText('Model preset')).toBeNull();
     expect(screen.queryByPlaceholderText('Type or paste text to translate')).toBeNull();
+
+    const scrollView = screen.UNSAFE_getByType(ScrollView);
+    expect(scrollView.props.keyboardShouldPersistTaps).toBe('handled');
+    expect(scrollView.props.automaticallyAdjustKeyboardInsets).toBe(true);
   });
 
   it('lets users expand transcribe language options without showing model controls', () => {
@@ -516,6 +520,7 @@ describe('RecordScreen', () => {
       targetLanguageId: 'spanish',
       modelPresetId: 'balanced',
       customModelId: 'mistralai/mistral-small-3.2-24b-instruct',
+      transcriptionModelId: 'openai/whisper-large-v3',
       cleanupEnabled: true,
     });
 
@@ -553,6 +558,7 @@ describe('RecordScreen', () => {
       targetLanguageId: 'arabic',
       modelPresetId: 'fast',
       customModelId: 'google/gemini-2.5-flash',
+      transcriptionModelId: 'openai/gpt-4o-transcribe',
       cleanupEnabled: false,
     });
 
@@ -592,6 +598,7 @@ describe('RecordScreen', () => {
           modelPresetId: 'fast',
           customModelId: 'google/gemini-2.5-flash',
           cleanupEnabled: false,
+          transcriptionModelId: 'openai/gpt-4o-transcribe',
         }),
         { isCurrent: expect.any(Function) },
       );
@@ -627,6 +634,7 @@ describe('RecordScreen', () => {
         targetLanguageId: 'arabic',
         modelPresetId: 'fast',
         customModelId: 'google/gemini-2.5-flash',
+        transcriptionModelId: 'openai/whisper-large-v3',
         cleanupEnabled: false,
       });
       await settingsDeferred.promise;
@@ -669,6 +677,7 @@ describe('RecordScreen', () => {
       targetLanguageId: 'arabic',
       modelPresetId: 'best_quality',
       customModelId: 'anthropic/claude-sonnet-4.6',
+      transcriptionModelId: 'openai/whisper-large-v3',
       cleanupEnabled: true,
     });
 
@@ -743,6 +752,7 @@ describe('RecordScreen', () => {
         targetLanguageId: 'arabic',
         modelPresetId: 'best_quality',
         customModelId: '',
+        transcriptionModelId: 'openai/whisper-large-v3',
         cleanupEnabled: true,
       });
       await settingsDeferred.promise;
@@ -841,6 +851,31 @@ describe('RecordScreen', () => {
     fireEvent.changeText(resultEditor, 'Edited transcript text');
 
     expect(screen.getByTestId('result-editor').props.value).toBe('Edited transcript text');
+  });
+
+  it('cancels an active recording without sending audio for processing', async () => {
+    const recordingController = createInjectedRecordingController();
+    const recordFlowProcessors = createScreenRecordFlowProcessors();
+
+    render(
+      <RecordScreen
+        recordFlowProcessors={recordFlowProcessors}
+        recordingController={recordingController}
+      />,
+    );
+
+    fireEvent.press(screen.getByRole('button', { name: 'Tap to record' }));
+    expect(await screen.findByRole('button', { name: 'Cancel recording' })).toBeTruthy();
+
+    fireEvent.press(screen.getByRole('button', { name: 'Cancel recording' }));
+
+    await waitFor(() => {
+      expect(recordingController.cancel).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole('button', { name: 'Tap to record' })).toBeTruthy();
+    });
+    expect(recordingController.stop).not.toHaveBeenCalled();
+    expect(recordingController.processStoppedAudio).not.toHaveBeenCalled();
+    expect(recordFlowProcessors.runTranscription).not.toHaveBeenCalled();
   });
 
   it('updates the active recording timer and waveform while recording', async () => {

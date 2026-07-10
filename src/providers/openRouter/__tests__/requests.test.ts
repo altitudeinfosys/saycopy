@@ -43,6 +43,17 @@ describe('OpenRouter request builders', () => {
       ).toMatchObject({ language: 'ar' });
     });
 
+    it('uses a selected compatible transcription model', () => {
+      expect(
+        buildTranscriptionRequest({
+          base64Audio: 'AUDIO',
+          format: 'm4a',
+          languageId: 'auto',
+          modelId: 'openai/gpt-4o-transcribe',
+        }).body.model,
+      ).toBe('openai/gpt-4o-transcribe');
+    });
+
     it('omits language for auto-detect transcription', () => {
       expect(
         buildTranscriptionRequest({

@@ -2,6 +2,7 @@ import { HISTORY_MODES, type HistoryMode } from '../domain/history';
 import { LANGUAGE_OPTIONS, type ConcreteLanguageId, type LanguageId } from '../domain/languages';
 import {
   DEFAULT_MODEL_PRESET_ID,
+  DEFAULT_TRANSCRIPTION_MODEL_ID,
   isModelPresetId,
   type ModelPresetId,
 } from '../domain/modelPresets';
@@ -13,6 +14,7 @@ export type AppSettings = {
   readonly targetLanguageId: ConcreteLanguageId;
   readonly modelPresetId: ModelPresetId;
   readonly customModelId: string;
+  readonly transcriptionModelId: string;
   readonly cleanupEnabled: boolean;
 };
 
@@ -37,6 +39,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   targetLanguageId: 'english',
   modelPresetId: DEFAULT_MODEL_PRESET_ID,
   customModelId: '',
+  transcriptionModelId: DEFAULT_TRANSCRIPTION_MODEL_ID,
   cleanupEnabled: true,
 };
 
@@ -84,6 +87,7 @@ export function createSettingsRepository(
     const persistedValues = readPersistedValues(rows);
     const modelPresetValue = persistedValues.modelPresetId;
     const customModelValue = persistedValues.customModelId;
+    const transcriptionModelValue = persistedValues.transcriptionModelId;
 
     return {
       defaultMode: isHistoryMode(persistedValues.defaultMode)
@@ -103,6 +107,10 @@ export function createSettingsRepository(
         typeof customModelValue === 'string'
           ? customModelValue.trim()
           : DEFAULT_APP_SETTINGS.customModelId,
+      transcriptionModelId:
+        typeof transcriptionModelValue === 'string' && transcriptionModelValue.trim()
+          ? transcriptionModelValue.trim()
+          : DEFAULT_APP_SETTINGS.transcriptionModelId,
       cleanupEnabled:
         typeof persistedValues.cleanupEnabled === 'boolean'
           ? persistedValues.cleanupEnabled

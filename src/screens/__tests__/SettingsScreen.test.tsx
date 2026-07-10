@@ -250,13 +250,23 @@ describe('SettingsScreen', () => {
     expect(settingsRepository.saveSettings).toHaveBeenCalledWith({ cleanupEnabled: false });
   });
 
-  it('shows recommended model IDs and lets users choose either a recommended or custom OpenRouter model', async () => {
+  it('shows separate transcription and translation model controls with recommendations and custom IDs', async () => {
     const { settingsRepository } = renderSettingsScreen();
 
-    await screen.findByText('OpenRouter models');
+    await screen.findByText('Transcription model');
 
-    expect(screen.getByText('Recommended models')).toBeTruthy();
+    expect(screen.getByText('Recommended transcription models')).toBeTruthy();
+    expect(screen.getByText('Translation and cleanup model')).toBeTruthy();
     expect(screen.getByText('openai/gpt-4.1-mini')).toBeTruthy();
+
+    fireEvent.press(screen.getByRole('button', { name: 'Recommended transcription model Best Quality' }));
+
+    await waitFor(() => {
+      expect(settingsRepository.settings.transcriptionModelId).toBe('openai/gpt-4o-transcribe');
+    });
+    expect(settingsRepository.saveSettings).toHaveBeenCalledWith({
+      transcriptionModelId: 'openai/gpt-4o-transcribe',
+    });
 
     fireEvent.press(screen.getByRole('button', { name: 'Recommended model Fast' }));
 
@@ -272,10 +282,10 @@ describe('SettingsScreen', () => {
     });
 
     fireEvent.changeText(
-      screen.getByLabelText('Custom OpenRouter model ID'),
+      screen.getByLabelText('Custom OpenRouter translation model ID'),
       '  mistralai/mistral-small-3.2-24b-instruct  ',
     );
-    fireEvent.press(screen.getByRole('button', { name: 'Save custom model' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Save custom translation model' }));
 
     await waitFor(() => {
       expect(settingsRepository.settings.customModelId).toBe(
@@ -292,6 +302,36 @@ describe('SettingsScreen', () => {
       expect(settingsRepository.settings.customModelId).toBe('');
     });
     expect(settingsRepository.saveSettings).toHaveBeenCalledWith({ customModelId: '' });
+  });
+
+  it('saves custom transcription and translation models from keyboard Done actions', async () => {
+    const { settingsRepository } = renderSettingsScreen();
+
+    await screen.findByText('Transcription model');
+
+    const transcriptionModelInput = screen.getByLabelText('Custom OpenRouter transcription model ID');
+    fireEvent.changeText(transcriptionModelInput, 'openai/whisper-large-v3-turbo');
+    fireEvent(transcriptionModelInput, 'submitEditing');
+
+    await waitFor(() => {
+      expect(settingsRepository.saveSettings).toHaveBeenCalledWith({
+        transcriptionModelId: 'openai/whisper-large-v3-turbo',
+      });
+    });
+    expect(transcriptionModelInput.props.returnKeyType).toBe('done');
+    expect(transcriptionModelInput.props.blurOnSubmit).toBe(true);
+
+    const customModelInput = screen.getByLabelText('Custom OpenRouter translation model ID');
+    fireEvent.changeText(customModelInput, 'google/gemini-3.1-flash-lite');
+    fireEvent(customModelInput, 'submitEditing');
+
+    await waitFor(() => {
+      expect(settingsRepository.saveSettings).toHaveBeenCalledWith({
+        customModelId: 'google/gemini-3.1-flash-lite',
+      });
+    });
+    expect(customModelInput.props.returnKeyType).toBe('done');
+    expect(customModelInput.props.blurOnSubmit).toBe(true);
   });
 
   it('does not roll back an unrelated saved default when a later default save fails', async () => {

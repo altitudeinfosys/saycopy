@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { HISTORY_MODES, type HistoryMode } from '../domain/history';
 import {
@@ -8,7 +8,11 @@ import {
   type LanguageId,
   type LanguageOption,
 } from '../domain/languages';
-import { MODEL_PRESETS, type ModelPresetId } from '../domain/modelPresets';
+import {
+  MODEL_PRESETS,
+  TRANSCRIPTION_MODEL_RECOMMENDATIONS,
+  type ModelPresetId,
+} from '../domain/modelPresets';
 import type { SecureTokenStore, TokenStatus } from '../storage/secureTokenStore';
 import type { AppSettings, SettingsRepository } from '../storage/settingsRepository';
 
@@ -79,6 +83,7 @@ export default function SettingsScreen({ settingsRepository, tokenStore }: Setti
   const [tokenStatus, setTokenStatus] = useState<TokenStatus | null>(null);
   const [tokenInput, setTokenInput] = useState('');
   const [customModelInput, setCustomModelInput] = useState('');
+  const [transcriptionModelInput, setTranscriptionModelInput] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isTokenUpdatePending, setIsTokenUpdatePending] = useState(false);
   const [messageText, setMessageText] = useState('');
@@ -100,6 +105,7 @@ export default function SettingsScreen({ settingsRepository, tokenStore }: Setti
         setSettings(loadedSettings);
         settingsRef.current = loadedSettings;
         setCustomModelInput(loadedSettings.customModelId);
+        setTranscriptionModelInput(loadedSettings.transcriptionModelId);
         setTokenStatus(loadedTokenStatus);
         setErrorText('');
       } catch {
@@ -164,12 +170,31 @@ export default function SettingsScreen({ settingsRepository, tokenStore }: Setti
   async function handleSaveCustomModel() {
     const customModelId = customModelInput.trim();
     setCustomModelInput(customModelId);
+    Keyboard.dismiss();
     await saveSetting({ customModelId });
   }
 
   async function handleUseRecommendedPreset() {
     setCustomModelInput('');
     await saveSetting({ customModelId: '' });
+  }
+
+  async function handleSaveTranscriptionModel() {
+    const transcriptionModelId = transcriptionModelInput.trim();
+    setTranscriptionModelInput(transcriptionModelId);
+    Keyboard.dismiss();
+
+    if (!transcriptionModelId) {
+      setErrorText('Enter an OpenRouter transcription model ID.');
+      return;
+    }
+
+    await saveSetting({ transcriptionModelId });
+  }
+
+  async function handleSelectTranscriptionModel(transcriptionModelId: string) {
+    setTranscriptionModelInput(transcriptionModelId);
+    await saveSetting({ transcriptionModelId });
   }
 
   async function handleSelectRecommendedModel(modelPresetId: ModelPresetId) {
@@ -229,7 +254,13 @@ export default function SettingsScreen({ settingsRepository, tokenStore }: Setti
   const selectedPreset = MODEL_PRESETS.find((preset) => preset.id === settings.modelPresetId);
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView
+      automaticallyAdjustKeyboardInsets
+      contentContainerStyle={styles.content}
+      keyboardDismissMode="interactive"
+      keyboardShouldPersistTaps="handled"
+      style={styles.screen}
+    >
       <View style={styles.header}>
         <Text style={styles.screenTitle}>Settings</Text>
         <Text style={styles.screenStatus}>Local defaults and token storage</Text>
@@ -289,7 +320,71 @@ export default function SettingsScreen({ settingsRepository, tokenStore }: Setti
       <View style={styles.surface}>
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleGroup}>
-            <Text style={styles.sectionTitle}>OpenRouter models</Text>
+            <Text style={styles.sectionTitle}>Transcription model</Text>
+            <Text style={styles.sectionSubtitle}>Using: {settings.transcriptionModelId}</Text>
+          </View>
+        </View>
+
+        <View style={styles.controlGroup}>
+          <Text style={styles.controlLabel}>Recommended transcription models</Text>
+          <View style={styles.modelList}>
+            {TRANSCRIPTION_MODEL_RECOMMENDATIONS.map((recommendation) => {
+              const isSelected = settings.transcriptionModelId === recommendation.modelId;
+
+              return (
+                <Pressable
+                  key={recommendation.modelId}
+                  accessibilityLabel={`Recommended transcription model ${recommendation.label}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isSelected }}
+                  onPress={() => void handleSelectTranscriptionModel(recommendation.modelId)}
+                  style={[styles.modelRow, isSelected && styles.modelRowSelected]}
+                >
+                  <View style={styles.modelRowHeader}>
+                    <Text style={[styles.modelLabel, isSelected && styles.modelLabelSelected]}>
+                      {recommendation.label}
+                    </Text>
+                    {isSelected ? <Text style={styles.modelSelectedText}>Selected</Text> : null}
+                  </View>
+                  <Text style={styles.modelId}>{recommendation.modelId}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={styles.controlGroup}>
+          <Text style={styles.controlLabel}>Custom transcription model</Text>
+          <TextInput
+            accessibilityLabel="Custom OpenRouter transcription model ID"
+            autoCapitalize="none"
+            autoCorrect={false}
+            blurOnSubmit
+            onChangeText={setTranscriptionModelInput}
+            onSubmitEditing={() => void handleSaveTranscriptionModel()}
+            placeholder="provider/model-id"
+            placeholderTextColor="#94A3B8"
+            returnKeyType="done"
+            style={styles.tokenInput}
+            value={transcriptionModelInput}
+          />
+          <View style={styles.modelButtonColumn}>
+            <Pressable
+              accessibilityLabel="Save custom transcription model"
+              accessibilityRole="button"
+              onPress={() => void handleSaveTranscriptionModel()}
+              style={[styles.primaryButton, styles.fullWidthButton]}
+            >
+              <Text style={styles.primaryButtonText}>Save transcription model</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.surface}>
+        <View style={styles.sectionHeader}>
+          <View style={styles.sectionTitleGroup}>
+            <Text style={styles.sectionTitle}>Translation and cleanup model</Text>
             <Text style={styles.sectionSubtitle}>
               {settings.customModelId
                 ? `Using custom: ${settings.customModelId}`
@@ -299,7 +394,7 @@ export default function SettingsScreen({ settingsRepository, tokenStore }: Setti
         </View>
 
         <View style={styles.controlGroup}>
-          <Text style={styles.controlLabel}>Recommended models</Text>
+          <Text style={styles.controlLabel}>Recommended translation and cleanup models</Text>
           <View style={styles.modelList}>
             {MODEL_PRESETS.map((preset) => {
               const isSelectedRecommendedModel =
@@ -338,24 +433,26 @@ export default function SettingsScreen({ settingsRepository, tokenStore }: Setti
         </View>
 
         <View style={styles.controlGroup}>
-          <Text style={styles.controlLabel}>Custom OpenRouter model</Text>
+          <Text style={styles.controlLabel}>Custom translation and cleanup model</Text>
           <TextInput
-            accessibilityLabel="Custom OpenRouter model ID"
+            accessibilityLabel="Custom OpenRouter translation model ID"
             autoCapitalize="none"
             autoCorrect={false}
+            blurOnSubmit
             onChangeText={setCustomModelInput}
+            onSubmitEditing={() => void handleSaveCustomModel()}
             placeholder="provider/model-id"
             placeholderTextColor="#94A3B8"
+            returnKeyType="done"
             style={styles.tokenInput}
             value={customModelInput}
           />
           <Text style={styles.modelHelp}>
-            Leave blank to use the recommended preset. Custom models apply to cleanup and
-            translation; speech transcription still uses Whisper.
+            Leave blank to use the recommended preset.
           </Text>
           <View style={styles.modelButtonColumn}>
             <Pressable
-              accessibilityLabel="Save custom model"
+              accessibilityLabel="Save custom translation model"
               accessibilityRole="button"
               onPress={() => void handleSaveCustomModel()}
               style={[styles.primaryButton, styles.fullWidthButton]}
@@ -366,7 +463,7 @@ export default function SettingsScreen({ settingsRepository, tokenStore }: Setti
                 numberOfLines={1}
                 style={styles.primaryButtonText}
               >
-                Save custom
+                Save translation model
               </Text>
             </Pressable>
             <Pressable

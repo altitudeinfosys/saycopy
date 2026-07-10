@@ -14,7 +14,7 @@ export type OpenRouterRequestDescriptor<TBody> = {
 };
 
 export type OpenRouterTranscriptionRequestBody = {
-  readonly model: 'openai/whisper-large-v3';
+  readonly model: string;
   readonly input_audio: {
     readonly data: string;
     readonly format: OpenRouterAudioFormat;
@@ -42,10 +42,12 @@ export function buildTranscriptionRequest({
   base64Audio,
   format,
   languageId,
+  modelId = WHISPER_MODEL,
 }: {
   readonly base64Audio: string;
   readonly format: OpenRouterAudioFormat;
   readonly languageId: LanguageId;
+  readonly modelId?: string;
 }): OpenRouterRequestDescriptor<OpenRouterTranscriptionRequestBody> {
   const language = toOpenRouterLanguageCode(languageId);
 
@@ -53,7 +55,7 @@ export function buildTranscriptionRequest({
     path: TRANSCRIPTION_PATH,
     method: 'POST',
     body: {
-      model: WHISPER_MODEL,
+      model: modelId,
       input_audio: { data: base64Audio, format },
       ...(language ? { language } : {}),
     },
