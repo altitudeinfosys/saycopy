@@ -3,6 +3,7 @@ import { StyleSheet } from 'react-native';
 import type { ReactTestInstance } from 'react-test-renderer';
 
 import type { SecureTokenStore, TokenStatus } from '../../storage/secureTokenStore';
+import type { OpenRouterModelCatalog } from '../../providers/openRouter/modelCatalog';
 import {
   DEFAULT_APP_SETTINGS,
   type AppSettings,
@@ -98,13 +99,21 @@ class DeferredSetTokenStore extends MemoryTokenStore {
 }
 
 function renderSettingsScreen({
+  modelCatalog,
   settingsRepository = new MemorySettingsRepository(),
   tokenStore = new MemoryTokenStore(),
 }: {
+  readonly modelCatalog?: OpenRouterModelCatalog;
   readonly settingsRepository?: MemorySettingsRepository;
   readonly tokenStore?: MemoryTokenStore;
 } = {}) {
-  render(<SettingsScreen settingsRepository={settingsRepository} tokenStore={tokenStore} />);
+  render(
+    <SettingsScreen
+      modelCatalog={modelCatalog}
+      settingsRepository={settingsRepository}
+      tokenStore={tokenStore}
+    />,
+  );
 
   return { settingsRepository, tokenStore };
 }
@@ -332,6 +341,34 @@ describe('SettingsScreen', () => {
     });
     expect(customModelInput.props.returnKeyType).toBe('done');
     expect(customModelInput.props.blurOnSubmit).toBe(true);
+  });
+
+  it('loads, searches, and activates a translation model selected from OpenRouter', async () => {
+    const modelCatalog: OpenRouterModelCatalog = {
+      listTextModels: jest.fn(async () => [
+        { id: 'google/gemini-3.1-flash-lite', name: 'Gemini Flash Lite' },
+        { id: 'anthropic/claude-sonnet-4.6', name: 'Claude Sonnet 4.6' },
+      ]),
+    };
+    const { settingsRepository } = renderSettingsScreen({ modelCatalog });
+
+    await screen.findByText('Translation and cleanup model');
+    fireEvent.press(screen.getByRole('button', { name: 'Browse OpenRouter translation models' }));
+
+    expect(await screen.findByText('Claude Sonnet 4.6')).toBeTruthy();
+    fireEvent.changeText(screen.getByLabelText('Search OpenRouter translation models'), 'gemini');
+    expect(screen.queryByText('Claude Sonnet 4.6')).toBeNull();
+
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Translation model google/gemini-3.1-flash-lite' }),
+    );
+
+    await waitFor(() => {
+      expect(settingsRepository.saveSettings).toHaveBeenCalledWith({
+        customModelId: 'google/gemini-3.1-flash-lite',
+      });
+    });
+    expect(screen.queryByLabelText('Search OpenRouter translation models')).toBeNull();
   });
 
   it('does not roll back an unrelated saved default when a later default save fails', async () => {

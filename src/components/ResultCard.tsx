@@ -38,6 +38,14 @@ export default function ResultCard({
         <Text style={styles.editableLabel}>Editable</Text>
       </View>
 
+      <ActionBar
+        actions={actions}
+        isTagEditorOpen={isTagEditorOpen}
+        onActionError={setActionErrorText}
+        onToggleTags={() => setIsTagEditorOpen((currentValue) => !currentValue)}
+        resultText={value}
+      />
+
       <TextInput
         accessibilityLabel="Result text"
         multiline
@@ -54,14 +62,6 @@ export default function ResultCard({
           <Text style={styles.originalText}>{originalText}</Text>
         </View>
       ) : null}
-
-      <ActionBar
-        actions={actions}
-        isTagEditorOpen={isTagEditorOpen}
-        onActionError={setActionErrorText}
-        onToggleTags={() => setIsTagEditorOpen((currentValue) => !currentValue)}
-        resultText={value}
-      />
 
       {actionErrorText ? (
         <Text

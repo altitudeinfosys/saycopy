@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { HISTORY_MODES, type HistoryMode } from '../domain/history';
@@ -13,12 +13,18 @@ import {
   TRANSCRIPTION_MODEL_RECOMMENDATIONS,
   type ModelPresetId,
 } from '../domain/modelPresets';
+import {
+  createOpenRouterModelCatalog,
+  type OpenRouterCatalogModel,
+  type OpenRouterModelCatalog,
+} from '../providers/openRouter/modelCatalog';
 import type { SecureTokenStore, TokenStatus } from '../storage/secureTokenStore';
 import type { AppSettings, SettingsRepository } from '../storage/settingsRepository';
 
 type SettingsScreenProps = {
   readonly settingsRepository: SettingsRepository;
   readonly tokenStore: SecureTokenStore;
+  readonly modelCatalog?: OpenRouterModelCatalog;
 };
 
 type OptionButtonProps<TValue extends string> = {
@@ -74,7 +80,11 @@ function pickSettings(
   return pickedSettings;
 }
 
-export default function SettingsScreen({ settingsRepository, tokenStore }: SettingsScreenProps) {
+export default function SettingsScreen({
+  modelCatalog = createOpenRouterModelCatalog(),
+  settingsRepository,
+  tokenStore,
+}: SettingsScreenProps) {
   const settingsRef = useRef<AppSettings | null>(null);
   const settingsSaveRequestIdRef = useRef(0);
   const latestSettingRequestIdsRef = useRef<Partial<Record<keyof AppSettings, number>>>({});
@@ -84,6 +94,12 @@ export default function SettingsScreen({ settingsRepository, tokenStore }: Setti
   const [tokenInput, setTokenInput] = useState('');
   const [customModelInput, setCustomModelInput] = useState('');
   const [transcriptionModelInput, setTranscriptionModelInput] = useState('');
+  const [translationCatalogModels, setTranslationCatalogModels] = useState<
+    readonly OpenRouterCatalogModel[]
+  >([]);
+  const [translationModelQuery, setTranslationModelQuery] = useState('');
+  const [isTranslationModelPickerOpen, setIsTranslationModelPickerOpen] = useState(false);
+  const [isTranslationCatalogLoading, setIsTranslationCatalogLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isTokenUpdatePending, setIsTokenUpdatePending] = useState(false);
   const [messageText, setMessageText] = useState('');
@@ -202,6 +218,33 @@ export default function SettingsScreen({ settingsRepository, tokenStore }: Setti
     await saveSetting({ customModelId: '', modelPresetId });
   }
 
+  async function handleToggleTranslationModelPicker() {
+    const shouldOpen = !isTranslationModelPickerOpen;
+    setIsTranslationModelPickerOpen(shouldOpen);
+
+    if (!shouldOpen || translationCatalogModels.length > 0 || isTranslationCatalogLoading) {
+      return;
+    }
+
+    setIsTranslationCatalogLoading(true);
+    setErrorText('');
+    try {
+      setTranslationCatalogModels(await modelCatalog.listTextModels());
+    } catch {
+      setErrorText('Could not load OpenRouter models.');
+      setIsTranslationModelPickerOpen(false);
+    } finally {
+      setIsTranslationCatalogLoading(false);
+    }
+  }
+
+  async function handleSelectTranslationCatalogModel(modelId: string) {
+    setCustomModelInput(modelId);
+    setTranslationModelQuery('');
+    setIsTranslationModelPickerOpen(false);
+    await saveSetting({ customModelId: modelId });
+  }
+
   async function saveSetting(nextSettings: Partial<AppSettings>) {
     const currentSettings = settingsRef.current;
     if (!currentSettings) {
@@ -242,6 +285,21 @@ export default function SettingsScreen({ settingsRepository, tokenStore }: Setti
       setErrorText('Could not save settings.');
     }
   }
+
+  const visibleTranslationCatalogModels = useMemo(() => {
+    const normalizedQuery = translationModelQuery.trim().toLowerCase();
+    if (!normalizedQuery) {
+      return translationCatalogModels.slice(0, 80);
+    }
+
+    return translationCatalogModels
+      .filter(
+        (model) =>
+          model.id.toLowerCase().includes(normalizedQuery) ||
+          model.name.toLowerCase().includes(normalizedQuery),
+      )
+      .slice(0, 80);
+  }, [translationCatalogModels, translationModelQuery]);
 
   if (isLoading || !settings || !tokenStatus) {
     return (
@@ -450,6 +508,55 @@ export default function SettingsScreen({ settingsRepository, tokenStore }: Setti
           <Text style={styles.modelHelp}>
             Leave blank to use the recommended preset.
           </Text>
+          <Pressable
+            accessibilityLabel="Browse OpenRouter translation models"
+            accessibilityRole="button"
+            accessibilityState={{ expanded: isTranslationModelPickerOpen }}
+            onPress={() => void handleToggleTranslationModelPicker()}
+            style={styles.catalogToggleButton}
+          >
+            <Text style={styles.catalogToggleButtonText}>
+              {isTranslationModelPickerOpen ? 'Hide model picker' : 'Browse OpenRouter models'}
+            </Text>
+          </Pressable>
+          {isTranslationModelPickerOpen ? (
+            <View style={styles.catalogPicker}>
+              <TextInput
+                accessibilityLabel="Search OpenRouter translation models"
+                autoCapitalize="none"
+                autoCorrect={false}
+                onChangeText={setTranslationModelQuery}
+                placeholder="Search provider or model"
+                placeholderTextColor="#94A3B8"
+                style={styles.tokenInput}
+                value={translationModelQuery}
+              />
+              {isTranslationCatalogLoading ? (
+                <Text accessibilityLiveRegion="polite" style={styles.modelHelp}>
+                  Loading OpenRouter models
+                </Text>
+              ) : (
+                <ScrollView nestedScrollEnabled style={styles.catalogList}>
+                  {visibleTranslationCatalogModels.map((model) => (
+                    <Pressable
+                      key={model.id}
+                      accessibilityLabel={`Translation model ${model.id}`}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: settings.customModelId === model.id }}
+                      onPress={() => void handleSelectTranslationCatalogModel(model.id)}
+                      style={[
+                        styles.catalogModelRow,
+                        settings.customModelId === model.id && styles.modelRowSelected,
+                      ]}
+                    >
+                      <Text style={styles.modelLabel}>{model.name}</Text>
+                      <Text style={styles.modelId}>{model.id}</Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+          ) : null}
           <View style={styles.modelButtonColumn}>
             <Pressable
               accessibilityLabel="Save custom translation model"
@@ -807,6 +914,36 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     fontSize: 12,
     lineHeight: 17,
+  },
+  catalogToggleButton: {
+    alignItems: 'center',
+    borderColor: '#2563EB',
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: 'center',
+    minHeight: 44,
+    paddingHorizontal: 12,
+  },
+  catalogToggleButtonText: {
+    color: '#1D4ED8',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  catalogPicker: {
+    gap: 10,
+  },
+  catalogList: {
+    maxHeight: 280,
+  },
+  catalogModelRow: {
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 3,
+    minHeight: 44,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   savedText: {
     color: '#047857',
