@@ -31,12 +31,13 @@ export function createOpenRouterProvider({
         base64Audio: input.audio.base64Audio,
         format: input.audio.format,
         languageId: input.sourceLanguageId,
+        modelId: input.transcriptionModelId,
       }),
     );
 
     return {
       text: result.text,
-      modelId: WHISPER_MODEL_ID,
+      modelId: input.transcriptionModelId ?? WHISPER_MODEL_ID,
     };
   }
 

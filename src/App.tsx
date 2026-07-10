@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import RecordScreen from './screens/RecordScreen';
@@ -28,21 +28,26 @@ export function AppShell({ dependencies: injectedDependencies }: AppProps = {}) 
     <SafeAreaProvider>
       <SafeAreaView edges={['top', 'bottom']} style={styles.container} testID="app-top-safe-area">
         <StatusBar style="dark" />
-        <View style={styles.content}>{renderActiveTab(activeTab, dependencies)}</View>
-        <View accessibilityRole="tablist" style={styles.tabBar}>
-          {tabs.map((tab) => (
-            <Pressable
-              key={tab}
-              accessibilityLabel={tab}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: activeTab === tab }}
-              onPress={() => setActiveTab(tab)}
-              style={styles.tab}
-            >
-              <Text style={[styles.tabLabel, activeTab === tab && styles.tabLabelActive]}>{tab}</Text>
-            </Pressable>
-          ))}
-        </View>
+        <KeyboardAvoidingView
+          behavior={Platform.select({ android: 'height', ios: 'padding' })}
+          style={styles.keyboardAvoidingContainer}
+        >
+          <View style={styles.content}>{renderActiveTab(activeTab, dependencies)}</View>
+          <View accessibilityRole="tablist" style={styles.tabBar}>
+            {tabs.map((tab) => (
+              <Pressable
+                key={tab}
+                accessibilityLabel={tab}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: activeTab === tab }}
+                onPress={() => setActiveTab(tab)}
+                style={styles.tab}
+              >
+                <Text style={[styles.tabLabel, activeTab === tab && styles.tabLabelActive]}>{tab}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </SafeAreaProvider>
   );
@@ -77,6 +82,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   content: {
+    flex: 1,
+  },
+  keyboardAvoidingContainer: {
     flex: 1,
   },
   tabBar: {

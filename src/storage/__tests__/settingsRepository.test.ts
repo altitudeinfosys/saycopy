@@ -1,4 +1,7 @@
-import { DEFAULT_MODEL_PRESET_ID } from '../../domain/modelPresets';
+import {
+  DEFAULT_MODEL_PRESET_ID,
+  DEFAULT_TRANSCRIPTION_MODEL_ID,
+} from '../../domain/modelPresets';
 import { InMemoryLocalSqliteDatabase } from '../test/InMemoryLocalSqliteDatabase';
 import { createSettingsRepository, DEFAULT_APP_SETTINGS } from '../settingsRepository';
 import { migrateSqliteSchema } from '../sqlite/schema';
@@ -24,10 +27,12 @@ describe('settings repository', () => {
       targetLanguageId: 'english',
       modelPresetId: DEFAULT_MODEL_PRESET_ID,
       customModelId: '',
+      transcriptionModelId: DEFAULT_TRANSCRIPTION_MODEL_ID,
       cleanupEnabled: true,
     });
     expect(DEFAULT_APP_SETTINGS.modelPresetId).toBe('balanced');
     expect(DEFAULT_APP_SETTINGS.customModelId).toBe('');
+    expect(DEFAULT_APP_SETTINGS.transcriptionModelId).toBe(DEFAULT_TRANSCRIPTION_MODEL_ID);
   });
 
   it('returns valid persisted settings', async () => {
@@ -39,6 +44,7 @@ describe('settings repository', () => {
       targetLanguageId: 'arabic',
       modelPresetId: 'fast',
       customModelId: 'mistralai/mistral-small-3.2-24b-instruct',
+      transcriptionModelId: 'openai/gpt-4o-transcribe',
       cleanupEnabled: false,
     });
 
@@ -48,6 +54,7 @@ describe('settings repository', () => {
       targetLanguageId: 'arabic',
       modelPresetId: 'fast',
       customModelId: 'mistralai/mistral-small-3.2-24b-instruct',
+      transcriptionModelId: 'openai/gpt-4o-transcribe',
       cleanupEnabled: false,
     });
   });

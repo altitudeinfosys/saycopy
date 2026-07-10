@@ -5,6 +5,7 @@ type RecordingPanelProps = {
   readonly elapsedMs?: number;
   readonly isDisabled?: boolean;
   readonly isRecording: boolean;
+  readonly onCancelPress?: () => void;
   readonly onRecordPress: () => void;
 };
 
@@ -23,6 +24,7 @@ export default function RecordingPanel({
   elapsedMs = 0,
   isDisabled = false,
   isRecording,
+  onCancelPress,
   onRecordPress,
 }: RecordingPanelProps) {
   const buttonLabel = busyLabel ?? (isRecording ? 'Stop recording' : 'Tap to record');
@@ -92,6 +94,17 @@ export default function RecordingPanel({
           {buttonLabel}
         </Text>
       </Pressable>
+
+      {isRecording && !isDisabled && onCancelPress ? (
+        <Pressable
+          accessibilityLabel="Cancel recording"
+          accessibilityRole="button"
+          onPress={onCancelPress}
+          style={styles.cancelButton}
+        >
+          <Text style={styles.cancelButtonText}>Cancel recording</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -190,5 +203,20 @@ const styles = StyleSheet.create({
   },
   recordButtonTextDisabled: {
     color: '#E2E8F0',
+  },
+  cancelButton: {
+    alignItems: 'center',
+    alignSelf: 'center',
+    borderColor: '#C2410C',
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: 'center',
+    minHeight: 44,
+    paddingHorizontal: 16,
+  },
+  cancelButtonText: {
+    color: '#9A3412',
+    fontSize: 14,
+    fontWeight: '800',
   },
 });

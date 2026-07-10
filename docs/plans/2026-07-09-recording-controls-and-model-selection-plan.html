@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Recording Controls and Model Selection Plan</title>
+  </head>
+  <body>
+    <h1>Recording Controls and Model Selection Plan</h1>
+    <p>Date: 2026-07-09</p>
+    <h2>Goals</h2>
+    <ol>
+      <li>Keep result actions and settings actions usable while the keyboard is open.</li>
+      <li>Allow an active recording to be discarded before audio is processed.</li>
+      <li>Make recommended and custom OpenRouter model selection practical on a phone.</li>
+    </ol>
+    <h2>Implementation</h2>
+    <ol>
+      <li>Use a keyboard-avoiding app frame and keyboard-aware scroll views. Preserve action taps while an input is focused.</li>
+      <li>Add an explicit Cancel recording action to the active recording panel. It will invalidate any pending operation, invoke the existing recorder cancellation API, and leave prior saved results intact.</li>
+      <li>Keep Copy, Share, and Tags reachable while the editable result field has focus by resizing the app above the keyboard and allowing action taps without a preliminary keyboard-dismiss tap.</li>
+      <li>Split model configuration into separate transcription and translation/cleanup sections. Persist a selected transcription model, send it to OpenRouter's transcription endpoint for voice flows, and retain the existing translation/cleanup presets and arbitrary custom model field.</li>
+      <li>Offer compatible transcription recommendations for fast, balanced, and highest-quality use, while allowing an arbitrary OpenRouter transcription model ID. Let custom fields save through the keyboard Done action.</li>
+      <li>Add a searchable translation selector that loads current text-output models from OpenRouter's Models API. Keep transcription selection focused on the visible, compatible speech-to-text recommendations plus explicit custom model entry; do not add an empty or duplicate model browser.</li>
+      <li>Move Copy, Share, and Tags before the editable result input so the commands remain visible and actionable when the keyboard is displayed.</li>
+    </ol>
+    <h2>Verification</h2>
+    <ol>
+      <li>Add screen tests for cancellation, keyboard scroll interaction props, and custom-model submission from the keyboard.</li>
+      <li>Run focused tests, the full test suite, TypeScript checks, lint, and Expo diagnostics.</li>
+    </ol>
+  </body>
+</html>

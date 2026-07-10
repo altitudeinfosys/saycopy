@@ -14,6 +14,7 @@ export type RunTranscriptionFlowInput = {
   readonly sourceLanguageId: LanguageId;
   readonly modelPresetId: ModelPresetId;
   readonly customModelId?: string;
+  readonly transcriptionModelId?: string;
   readonly cleanupEnabled: boolean;
 };
 
@@ -52,6 +53,7 @@ export async function runTranscriptionFlow(
       audio: input.audio,
       sourceLanguageId: input.sourceLanguageId,
       modelPresetId: input.modelPresetId,
+      transcriptionModelId: input.transcriptionModelId,
     });
     let visibleText = sttResult.text;
     let cleanupFailed = false;

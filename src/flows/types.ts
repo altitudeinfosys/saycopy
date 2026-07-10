@@ -24,6 +24,7 @@ export type FlowTranscribeAudioInput = {
   readonly audio: FlowAudioInput;
   readonly sourceLanguageId: LanguageId;
   readonly modelPresetId: ModelPresetId;
+  readonly transcriptionModelId?: string;
 };
 
 export type FlowCleanupTranscriptInput = {

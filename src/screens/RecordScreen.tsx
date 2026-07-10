@@ -15,7 +15,7 @@ import { createResultActions, type ResultActions } from '../components/ActionBar
 import type { AppError } from '../domain/errors';
 import type { HistoryItem, Tag } from '../domain/history';
 import { LANGUAGE_OPTIONS, type ConcreteLanguageId, type LanguageId } from '../domain/languages';
-import type { ModelPresetId } from '../domain/modelPresets';
+import { DEFAULT_TRANSCRIPTION_MODEL_ID, type ModelPresetId } from '../domain/modelPresets';
 import type { TranscriptionFlowResult } from '../flows/transcriptionFlow';
 import type { TranslationFlowResult } from '../flows/translationFlow';
 import {
@@ -128,6 +128,9 @@ function RecordScreenContent({
     DEFAULT_APP_SETTINGS.modelPresetId,
   );
   const [customModelId, setCustomModelId] = useState(DEFAULT_APP_SETTINGS.customModelId);
+  const [transcriptionModelId, setTranscriptionModelId] = useState(
+    DEFAULT_APP_SETTINGS.transcriptionModelId,
+  );
   const [cleanupEnabled, setCleanupEnabled] = useState(DEFAULT_APP_SETTINGS.cleanupEnabled);
   const [manualText, setManualText] = useState('');
   const [areRecordingOptionsExpanded, setAreRecordingOptionsExpanded] = useState(false);
@@ -234,6 +237,7 @@ function RecordScreenContent({
         setTargetLanguageId(loadedSettings.targetLanguageId);
         setModelPresetId(loadedSettings.modelPresetId);
         setCustomModelId(loadedSettings.customModelId);
+        setTranscriptionModelId(loadedSettings.transcriptionModelId);
         setCleanupEnabled(loadedSettings.cleanupEnabled);
         setAreRecordingOptionsExpanded(false);
         setIsManualTextExpanded(loadedSettings.defaultMode === 'translate');
@@ -395,6 +399,9 @@ function RecordScreenContent({
               targetLanguageId,
               modelPresetId,
               customModelId,
+              ...(transcriptionModelId === DEFAULT_TRANSCRIPTION_MODEL_ID
+                ? {}
+                : { transcriptionModelId }),
             },
             { isCurrent },
           );
@@ -412,6 +419,9 @@ function RecordScreenContent({
             modelPresetId,
             customModelId,
             cleanupEnabled,
+            ...(transcriptionModelId === DEFAULT_TRANSCRIPTION_MODEL_ID
+              ? {}
+              : { transcriptionModelId }),
           },
           { isCurrent },
         );
@@ -441,6 +451,7 @@ function RecordScreenContent({
     sourceLanguageId,
     startOpenRouterOperation,
     targetLanguageId,
+    transcriptionModelId,
   ]);
 
   useEffect(() => {
@@ -594,6 +605,24 @@ function RecordScreenContent({
     }
   }
 
+  async function handleCancelRecording() {
+    if (recordingState.status !== 'recording') {
+      return;
+    }
+
+    invalidateOpenRouterOperations();
+    autoProcessedAudioUriRef.current = null;
+    setIsManualTranslationPending(false);
+    setFlowErrorText('');
+
+    try {
+      await activeRecordingController.cancel();
+      setRecordingElapsedMs(0);
+    } catch {
+      // Failure details are surfaced through recorder state.
+    }
+  }
+
   const handleResultTextChange = useCallback(
     (nextText: string) => {
       setResultText(nextText);
@@ -638,7 +667,13 @@ function RecordScreenContent({
   }
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView
+      automaticallyAdjustKeyboardInsets
+      contentContainerStyle={styles.content}
+      keyboardDismissMode="interactive"
+      keyboardShouldPersistTaps="handled"
+      style={styles.screen}
+    >
       <View style={styles.header}>
         <View style={styles.titleGroup}>
           <Text style={styles.screenTitle}>Record</Text>
@@ -714,6 +749,7 @@ function RecordScreenContent({
           elapsedMs={visibleRecordingElapsedMs}
           isDisabled={isRecorderBusy || !areSettingsReady}
           isRecording={isRecording}
+          onCancelPress={() => void handleCancelRecording()}
           onRecordPress={handleRecordPress}
         />
       )}
