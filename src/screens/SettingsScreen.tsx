@@ -97,12 +97,6 @@ export default function SettingsScreen({
   const [translationCatalogModels, setTranslationCatalogModels] = useState<
     readonly OpenRouterCatalogModel[]
   >([]);
-  const [transcriptionCatalogModels, setTranscriptionCatalogModels] = useState<
-    readonly OpenRouterCatalogModel[]
-  >([]);
-  const [transcriptionModelQuery, setTranscriptionModelQuery] = useState('');
-  const [isTranscriptionModelPickerOpen, setIsTranscriptionModelPickerOpen] = useState(false);
-  const [isTranscriptionCatalogLoading, setIsTranscriptionCatalogLoading] = useState(false);
   const [translationModelQuery, setTranslationModelQuery] = useState('');
   const [isTranslationModelPickerOpen, setIsTranslationModelPickerOpen] = useState(false);
   const [isTranslationCatalogLoading, setIsTranslationCatalogLoading] = useState(false);
@@ -219,26 +213,6 @@ export default function SettingsScreen({
     await saveSetting({ transcriptionModelId });
   }
 
-  async function handleToggleTranscriptionModelPicker() {
-    const shouldOpen = !isTranscriptionModelPickerOpen;
-    setIsTranscriptionModelPickerOpen(shouldOpen);
-
-    if (!shouldOpen || transcriptionCatalogModels.length > 0 || isTranscriptionCatalogLoading) {
-      return;
-    }
-
-    setIsTranscriptionCatalogLoading(true);
-    setErrorText('');
-    try {
-      setTranscriptionCatalogModels(await modelCatalog.listTranscriptionModels());
-    } catch {
-      setErrorText('Could not load OpenRouter transcription models.');
-      setIsTranscriptionModelPickerOpen(false);
-    } finally {
-      setIsTranscriptionCatalogLoading(false);
-    }
-  }
-
   async function handleSelectRecommendedModel(modelPresetId: ModelPresetId) {
     setCustomModelInput('');
     await saveSetting({ customModelId: '', modelPresetId });
@@ -326,18 +300,6 @@ export default function SettingsScreen({
       )
       .slice(0, 80);
   }, [translationCatalogModels, translationModelQuery]);
-  const visibleTranscriptionCatalogModels = useMemo(() => {
-    const normalizedQuery = transcriptionModelQuery.trim().toLowerCase();
-    if (!normalizedQuery) {
-      return transcriptionCatalogModels;
-    }
-
-    return transcriptionCatalogModels.filter(
-      (model) =>
-        model.id.toLowerCase().includes(normalizedQuery) ||
-        model.name.toLowerCase().includes(normalizedQuery),
-    );
-  }, [transcriptionCatalogModels, transcriptionModelQuery]);
 
   if (isLoading || !settings || !tokenStatus) {
     return (
@@ -464,55 +426,6 @@ export default function SettingsScreen({
             style={styles.tokenInput}
             value={transcriptionModelInput}
           />
-          <Pressable
-            accessibilityLabel="Browse OpenRouter transcription models"
-            accessibilityRole="button"
-            accessibilityState={{ expanded: isTranscriptionModelPickerOpen }}
-            onPress={() => void handleToggleTranscriptionModelPicker()}
-            style={styles.catalogToggleButton}
-          >
-            <Text style={styles.catalogToggleButtonText}>
-              {isTranscriptionModelPickerOpen ? 'Hide model picker' : 'Browse transcription models'}
-            </Text>
-          </Pressable>
-          {isTranscriptionModelPickerOpen ? (
-            <View style={styles.catalogPicker}>
-              <TextInput
-                accessibilityLabel="Search OpenRouter transcription models"
-                autoCapitalize="none"
-                autoCorrect={false}
-                onChangeText={setTranscriptionModelQuery}
-                placeholder="Search provider or model"
-                placeholderTextColor="#94A3B8"
-                style={styles.tokenInput}
-                value={transcriptionModelQuery}
-              />
-              {isTranscriptionCatalogLoading ? (
-                <Text accessibilityLiveRegion="polite" style={styles.modelHelp}>
-                  Loading OpenRouter transcription models
-                </Text>
-              ) : (
-                <ScrollView nestedScrollEnabled style={styles.catalogList}>
-                  {visibleTranscriptionCatalogModels.map((model) => (
-                    <Pressable
-                      key={model.id}
-                      accessibilityLabel={`Transcription model ${model.id}`}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: settings.transcriptionModelId === model.id }}
-                      onPress={() => void handleSelectTranscriptionModel(model.id)}
-                      style={[
-                        styles.catalogModelRow,
-                        settings.transcriptionModelId === model.id && styles.modelRowSelected,
-                      ]}
-                    >
-                      <Text style={styles.modelLabel}>{model.name}</Text>
-                      <Text style={styles.modelId}>{model.id}</Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              )}
-            </View>
-          ) : null}
           <View style={styles.modelButtonColumn}>
             <Pressable
               accessibilityLabel="Save custom transcription model"

@@ -267,6 +267,7 @@ describe('SettingsScreen', () => {
     expect(screen.getByText('Recommended transcription models')).toBeTruthy();
     expect(screen.getByText('Translation and cleanup model')).toBeTruthy();
     expect(screen.getByText('openai/gpt-4.1-mini')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Browse OpenRouter transcription models' })).toBeNull();
 
     fireEvent.press(screen.getByRole('button', { name: 'Recommended transcription model Best Quality' }));
 
@@ -349,7 +350,6 @@ describe('SettingsScreen', () => {
         { id: 'google/gemini-3.1-flash-lite', name: 'Gemini Flash Lite' },
         { id: 'anthropic/claude-sonnet-4.6', name: 'Claude Sonnet 4.6' },
       ]),
-      listTranscriptionModels: jest.fn(async () => []),
     };
     const { settingsRepository } = renderSettingsScreen({ modelCatalog });
 
@@ -372,29 +372,6 @@ describe('SettingsScreen', () => {
     expect(screen.queryByLabelText('Search OpenRouter translation models')).toBeNull();
   });
 
-  it('loads and activates a transcription model from the compatible OpenRouter catalog', async () => {
-    const modelCatalog: OpenRouterModelCatalog = {
-      listTextModels: jest.fn(async () => []),
-      listTranscriptionModels: jest.fn(async () => [
-        { id: 'openai/whisper-large-v3-turbo', name: 'Whisper Large V3 Turbo' },
-      ]),
-    };
-    const { settingsRepository } = renderSettingsScreen({ modelCatalog });
-
-    await screen.findByText('Transcription model');
-    fireEvent.press(screen.getByRole('button', { name: 'Browse OpenRouter transcription models' }));
-
-    expect(await screen.findByText('Whisper Large V3 Turbo')).toBeTruthy();
-    fireEvent.press(
-      screen.getByRole('button', { name: 'Transcription model openai/whisper-large-v3-turbo' }),
-    );
-
-    await waitFor(() => {
-      expect(settingsRepository.saveSettings).toHaveBeenCalledWith({
-        transcriptionModelId: 'openai/whisper-large-v3-turbo',
-      });
-    });
-  });
 
   it('does not roll back an unrelated saved default when a later default save fails', async () => {
     const settingsRepository = new RejectingSourceLanguageSettingsRepository();
