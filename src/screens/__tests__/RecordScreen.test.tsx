@@ -12,6 +12,7 @@ import {
 } from '../../audio/audioRecorder';
 import { createAppError } from '../../domain/errors';
 import type { HistoryItem, Tag } from '../../domain/history';
+import type { TranscriptionFlowResult } from '../../flows/transcriptionFlow';
 import type { FlowTextResult, TranscriptionProvider, TranslationProvider } from '../../flows/types';
 import {
   createRecordFlowProcessors as createRuntimeRecordFlowProcessors,
@@ -851,6 +852,46 @@ describe('RecordScreen', () => {
     fireEvent.changeText(resultEditor, 'Edited transcript text');
 
     expect(screen.getByTestId('result-editor').props.value).toBe('Edited transcript text');
+  });
+
+  it('shows transcription progress until voice processing finishes', async () => {
+    const transcriptionDeferred = createDeferred<TranscriptionFlowResult>();
+    const recordingController = createInjectedRecordingController();
+    const recordFlowProcessors = createScreenRecordFlowProcessors({
+      runTranscription: jest.fn(() => transcriptionDeferred.promise),
+    });
+
+    render(
+      <RecordScreen
+        recordFlowProcessors={recordFlowProcessors}
+        recordingController={recordingController}
+      />,
+    );
+
+    fireEvent.press(screen.getByRole('button', { name: 'Tap to record' }));
+    await waitFor(() => expect(recordingController.start).toHaveBeenCalledTimes(1));
+    fireEvent.press(screen.getByRole('button', { name: 'Stop recording' }));
+
+    expect(await screen.findByLabelText('Transcribing your recording')).toBeTruthy();
+
+    transcriptionDeferred.resolve({
+      status: 'success',
+      transcript: 'Finished transcript.',
+      historyItem: {
+        id: 'finished-transcript',
+        mode: 'transcribe',
+        sourceType: 'voice',
+        sourceLanguageId: 'auto',
+        transcript: 'Finished transcript.',
+        createdAt: '2026-07-11T18:00:00.000Z',
+        updatedAt: '2026-07-11T18:00:00.000Z',
+      },
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByLabelText('Transcribing your recording')).toBeNull();
+      expect(screen.getByTestId('result-editor').props.value).toBe('Finished transcript.');
+    });
   });
 
   it('cancels an active recording without sending audio for processing', async () => {

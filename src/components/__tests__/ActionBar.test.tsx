@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard';
 import { Share, StyleSheet } from 'react-native';
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import type { ReactTestInstance } from 'react-test-renderer';
 
 import ActionBar, { createResultActions } from '../ActionBar';
@@ -55,5 +55,26 @@ describe('ActionBar', () => {
     expectMinimumTouchTarget(screen.getByRole('button', { name: 'Copy' }));
     expectMinimumTouchTarget(screen.getByRole('button', { name: 'Share' }));
     expectMinimumTouchTarget(screen.getByRole('button', { name: 'Tags' }));
+  });
+
+  it('confirms a successful copy with a checkmark', async () => {
+    const copyText = jest.fn().mockResolvedValue(undefined);
+
+    render(
+      <ActionBar
+        actions={{ copyText, shareText: jest.fn() }}
+        isTagEditorOpen={false}
+        onToggleTags={jest.fn()}
+        resultText="Editable result"
+      />,
+    );
+
+    fireEvent.press(screen.getByRole('button', { name: 'Copy' }));
+
+    await waitFor(() => {
+      expect(copyText).toHaveBeenCalledWith('Editable result');
+      expect(screen.getByRole('button', { name: 'Copied' })).toBeTruthy();
+    });
+    expect(screen.getByText('Copied ✓')).toBeTruthy();
   });
 });

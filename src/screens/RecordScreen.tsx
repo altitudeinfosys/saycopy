@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import {
   type AudioRecordingController,
@@ -208,6 +208,14 @@ function RecordScreenContent({
             ? ''
             : getRecorderFailureMessage(recordingState.error)
           : '';
+  const processingMessage =
+    recordingState.status === 'processing'
+      ? mode === 'translate'
+        ? 'Transcribing and translating your recording'
+        : 'Transcribing your recording'
+      : isManualTranslationPending
+        ? 'Translating your text'
+        : '';
   const visibleFlowErrorText = didSettingsLoadFail
     ? SETTINGS_LOAD_FAILURE_MESSAGE
     : flowErrorText;
@@ -815,6 +823,19 @@ function RecordScreenContent({
         </Text>
       ) : null}
 
+      {processingMessage ? (
+        <View
+          accessibilityLiveRegion="polite"
+          accessibilityRole="progressbar"
+          accessibilityLabel={processingMessage}
+          style={styles.processingStatus}
+          testID="processing-status"
+        >
+          <ActivityIndicator color="#2563EB" size="small" />
+          <Text style={styles.processingStatusText}>{processingMessage}</Text>
+        </View>
+      ) : null}
+
       {recorderCue ? (
         <Text
           accessibilityLiveRegion={recordingState.status === 'failed' ? 'assertive' : 'polite'}
@@ -1060,6 +1081,24 @@ const styles = StyleSheet.create({
   translateButtonText: {
     color: '#FFFFFF',
     fontSize: 15,
+    fontWeight: '800',
+  },
+  processingStatus: {
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
+    borderRadius: 10,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    minHeight: 48,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  processingStatusText: {
+    color: '#1D4ED8',
+    flex: 1,
+    fontSize: 14,
     fontWeight: '800',
   },
   savedRow: {

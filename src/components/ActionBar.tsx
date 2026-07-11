@@ -1,4 +1,5 @@
 import * as Clipboard from 'expo-clipboard';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, Share, StyleSheet, Text, View } from 'react-native';
 
 export type ResultActions = {
@@ -32,11 +33,40 @@ export default function ActionBar({
   onToggleTags,
   resultText,
 }: ActionBarProps) {
-  async function runAction(action: (text: string) => Promise<void>, errorMessage: string) {
+  const [isCopied, setIsCopied] = useState(false);
+  const copyFeedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyFeedbackTimeoutRef.current) {
+        clearTimeout(copyFeedbackTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  function showCopyConfirmation() {
+    setIsCopied(true);
+
+    if (copyFeedbackTimeoutRef.current) {
+      clearTimeout(copyFeedbackTimeoutRef.current);
+    }
+
+    copyFeedbackTimeoutRef.current = setTimeout(() => {
+      setIsCopied(false);
+      copyFeedbackTimeoutRef.current = null;
+    }, 1800);
+  }
+
+  async function runAction(
+    action: (text: string) => Promise<void>,
+    errorMessage: string,
+    onSuccess?: () => void,
+  ) {
     onActionError?.('');
 
     try {
       await action(resultText);
+      onSuccess?.();
     } catch {
       onActionError?.(errorMessage);
     }
@@ -45,12 +75,15 @@ export default function ActionBar({
   return (
     <View style={styles.actionRow}>
       <Pressable
-        accessibilityLabel="Copy"
+        accessibilityLabel={isCopied ? 'Copied' : 'Copy'}
         accessibilityRole="button"
-        onPress={() => void runAction(actions.copyText, 'Could not copy text.')}
-        style={styles.actionButton}
+        accessibilityState={{ selected: isCopied }}
+        onPress={() => void runAction(actions.copyText, 'Could not copy text.', showCopyConfirmation)}
+        style={[styles.actionButton, isCopied && styles.actionButtonConfirmed]}
       >
-        <Text style={styles.actionText}>Copy</Text>
+        <Text style={[styles.actionText, isCopied && styles.actionTextConfirmed]}>
+          {isCopied ? 'Copied \u2713' : 'Copy'}
+        </Text>
       </Pressable>
       <Pressable
         accessibilityLabel="Share"
@@ -94,6 +127,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF7ED',
     borderColor: '#FB923C',
   },
+  actionButtonConfirmed: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#86EFAC',
+  },
   actionText: {
     color: '#334155',
     flexShrink: 1,
@@ -103,5 +140,8 @@ const styles = StyleSheet.create({
   },
   actionTextSelected: {
     color: '#9A3412',
+  },
+  actionTextConfirmed: {
+    color: '#166534',
   },
 });
