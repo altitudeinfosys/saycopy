@@ -15,6 +15,13 @@
 - All agent-authored implementation, documentation, configuration, and release changes must land through a feature branch and pull request unless the user explicitly overrides this rule for a one-off emergency.
 - Do not perform local merges into `main` as a shortcut for integration testing; test the feature branch or pull request branch instead.
 
+## Finish Fully Synced With Main
+
+- Do not consider repository changes complete while they exist only in a local worktree or feature branch.
+- After validation, commit and push all intended changes, open or update the pull request, and complete the merge into `origin/main` while respecting required reviews and checks. If permissions, approvals, conflicts, or failing checks prevent the merge, stop and report the blocker.
+- After the merge, fetch `origin/main`, switch the primary local checkout to `main`, fast-forward it with `git pull --ff-only origin main`, and verify that local `main` and `origin/main` resolve to the same commit with a clean working tree.
+- Push `main` only when necessary and permitted; never force-push `main` or bypass branch protection. A completed remote pull-request merge already updates `origin/main` and does not require a redundant direct push.
+
 ## Artifact Format
 
 - All durable project artifacts created by agents must be HTML files unless the user explicitly requests a different format.
