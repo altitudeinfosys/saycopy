@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Tarek Wisper",
+    "name": "SayCopy",
     "owner": "altitudeinfosys",
     "slug": "tarek-wisper",
     "version": "1.0.0",
@@ -26,7 +26,7 @@
       [
         "expo-audio",
         {
-          "microphonePermission": "Allow Tarek Wisper to use the microphone for transcription and translation recordings.",
+          "microphonePermission": "Allow SayCopy to use the microphone for transcription and translation recordings.",
           "recordAudioAndroid": true
         }
       ],
