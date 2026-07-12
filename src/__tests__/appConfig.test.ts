@@ -1,5 +1,6 @@
 const appConfig = require('../../app.json') as {
   readonly expo: {
+    readonly name?: string;
     readonly android?: {
       readonly adaptiveIcon?: {
         readonly backgroundColor?: string;
@@ -26,6 +27,11 @@ const easConfig = require('../../eas.json') as {
 };
 
 describe('Expo app config', () => {
+  it('uses the SayCopy product name without changing the existing application identity', () => {
+    expect(appConfig.expo.name).toBe('SayCopy');
+    expect(appConfig.expo.android?.package).toBe('com.tarekalaaddin.tarekwisper');
+  });
+
   it('declares Android application identity and adaptive icon metadata', () => {
     expect(appConfig.expo.android).toEqual(
       expect.objectContaining({
@@ -43,7 +49,7 @@ describe('Expo app config', () => {
     expect(appConfig.expo.plugins).toContainEqual([
       'expo-audio',
       {
-        microphonePermission: 'Allow Tarek Wisper to use the microphone for transcription and translation recordings.',
+        microphonePermission: 'Allow SayCopy to use the microphone for transcription and translation recordings.',
         recordAudioAndroid: true,
       },
     ]);

@@ -134,7 +134,7 @@
       <li class="decision">V1 should be cloud-only for transcription, translation, and cleanup. Offline/local speech models are deferred.</li>
       <li class="decision">V1 should optimize for short recording clips, around 60 seconds max, rather than long dictation with audio chunking.</li>
       <li class="decision">The approved product direction is Approach A: Focused Cloud MVP.</li>
-      <li class="decision">The working product name is <code>Tarek-Wisper</code>, with final naming still open to alternatives.</li>
+      <li class="decision">The final product name is <code>SayCopy</code>, with the tagline direction <q>Speak. Copy. Share.</q></li>
       <li>OpenRouter currently documents a dedicated speech-to-text endpoint, <code>/api/v1/audio/transcriptions</code>, with base64 audio input and support for 99+ languages including English, Spanish, and Arabic.</li>
       <li class="decision">All durable project artifacts should live in this project folder and be written as HTML unless the user explicitly requests otherwise.</li>
       <li class="decision">This project folder has been initialized as a Git repository on <code>main</code> and pushed to the private GitHub repo <code>altitudeinfosys/Tarek-Wisper</code>.</li>
@@ -170,8 +170,8 @@
 
     <h3>Q6 - Working Product Name</h3>
     <p><strong>Asked:</strong> What working app name should be used in the docs and design?</p>
-    <p><strong>Captured:</strong> The working product name is <code>Tarek-Wisper</code>. The user is also open to other name suggestions, so final branding can be revisited later.</p>
-    <p><strong>Flags:</strong> Include a short naming options section in the design doc or a later branding note.</p>
+    <p><strong>Captured:</strong> The project began under the working name <code>Tarek-Wisper</code>. The user later selected <code>SayCopy</code> as the final product name because it directly expresses the simple speak, copy, and share workflow.</p>
+    <p><strong>Flags:</strong> Resolved. Preserve existing internal application identifiers and the SQLite filename so the visible rename does not risk orphaning existing local data.</p>
 
     <h3>Q7 - Translation Interaction Scope</h3>
     <p><strong>Asked:</strong> In Translate mode, should v1 support only single-speaker translation or also a conversation mode where two people speak back and forth?</p>
@@ -268,7 +268,6 @@
     <h2>Open Flags</h2>
     <ul>
       <li>For v2, decide whether synced history uses Supabase, Neon plus custom auth/API, or another backend.</li>
-      <li>Revisit final product naming; <code>Tarek-Wisper</code> is the working name for now.</li>
       <li>Future enhancement: add conversation mode for two-person back-and-forth translation.</li>
       <li>Benchmark OpenRouter speech-to-text quality and latency on real English, Spanish, and Arabic samples during implementation.</li>
       <li>Verify current OpenRouter model options before finalizing default translation model recommendations.</li>
