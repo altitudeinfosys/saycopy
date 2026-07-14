@@ -21,6 +21,7 @@ describe('OpenRouter request builders', () => {
           model: 'openai/whisper-large-v3',
           input_audio: { data: 'BASE64_AUDIO', format: 'm4a' },
           language: 'en',
+          provider: { zdr: true },
         },
       });
     });
@@ -111,6 +112,7 @@ describe('OpenRouter request builders', () => {
             },
             { role: 'user', content: 'Good morning' },
           ],
+          provider: { zdr: true },
         },
       });
       expect(request.body.temperature).toBeLessThanOrEqual(0.2);
@@ -129,5 +131,26 @@ describe('OpenRouter request builders', () => {
         });
       }
     });
+  });
+
+  it('requires zero-data-retention routing for every request type', () => {
+    const transcriptionRequest = buildTranscriptionRequest({
+      base64Audio: 'AUDIO',
+      format: 'm4a',
+      languageId: 'auto',
+    });
+    const cleanupRequest = buildCleanupChatRequest({
+      text: 'Hello',
+      modelId: getModelPreset('balanced').currentModelCandidate,
+    });
+    const translationRequest = buildTranslationChatRequest({
+      text: 'Hello',
+      targetLanguageId: 'spanish',
+      modelId: getModelPreset('balanced').currentModelCandidate,
+    });
+
+    expect(transcriptionRequest.body.provider).toEqual({ zdr: true });
+    expect(cleanupRequest.body.provider).toEqual({ zdr: true });
+    expect(translationRequest.body.provider).toEqual({ zdr: true });
   });
 });

@@ -1,5 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Keyboard, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Keyboard,
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
 import { HISTORY_MODES, type HistoryMode } from '../domain/history';
 import {
@@ -25,7 +34,14 @@ type SettingsScreenProps = {
   readonly settingsRepository: SettingsRepository;
   readonly tokenStore: SecureTokenStore;
   readonly modelCatalog?: OpenRouterModelCatalog;
+  readonly openExternalUrl?: (url: string) => Promise<unknown>;
 };
+
+const SAYCOPY_LINKS = {
+  setup: 'https://saycopy.app/setup',
+  privacy: 'https://saycopy.app/privacy',
+  support: 'https://saycopy.app/support',
+} as const;
 
 type OptionButtonProps<TValue extends string> = {
   readonly accessibilityLabel: string;
@@ -82,6 +98,7 @@ function pickSettings(
 
 export default function SettingsScreen({
   modelCatalog = createOpenRouterModelCatalog(),
+  openExternalUrl = Linking.openURL,
   settingsRepository,
   tokenStore,
 }: SettingsScreenProps) {
@@ -245,6 +262,16 @@ export default function SettingsScreen({
     await saveSetting({ customModelId: modelId });
   }
 
+  async function handleOpenExternalUrl(url: string) {
+    setErrorText('');
+
+    try {
+      await openExternalUrl(url);
+    } catch {
+      setErrorText('Could not open the SayCopy website.');
+    }
+  }
+
   async function saveSetting(nextSettings: Partial<AppSettings>) {
     const currentSettings = settingsRef.current;
     if (!currentSettings) {
@@ -373,6 +400,20 @@ export default function SettingsScreen({
             <Text style={styles.secondaryButtonText}>Clear token</Text>
           </Pressable>
         </View>
+
+        <Text style={styles.privacyNote}>
+          Your API key is stored securely on this device. Recordings and text are sent to
+          OpenRouter and eligible model providers only for processing, with zero-data-retention
+          routing required.
+        </Text>
+        <Pressable
+          accessibilityLabel="Open SayCopy setup guide"
+          accessibilityRole="link"
+          onPress={() => void handleOpenExternalUrl(SAYCOPY_LINKS.setup)}
+          style={styles.resourceLink}
+        >
+          <Text style={styles.resourceLinkText}>Get an OpenRouter key</Text>
+        </Pressable>
       </View>
 
       <View style={styles.surface}>
@@ -682,6 +723,31 @@ export default function SettingsScreen({
         </View>
       </View>
 
+      <View style={styles.surface}>
+        <Text style={styles.sectionTitle}>Help and privacy</Text>
+        <Text style={styles.privacyNote}>
+          Your SayCopy history stays on this device unless you choose to copy or share it.
+        </Text>
+        <View style={styles.resourceList}>
+          <Pressable
+            accessibilityLabel="Open SayCopy privacy policy"
+            accessibilityRole="link"
+            onPress={() => void handleOpenExternalUrl(SAYCOPY_LINKS.privacy)}
+            style={styles.resourceLink}
+          >
+            <Text style={styles.resourceLinkText}>Privacy policy</Text>
+          </Pressable>
+          <Pressable
+            accessibilityLabel="Open SayCopy support"
+            accessibilityRole="link"
+            onPress={() => void handleOpenExternalUrl(SAYCOPY_LINKS.support)}
+            style={styles.resourceLink}
+          >
+            <Text style={styles.resourceLinkText}>Support</Text>
+          </Pressable>
+        </View>
+      </View>
+
       {messageText ? (
         <Text accessibilityLiveRegion="polite" style={styles.savedText}>
           {messageText}
@@ -820,6 +886,26 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.55,
+  },
+  privacyNote: {
+    color: '#475569',
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  resourceList: {
+    gap: 8,
+  },
+  resourceLink: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    justifyContent: 'center',
+    minHeight: 44,
+  },
+  resourceLinkText: {
+    color: '#0369A1',
+    fontSize: 15,
+    fontWeight: '800',
+    textDecorationLine: 'underline',
   },
   modelButtonColumn: {
     gap: 10,
