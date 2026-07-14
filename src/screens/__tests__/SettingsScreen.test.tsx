@@ -100,16 +100,19 @@ class DeferredSetTokenStore extends MemoryTokenStore {
 
 function renderSettingsScreen({
   modelCatalog,
+  openExternalUrl,
   settingsRepository = new MemorySettingsRepository(),
   tokenStore = new MemoryTokenStore(),
 }: {
   readonly modelCatalog?: OpenRouterModelCatalog;
+  readonly openExternalUrl?: (url: string) => Promise<unknown>;
   readonly settingsRepository?: MemorySettingsRepository;
   readonly tokenStore?: MemoryTokenStore;
 } = {}) {
   render(
     <SettingsScreen
       modelCatalog={modelCatalog}
+      openExternalUrl={openExternalUrl}
       settingsRepository={settingsRepository}
       tokenStore={tokenStore}
     />,
@@ -165,6 +168,36 @@ describe('SettingsScreen', () => {
 
     expect(await screen.findByText('OpenRouter token saved')).toBeTruthy();
     expect(screen.queryByText('sk-or-v1-secret-token')).toBeNull();
+  });
+
+  it('opens SayCopy setup, privacy, and support resources', async () => {
+    const openExternalUrl = jest.fn(async () => undefined);
+    renderSettingsScreen({ openExternalUrl });
+
+    await screen.findByText('Help and privacy');
+
+    fireEvent.press(screen.getByRole('link', { name: 'Open SayCopy setup guide' }));
+    fireEvent.press(screen.getByRole('link', { name: 'Open SayCopy privacy policy' }));
+    fireEvent.press(screen.getByRole('link', { name: 'Open SayCopy support' }));
+
+    await waitFor(() => {
+      expect(openExternalUrl).toHaveBeenNthCalledWith(1, 'https://saycopy.app/setup');
+      expect(openExternalUrl).toHaveBeenNthCalledWith(2, 'https://saycopy.app/privacy');
+      expect(openExternalUrl).toHaveBeenNthCalledWith(3, 'https://saycopy.app/support');
+    });
+  });
+
+  it('shows an error when a SayCopy resource cannot be opened', async () => {
+    renderSettingsScreen({
+      openExternalUrl: jest.fn(async () => {
+        throw new Error('Website unavailable');
+      }),
+    });
+
+    await screen.findByText('Help and privacy');
+    fireEvent.press(screen.getByRole('link', { name: 'Open SayCopy privacy policy' }));
+
+    expect(await screen.findByText('Could not open the SayCopy website.')).toBeTruthy();
   });
 
   it('saves a token through the injected token store', async () => {

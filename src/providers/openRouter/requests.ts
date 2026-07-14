@@ -20,6 +20,7 @@ export type OpenRouterTranscriptionRequestBody = {
     readonly format: OpenRouterAudioFormat;
   };
   readonly language?: 'en' | 'es' | 'ar';
+  readonly provider: OpenRouterProviderPreferences;
 };
 
 export type OpenRouterChatMessage = {
@@ -31,6 +32,11 @@ export type OpenRouterChatRequestBody = {
   readonly model: string;
   readonly temperature: number;
   readonly messages: readonly OpenRouterChatMessage[];
+  readonly provider: OpenRouterProviderPreferences;
+};
+
+export type OpenRouterProviderPreferences = {
+  readonly zdr: true;
 };
 
 const TRANSCRIPTION_PATH = '/api/v1/audio/transcriptions';
@@ -58,6 +64,7 @@ export function buildTranscriptionRequest({
       model: modelId,
       input_audio: { data: base64Audio, format },
       ...(language ? { language } : {}),
+      provider: { zdr: true },
     },
   };
 }
@@ -116,6 +123,7 @@ function buildChatRequest({
         { role: 'system', content: systemPrompt },
         { role: 'user', content: text },
       ],
+      provider: { zdr: true },
     },
   };
 }
