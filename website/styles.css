@@ -478,9 +478,22 @@ h1 {
   box-shadow: 0 0 0 4px rgba(32, 226, 231, 0.09);
 }
 
-.form-hint {
+.form-field input[aria-invalid="true"],
+.form-field select[aria-invalid="true"],
+.form-field textarea[aria-invalid="true"] {
+  border-color: rgba(255, 100, 148, 0.78);
+  box-shadow: 0 0 0 4px rgba(255, 100, 148, 0.08);
+}
+
+.form-hint,
+.field-error {
   color: #8290ae;
   font-size: 0.78rem;
+}
+
+.field-error {
+  color: #ff9fbc;
+  font-weight: 650;
 }
 
 .form-honeypot {
@@ -509,18 +522,62 @@ h1 {
   opacity: 0.65;
 }
 
-.form-status {
+.form-feedback {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  align-items: start;
+  gap: 13px;
+  padding: 17px 18px;
+  border: 1px solid;
+  border-radius: 14px;
+}
+
+.form-feedback[hidden] {
+  display: none;
+}
+
+.form-feedback-icon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 0.9rem;
+  font-weight: 850;
+}
+
+.form-feedback strong {
+  display: block;
+  margin: 1px 0 3px;
+  color: var(--ink);
+  font-size: 0.94rem;
+}
+
+.form-feedback p {
   margin: 0;
-  color: var(--muted);
-  font-size: 0.88rem;
+  font-size: 0.84rem;
 }
 
-.form-status-success {
-  color: #8ff7cb;
+.form-feedback-success {
+  color: #bafbe0;
+  background: rgba(45, 211, 147, 0.08);
+  border-color: rgba(78, 226, 166, 0.28);
 }
 
-.form-status-error {
-  color: #ff9fbc;
+.form-feedback-success .form-feedback-icon {
+  color: #041b12;
+  background: #78e8b7;
+}
+
+.form-feedback-error {
+  color: #ffc0d4;
+  background: rgba(255, 100, 148, 0.07);
+  border-color: rgba(255, 100, 148, 0.25);
+}
+
+.form-feedback-error .form-feedback-icon {
+  color: #2a0712;
+  background: #ff9fbc;
 }
 
 .site-footer {
