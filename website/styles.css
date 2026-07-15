@@ -412,6 +412,117 @@ h1 {
   border-radius: 14px;
 }
 
+.contact-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr);
+  align-items: start;
+  gap: 18px;
+}
+
+.contact-intro {
+  position: sticky;
+  top: 98px;
+}
+
+.contact-form {
+  display: grid;
+  gap: 22px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.form-field {
+  display: grid;
+  gap: 8px;
+}
+
+.form-field label {
+  color: #dce6fb;
+  font-size: 0.88rem;
+  font-weight: 720;
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+  width: 100%;
+  color: var(--ink);
+  background: rgba(3, 10, 25, 0.72);
+  border: 1px solid rgba(151, 176, 235, 0.28);
+  border-radius: 13px;
+  outline: none;
+  font: inherit;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.form-field input,
+.form-field select {
+  min-height: 50px;
+  padding: 0 14px;
+}
+
+.form-field textarea {
+  min-height: 170px;
+  padding: 13px 14px;
+  resize: vertical;
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+  border-color: rgba(32, 226, 231, 0.72);
+  box-shadow: 0 0 0 4px rgba(32, 226, 231, 0.09);
+}
+
+.form-hint {
+  color: #8290ae;
+  font-size: 0.78rem;
+}
+
+.form-honeypot {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.form-actions {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  gap: 18px;
+}
+
+.form-actions button {
+  cursor: pointer;
+}
+
+.form-actions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.form-status {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.form-status-success {
+  color: #8ff7cb;
+}
+
+.form-status-error {
+  color: #ff9fbc;
+}
+
 .site-footer {
   color: #8290ae;
   border-top: 1px solid rgba(255, 255, 255, 0.07);
@@ -468,6 +579,14 @@ h1 {
     grid-template-columns: 1fr;
     padding: 34px;
   }
+
+  .contact-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-intro {
+    position: static;
+  }
 }
 
 @media (max-width: 540px) {
@@ -498,6 +617,15 @@ h1 {
 
   .step {
     grid-template-columns: 1fr;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .footer-inner {

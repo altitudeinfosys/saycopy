@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Contact — SayCopy</title>
+    <meta name="description" content="Contact the SayCopy team for product help and feedback." />
+    <meta name="theme-color" content="#050b1a" />
+    <link rel="icon" href="/assets/saycopy-icon.png" />
+    <link rel="canonical" href="https://saycopy.app/contact" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/contact.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <nav class="nav shell" aria-label="Primary navigation">
+        <a class="brand" href="/">
+          <img src="/assets/saycopy-icon.png" alt="" />
+          <span>SayCopy</span>
+        </a>
+        <div class="nav-links">
+          <a href="/setup">Setup</a>
+          <a href="/privacy">Privacy</a>
+          <a href="/support">Support</a>
+          <a class="nav-setup button button-secondary" href="/">Home</a>
+        </div>
+      </nav>
+    </header>
+
+    <main class="page-main shell">
+      <header class="page-header">
+        <p class="eyebrow">Contact SayCopy</p>
+        <h1>How can we help?</h1>
+        <p>
+          Send us a message about support, privacy, feedback, or anything else related to SayCopy.
+          We will reply to the address you provide.
+        </p>
+      </header>
+
+      <div class="contact-layout">
+        <section class="content-card contact-intro">
+          <h2>A helpful first message</h2>
+          <p>For app support, please include:</p>
+          <ul>
+            <li>Your iPhone model and iOS version.</li>
+            <li>What you were trying to do.</li>
+            <li>The exact error message, if one appeared.</li>
+          </ul>
+          <p class="note">
+            Never send your OpenRouter API key. Please remove it from screenshots as well.
+          </p>
+        </section>
+
+        <section class="content-card">
+          <form class="contact-form" id="contact-form" novalidate>
+            <input type="hidden" id="started-at" name="startedAt" />
+            <div class="form-honeypot" aria-hidden="true">
+              <label for="website">Website</label>
+              <input id="website" name="website" type="text" tabindex="-1" autocomplete="off" />
+            </div>
+
+            <div class="form-grid">
+              <div class="form-field">
+                <label for="name">Name</label>
+                <input id="name" name="name" type="text" autocomplete="name" minlength="2" maxlength="80" required />
+              </div>
+              <div class="form-field">
+                <label for="email">Email</label>
+                <input id="email" name="email" type="email" autocomplete="email" maxlength="254" required />
+              </div>
+            </div>
+
+            <div class="form-field">
+              <label for="topic">What can we help with?</label>
+              <select id="topic" name="topic" required>
+                <option value="" selected disabled>Select a topic</option>
+                <option value="Support">App support</option>
+                <option value="Privacy">Privacy question</option>
+                <option value="Feedback">Product feedback</option>
+                <option value="Other">Something else</option>
+              </select>
+            </div>
+
+            <div class="form-field">
+              <label for="message">Message</label>
+              <textarea id="message" name="message" rows="7" minlength="10" maxlength="4000" required></textarea>
+              <span class="form-hint">Please do not include API keys or other secrets.</span>
+            </div>
+
+            <div class="form-actions">
+              <button class="button button-primary" id="submit-button" type="submit">Send message</button>
+              <p class="form-status" id="form-status" role="status" aria-live="polite"></p>
+            </div>
+          </form>
+        </section>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner shell">
+        <span>© 2026 Altitude Information Systems LLC</span>
+        <div class="footer-links">
+          <a href="/">Home</a>
+          <a href="/setup">Setup</a>
+          <a href="/privacy">Privacy</a>
+          <a href="/support">Support</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
