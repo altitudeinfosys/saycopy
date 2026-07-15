@@ -28,15 +28,16 @@
 </head>
 <body>
 <main>
-  <span class="status ready">Private preparation in progress</span>
+  <span class="status ready">Private preparation complete</span>
   <span class="status gate">External actions gated</span>
   <h1>SayCopy open-source launch readiness</h1>
   <p class="lede">Evidence and recommended controls for preparing the private repository before its Apache-2.0 open-source launch. Recorded July 15, 2026 against <code>origin/main</code> revision <code>1063ddf5e132b8606499fabb2d704ee7aeb5158e</code>.</p>
+  <p class="small">Preparation merged through pull request 14 at <code>57de4ee32eb6837e19e400fc2eae16e42d787c6d</code>. The pull-request and post-merge <code>main</code> CI runs passed.</p>
 
   <section class="card">
     <h2>Executive assessment</h2>
     <p>The repository is suitable for private launch preparation. No historical secrets were detected. The application already uses a user-owned OpenRouter credential stored in Expo SecureStore, and provider error handling is designed not to expose token or transcript payloads.</p>
-    <p>Publication remains blocked intentionally until the repository rename, Vercel Git integration, security settings, final public-content verification, and visibility change are explicitly confirmed.</p>
+    <p>Publication remains blocked intentionally until the repository rename, Vercel Git integration, plan-gated branch protection and remaining public-only security controls, final public-content verification, and visibility change are explicitly confirmed.</p>
   </section>
 
   <h2>Audit evidence</h2>
@@ -49,10 +50,10 @@
       <tr><td>Store screenshots</td><td>All six tracked App Store screenshots were reviewed visually. They contain generic sample text; the token field is blank even where the status says a token is saved.</td><td>No credential or identifiable personal content observed. Assets remain covered by the separate trademark and brand policy.</td></tr>
       <tr><td>Tests</td><td>29 Jest suites and 210 tests.</td><td><strong>All passed.</strong></td></tr>
       <tr><td>Static checks</td><td>TypeScript strict typecheck and ESLint.</td><td><strong>Passed.</strong></td></tr>
-      <tr><td>Expo compatibility</td><td>Initial Expo Doctor run identified nine SDK 57 patch mismatches. Packages were updated only to Expo-supported patch ranges.</td><td><strong>18/18 checks passed</strong> after the update.</td></tr>
+      <tr><td>Expo compatibility</td><td>Initial Expo Doctor run identified nine SDK 57 patch mismatches. Packages were updated only to Expo-supported patch ranges.</td><td><strong>20/20 checks passed</strong> after the update.</td></tr>
       <tr><td>Dependency advisories</td><td><code>npm audit</code> reports ten moderate entries representing the Expo tooling chain and <code>uuid@7.0.3</code> under <code>xcode@3.0.1</code>.</td><td>Known and monitored; no unsafe forced downgrade.</td></tr>
       <tr><td>Dependency licenses</td><td>The lockfile is overwhelmingly MIT, ISC, Apache-2.0, BSD, MPL-2.0, BlueOak, and similarly permissive licenses. <code>node-forge</code> offers a BSD-3-Clause option. <code>caniuse-lite</code> is CC-BY-4.0 data. The legacy <code>exit</code> package has an MIT license file despite older metadata shape.</td><td>No incompatible dependency license identified. Preserve dependency notices in distributions where required.</td></tr>
-      <tr><td>GitHub</td><td>The repository is private, has no description, homepage, topics, detected license, workflows, Dependabot alerts, or branch rules. Issues are enabled; wiki and discussions are disabled.</td><td>Repository files are prepared in this change. Account settings remain gated.</td></tr>
+      <tr><td>GitHub</td><td>At the audit baseline, the private repository had no description, homepage, topics, detected license, workflows, Dependabot alerts, or branch rules. Issues were enabled; wiki and discussions were disabled.</td><td>CI and repository configuration are merged. Dependabot alerts and automated security updates are enabled. Metadata, public-only security controls, and plan-gated branch protection remain launch actions.</td></tr>
       <tr><td>Vercel</td><td>The live project <code>saycopy</code> has no Git repository connection and no root directory configured.</td><td>Keep the existing production deployment until Git integration is explicitly approved.</td></tr>
     </tbody>
   </table>
@@ -76,7 +77,7 @@
     <li><strong>Website:</strong> <a href="https://saycopy.app">https://saycopy.app</a></li>
     <li><strong>Topics:</strong> <code>expo</code>, <code>react-native</code>, <code>ios</code>, <code>typescript</code>, <code>transcription</code>, <code>translation</code>, <code>openrouter</code>, <code>privacy</code></li>
     <li><strong>Features:</strong> keep Issues enabled; keep Wiki disabled; enable Discussions later only if there is capacity to moderate it.</li>
-    <li><strong>Security after publication:</strong> enable Dependabot alerts and security updates, secret scanning, push protection, and private vulnerability reporting.</li>
+    <li><strong>Security:</strong> Dependabot alerts and automated security updates are enabled privately. After publication, enable secret scanning, push protection, and private vulnerability reporting.</li>
   </ul>
 
   <h2>Main-branch protection after CI is green</h2>
