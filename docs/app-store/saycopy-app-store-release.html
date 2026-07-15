@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SayCopy 1.0 App Store Release Package</title>
+    <style>
+      :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      body { margin: 0; background: #f8fafc; color: #0f172a; }
+      main { max-width: 900px; margin: 0 auto; padding: 48px 24px 72px; }
+      h1 { font-size: 40px; margin: 0 0 8px; }
+      h2 { margin-top: 36px; }
+      .lede { color: #475569; font-size: 18px; }
+      .card { background: white; border: 1px solid #dbe4ef; border-radius: 16px; padding: 20px; margin: 16px 0; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { text-align: left; vertical-align: top; border-bottom: 1px solid #e2e8f0; padding: 12px 8px; }
+      th { width: 210px; color: #334155; }
+      code { background: #eef2f7; border-radius: 5px; padding: 2px 5px; }
+      .copy { white-space: pre-wrap; }
+      .warning { border-left: 4px solid #f59e0b; }
+      .ok { border-left: 4px solid #10b981; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>SayCopy 1.0</h1>
+      <p class="lede">App Store release package · Altitude Information Systems LLC · July 2026</p>
+
+      <section class="card ok">
+        <h2>Production identity</h2>
+        <table>
+          <tr><th>App Store Connect ID</th><td><code>6790925849</code></td></tr>
+          <tr><th>Bundle identifier</th><td><code>com.tarekalaaddin.tarekwisper</code></td></tr>
+          <tr><th>Version</th><td><code>1.0</code> (Expo version <code>1.0.0</code>)</td></tr>
+          <tr><th>Minimum iOS</th><td>iOS 16.4</td></tr>
+          <tr><th>Platforms</th><td>iPhone only; portrait; no iPad support</td></tr>
+          <tr><th>Price</th><td>Free</td></tr>
+          <tr><th>Company</th><td>Altitude Information Systems LLC</td></tr>
+          <tr><th>Encryption</th><td>No non-exempt encryption; HTTPS and Apple system cryptography only</td></tr>
+        </table>
+      </section>
+
+      <section>
+        <h2>Storefront metadata</h2>
+        <table class="card">
+          <tr><th>Name</th><td>SayCopy</td></tr>
+          <tr><th>Subtitle</th><td>Voice to text, ready to use</td></tr>
+          <tr><th>Promotional text</th><td>Speak, transcribe, translate, and turn short voice notes into editable text you can copy or share—using your own OpenRouter API key.</td></tr>
+          <tr><th>Keywords</th><td>voice,transcription,translate,speech,text,dictation,clipboard,OpenRouter,audio,notes</td></tr>
+          <tr><th>Primary category</th><td>Productivity</td></tr>
+          <tr><th>Secondary category</th><td>Utilities</td></tr>
+          <tr><th>Marketing URL</th><td>https://saycopy.app/</td></tr>
+          <tr><th>Support URL</th><td>https://saycopy.app/support</td></tr>
+          <tr><th>Privacy URL</th><td>https://saycopy.app/privacy</td></tr>
+          <tr><th>Copyright</th><td>2026 Altitude Information Systems LLC</td></tr>
+        </table>
+
+        <div class="card copy"><strong>Description</strong>
+
+SayCopy turns short voice recordings into editable text you can use anywhere.
+
+Record a thought, meeting follow-up, message, or note. SayCopy transcribes it, optionally translates it, and lets you refine the result before copying or sharing it to another app.
+
+WHAT YOU CAN DO
+• Transcribe short voice recordings
+• Translate between English, Spanish, and Arabic
+• Apply light cleanup for punctuation, capitalization, and readability
+• Edit results before you copy or share
+• Keep searchable history on your device
+• Organize saved results with tags
+• Choose recommended or custom OpenRouter models
+
+PRIVATE BY DESIGN
+SayCopy does not require a SayCopy account. Your settings and history stay on your device. Your OpenRouter API key is stored in secure iOS storage. Audio and text are sent only when you request processing, with zero-data-retention routing required.
+
+BRING YOUR OWN OPENROUTER KEY
+SayCopy is free to download. To process audio or text, you provide your own OpenRouter API key. OpenRouter and selected model providers may charge for usage. An internet connection is required for transcription and translation.
+
+Learn how to set up a key at https://saycopy.app/setup.</div>
+      </section>
+
+      <section>
+        <h2>Review notes</h2>
+        <div class="card copy">SayCopy does not have a SayCopy account or sign-in flow.
+
+To test the core flow:
+1. Open Settings.
+2. Enter the review OpenRouter API key supplied below and tap Save token.
+3. Return to Record.
+4. Choose Transcribe or Translate, then record a short clip.
+5. Stop recording and wait for processing.
+6. Edit the result, then test Copy, Share, Tags, and History.
+
+The app sends audio/text to OpenRouter and eligible model providers for the user-requested operation. Every processing request includes zero-data-retention routing. Local history can be deleted item-by-item.
+
+Setup guide: https://saycopy.app/setup
+Privacy policy: https://saycopy.app/privacy
+Support: https://saycopy.app/support
+
+REVIEW KEY: [USER MUST PROVIDE A RESTRICTED, LOW-LIMIT OPENROUTER KEY]</div>
+      </section>
+
+      <section>
+        <h2>App Privacy declaration</h2>
+        <div class="card">
+          <p><strong>Tracking:</strong> No.</p>
+          <p><strong>Data used for third-party advertising:</strong> No.</p>
+          <p><strong>Data linked to the user, App Functionality:</strong> User ID (the user-owned OpenRouter account/API credential), Audio Data, Other User Content, and Other Usage Data.</p>
+          <p><strong>Data handling note:</strong> SayCopy does not operate a backend or account system. OpenRouter/model-provider processing is the third-party collection path. Per-request ZDR is enforced, but Audio Data and Other User Content remain disclosed conservatively because a user may separately enable input/output logging in their OpenRouter account. OpenRouter stores operational request metadata for usage reporting and billing.</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Age rating inputs</h2>
+        <div class="card">
+          <p>Recommended rating: 4+ / the lowest available rating, subject to Apple’s generated result.</p>
+          <p>No advertising, gambling, loot boxes, unrestricted web access, messaging, user-generated social feed, parental controls, medical treatment, or mature-content catalog. AI-generated transcription/translation output is initiated from user-supplied audio or text.</p>
+        </div>
+      </section>
+
+      <section class="card warning">
+        <h2>Required private inputs before review</h2>
+        <ol>
+          <li>App Review contact first name, last name, phone number, and email (private to Apple).</li>
+          <li>A restricted OpenRouter review key with a low spending limit, or another reviewer-accessible test method.</li>
+          <li>User confirmation immediately before the final “Submit for Review” action.</li>
+        </ol>
+      </section>
+    </main>
+  </body>
+</html>

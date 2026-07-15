@@ -11,7 +11,16 @@ const appConfig = require('../../app.json') as {
     };
     readonly plugins?: readonly (
       | string
-      | readonly [string, { readonly microphonePermission?: string; readonly recordAudioAndroid?: boolean }]
+      | readonly [
+          string,
+          {
+            readonly enableBackgroundPlayback?: boolean;
+            readonly enableBackgroundRecording?: boolean;
+            readonly faceIDPermission?: boolean;
+            readonly microphonePermission?: string;
+            readonly recordAudioAndroid?: boolean;
+          },
+        ]
     )[];
   };
 };
@@ -51,6 +60,17 @@ describe('Expo app config', () => {
       {
         microphonePermission: 'Allow SayCopy to use the microphone for transcription and translation recordings.',
         recordAudioAndroid: true,
+        enableBackgroundPlayback: false,
+        enableBackgroundRecording: false,
+      },
+    ]);
+  });
+
+  it('does not declare Face ID when token storage does not require biometric authentication', () => {
+    expect(appConfig.expo.plugins).toContainEqual([
+      'expo-secure-store',
+      {
+        faceIDPermission: false,
       },
     ]);
   });
