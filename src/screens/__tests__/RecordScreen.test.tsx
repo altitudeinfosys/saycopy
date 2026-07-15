@@ -874,18 +874,21 @@ describe('RecordScreen', () => {
 
     expect(await screen.findByLabelText('Transcribing your recording')).toBeTruthy();
 
-    transcriptionDeferred.resolve({
-      status: 'success',
-      transcript: 'Finished transcript.',
-      historyItem: {
-        id: 'finished-transcript',
-        mode: 'transcribe',
-        sourceType: 'voice',
-        sourceLanguageId: 'auto',
+    await act(async () => {
+      transcriptionDeferred.resolve({
+        status: 'success',
         transcript: 'Finished transcript.',
-        createdAt: '2026-07-11T18:00:00.000Z',
-        updatedAt: '2026-07-11T18:00:00.000Z',
-      },
+        historyItem: {
+          id: 'finished-transcript',
+          mode: 'transcribe',
+          sourceType: 'voice',
+          sourceLanguageId: 'auto',
+          transcript: 'Finished transcript.',
+          createdAt: '2026-07-11T18:00:00.000Z',
+          updatedAt: '2026-07-11T18:00:00.000Z',
+        },
+      });
+      await transcriptionDeferred.promise;
     });
 
     await waitFor(() => {

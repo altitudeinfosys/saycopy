@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 
 import type { HistoryItem, Tag } from '../../domain/history';
@@ -266,7 +266,9 @@ describe('HistoryDetailScreen', () => {
       expect(screen.getByText('Urgent')).toBeTruthy();
     });
 
-    fireEvent.press(screen.getByRole('button', { name: 'Remove tag Work' }));
+    await act(async () => {
+      fireEvent.press(screen.getByRole('button', { name: 'Remove tag Work' }));
+    });
 
     await waitFor(() => {
       expect(repository.removeTag).toHaveBeenCalledWith('history-1', 'Work');
