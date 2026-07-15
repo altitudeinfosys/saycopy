@@ -27,10 +27,17 @@
         "expo-audio",
         {
           "microphonePermission": "Allow SayCopy to use the microphone for transcription and translation recordings.",
-          "recordAudioAndroid": true
+          "recordAudioAndroid": true,
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false
         }
       ],
-      "expo-secure-store",
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": false
+        }
+      ],
       "expo-sqlite",
       "expo-asset"
     ],
