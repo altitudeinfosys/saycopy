@@ -142,7 +142,7 @@
       This document summarizes what has been implemented in the private local VoiceInk fork and gives a practical test plan for validating each feature manually and from the command line.
     </p>
     <div class="grid">
-      <div class="card"><strong>Repo</strong><br><code>/Users/tarekalaaddin/Projects/code/VoiceInk-FlowLocal</code></div>
+      <div class="card"><strong>Repo</strong><br><code>$HOME/Projects/code/VoiceInk-FlowLocal</code></div>
       <div class="card"><strong>Branch</strong><br><code>flowlocal-v1</code></div>
       <div class="card"><strong>Status</strong><br>Clean worktree, 6 commits ahead of <code>origin/main</code></div>
       <div class="card"><strong>Note</strong><br>Local only. Not pushed or published.</div>
@@ -219,8 +219,8 @@
       <li><span class="tag done">Passed</span> Builder/verifier P0 code review completed; stale documentation references were corrected after verifier review.</li>
       <li><span class="tag done">Passed</span> <code>git diff --check origin/main..HEAD</code>.</li>
       <li><span class="tag done">Passed</span> Swift parse check for all app and test Swift files.</li>
-      <li><span class="tag done">Passed</span> Whisper dependency built at <code>/Users/tarekalaaddin/VoiceInk-Dependencies/whisper.cpp/build-apple/whisper.xcframework</code>.</li>
-      <li><span class="tag done">Passed</span> Local app build completed with <code>make local</code> and copied the app to <code>/Users/tarekalaaddin/Downloads/VoiceInk.app</code>.</li>
+      <li><span class="tag done">Passed</span> Whisper dependency built at <code>$HOME/VoiceInk-Dependencies/whisper.cpp/build-apple/whisper.xcframework</code>.</li>
+      <li><span class="tag done">Passed</span> Local app build completed with <code>make local</code> and copied the app to <code>$HOME/Downloads/VoiceInk.app</code>.</li>
       <li><span class="tag done">Fixed</span> Explicit mode transcription models no longer silently fall back to Apple Speech when the configured local model is missing.</li>
       <li><span class="tag done">Fixed</span> Missing configured models now produce profile/model-specific guidance instead of the generic <code>No AI Model Selected</code> message.</li>
       <li><span class="tag done">Passed</span> The built app launches to the permissions screen.</li>
@@ -237,7 +237,7 @@
         current <code>1051.54.0</code>, expected <code>1051.55.0</code>. It did not block the local macOS app build.
       </li>
     </ul>
-    <pre><code>cd /Users/tarekalaaddin/Projects/code/VoiceInk-FlowLocal
+    <pre><code>cd $HOME/Projects/code/VoiceInk-FlowLocal
 git status --short --branch
 git diff --check origin/main..HEAD
 find VoiceInk VoiceInkTests -name '*.swift' -print0 | xargs -0 xcrun swiftc -parse
@@ -279,13 +279,13 @@ ls -lh ~/Downloads/VoiceInk.app</code></pre>
       <li>Pull the latest private branch.</li>
       <li>Run <code>make local</code> again.</li>
     </ol>
-    <pre><code>cd /Users/tarekalaaddin/Projects/code/VoiceInk-FlowLocal
+    <pre><code>cd $HOME/Projects/code/VoiceInk-FlowLocal
 git checkout flowlocal-v1
 git pull --ff-only private flowlocal-v1
 # If this checkout was cloned directly from the private repo, use this instead:
 # git pull --ff-only origin flowlocal-v1
 make local
-ls -lh /Users/tarekalaaddin/Downloads/VoiceInk.app</code></pre>
+ls -lh $HOME/Downloads/VoiceInk.app</code></pre>
 
     <h3>Build Output</h3>
     <ul>
@@ -304,13 +304,13 @@ ls -lh /Users/tarekalaaddin/Downloads/VoiceInk.app</code></pre>
 
     <h3>Install the already built app on this Mac</h3>
     <ol>
-      <li>Use the current built app at <code>/Users/tarekalaaddin/Downloads/VoiceInk.app</code>.</li>
-      <li>Optional: use the zipped app artifact at <code>/Users/tarekalaaddin/Downloads/VoiceInk-FlowLocal-P0.zip</code> if you want to copy it to another Mac without rebuilding immediately.</li>
+      <li>Use the current built app at <code>$HOME/Downloads/VoiceInk.app</code>.</li>
+      <li>Optional: use the zipped app artifact at <code>$HOME/Downloads/VoiceInk-FlowLocal-P0.zip</code> if you want to copy it to another Mac without rebuilding immediately.</li>
       <li>Quit any running VoiceInk copy from the menu bar.</li>
       <li>Copy the app into Applications:</li>
     </ol>
     <pre><code>rm -rf /Applications/VoiceInk.app
-cp -R /Users/tarekalaaddin/Downloads/VoiceInk.app /Applications/VoiceInk.app
+cp -R $HOME/Downloads/VoiceInk.app /Applications/VoiceInk.app
 open /Applications/VoiceInk.app</code></pre>
     <p>If macOS blocks the app because it is a local/private build, right-click <code>VoiceInk.app</code> in Finder and choose Open. If needed, remove quarantine after you trust the build:</p>
     <pre><code>xattr -dr com.apple.quarantine /Applications/VoiceInk.app</code></pre>
@@ -348,7 +348,7 @@ open /Applications/VoiceInk.app</code></pre>
       <li>Use the English profile first and confirm dictation inserts into Notes or TextEdit.</li>
       <li>For Arabic and Spanish, configure the cloud transcription/cleanup keys before testing those profiles.</li>
     </ol>
-    <p><strong>Do not use the crash dialog's Reopen button for old Xcode Debug builds.</strong> If a dialog says VoiceInk quit unexpectedly after an Xcode/test run, click Ignore and open <code>/Applications/VoiceInk.app</code> or <code>/Users/tarekalaaddin/Downloads/VoiceInk.app</code> directly.</p>
+    <p><strong>Do not use the crash dialog's Reopen button for old Xcode Debug builds.</strong> If a dialog says VoiceInk quit unexpectedly after an Xcode/test run, click Ignore and open <code>/Applications/VoiceInk.app</code> or <code>$HOME/Downloads/VoiceInk.app</code> directly.</p>
 
     <h3>Future Packaging</h3>
     <p>The easiest final installation path will be a private signed zip or DMG that contains the app, then later a fully signed/notarized Local Flow app. For the current private build, cloning the repo and running <code>make local</code> is the most reliable repeatable install path.</p>
@@ -357,15 +357,15 @@ open /Applications/VoiceInk.app</code></pre>
   <section>
     <h2>Before Manual Testing</h2>
     <ol>
-      <li>Use the already built app at <code>/Users/tarekalaaddin/Downloads/VoiceInk.app</code>, or rebuild with <code>make local</code>.</li>
-      <li>If using Xcode, open <code>/Users/tarekalaaddin/Projects/code/VoiceInk-FlowLocal/VoiceInk.xcodeproj</code>, select the macOS app scheme, then build and run.</li>
+      <li>Use the already built app at <code>$HOME/Downloads/VoiceInk.app</code>, or rebuild with <code>make local</code>.</li>
+      <li>If using Xcode, open <code>$HOME/Projects/code/VoiceInk-FlowLocal/VoiceInk.xcodeproj</code>, select the macOS app scheme, then build and run.</li>
       <li>If Xcode still reports the CoreSimulator mismatch, update macOS/Xcode command line tools or reboot after installing available updates.</li>
       <li>Grant microphone, accessibility, and screen-recording permissions when macOS asks. These are OS security permissions and were not granted during automated testing.</li>
       <li>For English local testing, make sure Parakeet V3 is downloaded/available.</li>
       <li>For Arabic/Spanish cloud testing, add the needed provider keys, especially ElevenLabs for Scribe v2 and OpenRouter for cleanup.</li>
     </ol>
     <p><strong>Parakeet note:</strong> the current P0 default recommends Parakeet V3 for English local transcription. If you switch English to Whisper <code>large-v3-turbo</code> later, download that Whisper model before testing that mode.</p>
-    <p><strong>Fixed fallback behavior:</strong> older local builds could show vague missing-model errors or fall through to Apple Speech. The rebuilt app at <code>/Users/tarekalaaddin/Downloads/VoiceInk.app</code> no longer treats Apple Speech as an implicit fallback for an explicitly configured mode model, and the error now names the missing model when possible.</p>
+    <p><strong>Fixed fallback behavior:</strong> older local builds could show vague missing-model errors or fall through to Apple Speech. The rebuilt app at <code>$HOME/Downloads/VoiceInk.app</code> no longer treats Apple Speech as an implicit fallback for an explicitly configured mode model, and the error now names the missing model when possible.</p>
   </section>
 
   <section>
@@ -457,19 +457,19 @@ open /Applications/VoiceInk.app</code></pre>
   <section>
     <h2>Command-Line Checks</h2>
     <p>Use these after any future change to confirm the branch is still clean and parse-valid.</p>
-    <pre><code>cd /Users/tarekalaaddin/Projects/code/VoiceInk-FlowLocal
+    <pre><code>cd $HOME/Projects/code/VoiceInk-FlowLocal
 git status --short --branch
 git log --oneline --decorate -8
 git diff --check origin/main..HEAD
 find VoiceInk VoiceInkTests -name '*.swift' -print0 | xargs -0 xcrun swiftc -parse</code></pre>
 
     <p>For the local unsigned build path:</p>
-    <pre><code>cd /Users/tarekalaaddin/Projects/code/VoiceInk-FlowLocal
+    <pre><code>cd $HOME/Projects/code/VoiceInk-FlowLocal
 xcodebuild -list -project VoiceInk.xcodeproj
 make local</code></pre>
 
     <p>For tests, use Debug so <code>@testable import VoiceInk</code> can load a testing-enabled module:</p>
-    <pre><code>cd /Users/tarekalaaddin/Projects/code/VoiceInk-FlowLocal
+    <pre><code>cd $HOME/Projects/code/VoiceInk-FlowLocal
 xcodebuild test -project VoiceInk.xcodeproj -scheme VoiceInk -configuration Debug -destination 'platform=macOS' -only-testing:VoiceInkTests</code></pre>
   </section>
 
@@ -498,7 +498,7 @@ xcodebuild test -project VoiceInk.xcodeproj -scheme VoiceInk -configuration Debu
       <li><strong>Recorder controls:</strong> <code>Esc</code> cancels, <code>Return</code> commits, and <code>fn+Space</code> is reserved for commit behavior.</li>
       <li><strong>Privacy defaults:</strong> recorder audio is temporary by default while transcript text remains available in history.</li>
       <li><strong>Model safety:</strong> explicit mode models no longer silently fall back to Apple Speech when the configured model is missing, and missing-model errors now name the profile/model when possible.</li>
-      <li><strong>Local build path:</strong> Whisper XCFramework builds locally and <code>make local</code> produces a runnable app in <code>/Users/tarekalaaddin/Downloads/VoiceInk.app</code>.</li>
+      <li><strong>Local build path:</strong> Whisper XCFramework builds locally and <code>make local</code> produces a runnable app in <code>$HOME/Downloads/VoiceInk.app</code>.</li>
       <li><strong>Private repo:</strong> the working branch is pushed privately to <code>https://github.com/altitudeinfosys/VoiceInk-FlowLocal</code> on <code>flowlocal-v1</code>.</li>
     </ul>
 

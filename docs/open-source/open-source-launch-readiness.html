@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SayCopy Open-Source Launch Readiness</title>
+  <style>
+    :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172033; background: #f5f7fb; }
+    body { margin: 0; }
+    main { max-width: 980px; margin: 0 auto; padding: 48px 24px 72px; }
+    h1, h2, h3 { color: #0f172a; line-height: 1.2; }
+    h1 { font-size: clamp(2rem, 5vw, 3.5rem); margin: 0 0 12px; }
+    h2 { margin-top: 40px; }
+    p, li { line-height: 1.65; }
+    .lede { font-size: 1.15rem; color: #475569; max-width: 760px; }
+    .card { background: white; border: 1px solid #dbe2ee; border-radius: 16px; padding: 24px; margin: 20px 0; box-shadow: 0 12px 32px rgba(15, 23, 42, .05); }
+    .status { display: inline-block; border-radius: 999px; padding: 6px 11px; margin-right: 8px; font-size: .82rem; font-weight: 700; }
+    .ready { color: #065f46; background: #d1fae5; }
+    .gate { color: #92400e; background: #fef3c7; }
+    .risk { color: #991b1b; background: #fee2e2; }
+    table { width: 100%; border-collapse: collapse; background: white; }
+    th, td { text-align: left; vertical-align: top; border-bottom: 1px solid #e2e8f0; padding: 12px; }
+    th { color: #334155; font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; }
+    code { background: #eef2f7; border-radius: 5px; padding: .1em .35em; }
+    a { color: #155eef; }
+    .small { color: #64748b; font-size: .9rem; }
+  </style>
+</head>
+<body>
+<main>
+  <span class="status ready">Private preparation in progress</span>
+  <span class="status gate">External actions gated</span>
+  <h1>SayCopy open-source launch readiness</h1>
+  <p class="lede">Evidence and recommended controls for preparing the private repository before its Apache-2.0 open-source launch. Recorded July 15, 2026 against <code>origin/main</code> revision <code>1063ddf5e132b8606499fabb2d704ee7aeb5158e</code>.</p>
+
+  <section class="card">
+    <h2>Executive assessment</h2>
+    <p>The repository is suitable for private launch preparation. No historical secrets were detected. The application already uses a user-owned OpenRouter credential stored in Expo SecureStore, and provider error handling is designed not to expose token or transcript payloads.</p>
+    <p>Publication remains blocked intentionally until the repository rename, Vercel Git integration, security settings, final public-content verification, and visibility change are explicitly confirmed.</p>
+  </section>
+
+  <h2>Audit evidence</h2>
+  <table>
+    <thead><tr><th>Area</th><th>Evidence</th><th>Disposition</th></tr></thead>
+    <tbody>
+      <tr><td>Git history secrets</td><td>Gitleaks 8.30.1 scanned all 95 commits and approximately 2.42 MB of history with redaction enabled.</td><td><strong>0 leaks found.</strong></td></tr>
+      <tr><td>Current tree secrets</td><td>Gitleaks directory scan covered the repository source before dependency installation.</td><td><strong>0 leaks found.</strong> Environment ignore rules were broadened as defense in depth.</td></tr>
+      <tr><td>Personal-data indicators</td><td>No personal email address, phone-number pattern, private-key header, or credential file was found in the current source tree. Two historical HTML documents contained contributor-local absolute paths.</td><td>The current documents now use <code>$HOME</code>. Earlier commits still contain the old path strings; they are not credentials, and removing them from history would require a separately approved destructive history rewrite.</td></tr>
+      <tr><td>Store screenshots</td><td>All six tracked App Store screenshots were reviewed visually. They contain generic sample text; the token field is blank even where the status says a token is saved.</td><td>No credential or identifiable personal content observed. Assets remain covered by the separate trademark and brand policy.</td></tr>
+      <tr><td>Tests</td><td>29 Jest suites and 210 tests.</td><td><strong>All passed.</strong></td></tr>
+      <tr><td>Static checks</td><td>TypeScript strict typecheck and ESLint.</td><td><strong>Passed.</strong></td></tr>
+      <tr><td>Expo compatibility</td><td>Initial Expo Doctor run identified nine SDK 57 patch mismatches. Packages were updated only to Expo-supported patch ranges.</td><td><strong>18/18 checks passed</strong> after the update.</td></tr>
+      <tr><td>Dependency advisories</td><td><code>npm audit</code> reports ten moderate entries representing the Expo tooling chain and <code>uuid@7.0.3</code> under <code>xcode@3.0.1</code>.</td><td>Known and monitored; no unsafe forced downgrade.</td></tr>
+      <tr><td>Dependency licenses</td><td>The lockfile is overwhelmingly MIT, ISC, Apache-2.0, BSD, MPL-2.0, BlueOak, and similarly permissive licenses. <code>node-forge</code> offers a BSD-3-Clause option. <code>caniuse-lite</code> is CC-BY-4.0 data. The legacy <code>exit</code> package has an MIT license file despite older metadata shape.</td><td>No incompatible dependency license identified. Preserve dependency notices in distributions where required.</td></tr>
+      <tr><td>GitHub</td><td>The repository is private, has no description, homepage, topics, detected license, workflows, Dependabot alerts, or branch rules. Issues are enabled; wiki and discussions are disabled.</td><td>Repository files are prepared in this change. Account settings remain gated.</td></tr>
+      <tr><td>Vercel</td><td>The live project <code>saycopy</code> has no Git repository connection and no root directory configured.</td><td>Keep the existing production deployment until Git integration is explicitly approved.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Known dependency advisory</h2>
+  <section class="card">
+    <span class="status risk">Moderate tooling advisory</span>
+    <p><code>uuid@7.0.3</code> is introduced by <code>expo → @expo/config-plugins → xcode</code>. The advisory concerns buffer bounds in UUID v3/v5/v6 APIs when a caller supplies a buffer. SayCopy does not call that package; it is in the Node-based Expo/Xcode configuration path rather than the mobile application's runtime request path.</p>
+    <p>The registry's automated fix proposes replacing Expo 57 with Expo 46, a breaking and unsafe downgrade. Do not run <code>npm audit fix --force</code>. Continue using Expo-supported releases, let Dependabot report upstream resolution, and reassess when Expo or <code>xcode</code> updates the dependency.</p>
+  </section>
+
+  <h2>Repository identity recommendation</h2>
+  <section class="card">
+    <p>Rename <code>altitudeinfosys/Tarek-Wisper</code> to <strong><code>altitudeinfosys/saycopy</code></strong>. The lowercase name matches the product, npm package name, Vercel project, and public domain. GitHub redirects existing clone and web URLs after a rename, but local remotes, badges, Vercel integration, and repository metadata should still be updated and verified.</p>
+    <p>Do not change stable mobile identifiers such as the iOS bundle identifier or EAS project ID as part of the repository rename.</p>
+  </section>
+
+  <h2>Recommended GitHub metadata</h2>
+  <ul>
+    <li><strong>Description:</strong> Privacy-conscious iOS transcription and translation with a user-supplied OpenRouter key.</li>
+    <li><strong>Website:</strong> <a href="https://saycopy.app">https://saycopy.app</a></li>
+    <li><strong>Topics:</strong> <code>expo</code>, <code>react-native</code>, <code>ios</code>, <code>typescript</code>, <code>transcription</code>, <code>translation</code>, <code>openrouter</code>, <code>privacy</code></li>
+    <li><strong>Features:</strong> keep Issues enabled; keep Wiki disabled; enable Discussions later only if there is capacity to moderate it.</li>
+    <li><strong>Security after publication:</strong> enable Dependabot alerts and security updates, secret scanning, push protection, and private vulnerability reporting.</li>
+  </ul>
+
+  <h2>Main-branch protection after CI is green</h2>
+  <ul>
+    <li>Require pull requests for <code>main</code>.</li>
+    <li>Require the <code>CI / quality</code> check and require branches to be up to date.</li>
+    <li>Require conversation resolution and linear history.</li>
+    <li>Block force pushes and branch deletion.</li>
+    <li>Use zero mandatory outside approvals initially if this remains a single-maintainer repository; increase to one approval when another regular reviewer is available.</li>
+  </ul>
+  <p class="small">GitHub currently returns a plan/visibility restriction for branch protection while the repository is private. Apply the rule immediately after the repository becomes public, when the feature becomes available.</p>
+
+  <h2>Vercel Git integration plan</h2>
+  <ol>
+    <li>After the repository rename is complete, connect <code>altitudeinfosys/saycopy</code> to the existing Vercel project <code>saycopy</code>.</li>
+    <li>Set the project root directory to <code>website</code> and leave framework detection as Other/static.</li>
+    <li>Set <code>main</code> as the production branch. Allow automatic previews for pull requests and non-production branches.</li>
+    <li>Keep <code>RESEND_API_KEY</code>, <code>CONTACT_TO_EMAIL</code>, and <code>CONTACT_FROM_EMAIL</code> production-only. Do not expose the production Resend key to preview builds from contributor code. A preview without mail credentials should return the existing safe 503 response.</li>
+    <li>Use <code>CONTACT_ALLOWED_ORIGINS</code> only for additional controlled origins. Vercel preview origins are derived from <code>VERCEL_URL</code>.</li>
+    <li>Protect <code>main</code> with CI so production deploys originate only from merged, passing commits. Treat the Vercel deployment status as an additional required check after the integration creates a stable check name.</li>
+    <li>After connection, verify one pull-request preview, merge it, verify the production alias and <code>saycopy.app</code>, then retire manual CLI deployment as the normal path.</li>
+  </ol>
+  <p>The contact function's in-memory rate limit is process-local and should not be treated as a durable anti-abuse control. Before sustained public traffic, configure Vercel Firewall/rate limiting or another durable shared limiter as an account-side follow-up.</p>
+
+  <h2>Explicit gates</h2>
+  <table>
+    <thead><tr><th>Action</th><th>Required confirmation</th></tr></thead>
+    <tbody>
+      <tr><td>Rename the GitHub repository</td><td>Confirm the exact name <code>saycopy</code>.</td></tr>
+      <tr><td>Connect or modify Vercel Git settings and environment targets</td><td>Confirm account-side Vercel changes.</td></tr>
+      <tr><td>Make the repository public</td><td>Final explicit public-visibility confirmation after merged-content review.</td></tr>
+    </tbody>
+  </table>
+
+  <p class="small">This document records engineering findings and operational recommendations, not legal advice.</p>
+</main>
+</body>
+</html>
