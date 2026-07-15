@@ -28,16 +28,17 @@
 </head>
 <body>
 <main>
-  <span class="status ready">Private preparation complete</span>
-  <span class="status gate">External actions gated</span>
-  <h1>SayCopy open-source launch readiness</h1>
-  <p class="lede">Evidence and recommended controls for preparing the private repository before its Apache-2.0 open-source launch. Recorded July 15, 2026 against <code>origin/main</code> revision <code>1063ddf5e132b8606499fabb2d704ee7aeb5158e</code>.</p>
+  <span class="status ready">Public launch complete</span>
+  <span class="status ready">Launch controls verified</span>
+  <h1>SayCopy open-source launch verification</h1>
+  <p class="lede">Evidence and controls used to prepare and publish the Apache-2.0 open-source repository. The baseline audit was recorded July 15, 2026 against <code>origin/main</code> revision <code>1063ddf5e132b8606499fabb2d704ee7aeb5158e</code>.</p>
   <p class="small">Preparation merged through pull request 14 at <code>57de4ee32eb6837e19e400fc2eae16e42d787c6d</code>. The pull-request and post-merge <code>main</code> CI runs passed.</p>
+  <p class="small">Public launch configuration merged through pull request 25 at <code>298450e479e6ae458a4062b840b79e7e4e9b9795</code>. Anonymous repository access, protected <code>main</code>, public security controls, and the Git-originated Vercel production deployment were verified July 15, 2026.</p>
 
   <section class="card">
     <h2>Executive assessment</h2>
-    <p>The repository is suitable for private launch preparation. No historical secrets were detected. The application already uses a user-owned OpenRouter credential stored in Expo SecureStore, and provider error handling is designed not to expose token or transcript payloads.</p>
-    <p>Publication remains blocked intentionally until the repository rename, Vercel Git integration, plan-gated branch protection and remaining public-only security controls, final public-content verification, and visibility change are explicitly confirmed.</p>
+    <p>The repository is publicly available at <code>altitudeinfosys/saycopy</code>. No historical secrets were detected. The application uses a user-owned OpenRouter credential stored in Expo SecureStore, and provider error handling is designed not to expose token or transcript payloads.</p>
+    <p>The rename, GitHub metadata, Vercel Git integration, production and preview deployments, branch protection, public security controls, and anonymous public-content verification are complete.</p>
   </section>
 
   <h2>Audit evidence</h2>
@@ -53,7 +54,7 @@
       <tr><td>Expo compatibility</td><td>Initial Expo Doctor run identified nine SDK 57 patch mismatches. Packages were updated only to Expo-supported patch ranges.</td><td><strong>20/20 checks passed</strong> after the update.</td></tr>
       <tr><td>Dependency advisories</td><td><code>npm audit</code> reports ten moderate entries representing the Expo tooling chain and <code>uuid@7.0.3</code> under <code>xcode@3.0.1</code>.</td><td>Known and monitored; no unsafe forced downgrade.</td></tr>
       <tr><td>Dependency licenses</td><td>The lockfile is overwhelmingly MIT, ISC, Apache-2.0, BSD, MPL-2.0, BlueOak, and similarly permissive licenses. <code>node-forge</code> offers a BSD-3-Clause option. <code>caniuse-lite</code> is CC-BY-4.0 data. The legacy <code>exit</code> package has an MIT license file despite older metadata shape.</td><td>No incompatible dependency license identified. Preserve dependency notices in distributions where required.</td></tr>
-      <tr><td>GitHub</td><td>At the audit baseline, the private repository had no description, homepage, topics, detected license, workflows, Dependabot alerts, or branch rules. Issues were enabled; wiki and discussions were disabled.</td><td>CI and repository configuration are merged. Dependabot alerts and automated security updates are enabled. Description, homepage, and topics are configured. Public-only security controls and plan-gated branch protection remain launch actions.</td></tr>
+      <tr><td>GitHub</td><td>At the audit baseline, the private repository had no description, homepage, topics, detected license, workflows, Dependabot alerts, or branch rules. Issues were enabled; wiki and discussions were disabled.</td><td>The public repository exposes the expected Apache-2.0, community, security, trademark, CI, and Dependabot files. Metadata, secret scanning, push protection, private vulnerability reporting, automated security updates, and protected <code>main</code> are enabled.</td></tr>
       <tr><td>Vercel</td><td>The live project <code>saycopy</code> is connected to <code>altitudeinfosys/saycopy</code>, tracks <code>main</code> for production, uses <code>website</code> as its root directory, and has automatic deployments and pull-request comments enabled.</td><td>The three contact-mail secrets remain sensitive and production-only. Fork protection is enabled, so untrusted fork previews require authorization.</td></tr>
     </tbody>
   </table>
@@ -77,18 +78,18 @@
     <li><strong>Website:</strong> configured as <a href="https://saycopy.app">https://saycopy.app</a>.</li>
     <li><strong>Topics:</strong> configured with <code>expo</code>, <code>react-native</code>, <code>ios</code>, <code>typescript</code>, <code>transcription</code>, <code>translation</code>, <code>openrouter</code>, and <code>privacy</code>.</li>
     <li><strong>Features:</strong> keep Issues enabled; keep Wiki disabled; enable Discussions later only if there is capacity to moderate it.</li>
-    <li><strong>Security:</strong> Dependabot alerts and automated security updates are enabled privately. After publication, enable secret scanning, push protection, and private vulnerability reporting.</li>
+    <li><strong>Security:</strong> Dependabot alerts and automated security updates, secret scanning, push protection, and private vulnerability reporting are enabled.</li>
   </ul>
 
-  <h2>Main-branch protection after CI is green</h2>
+  <h2>Main-branch protection</h2>
   <ul>
-    <li>Require pull requests for <code>main</code>.</li>
-    <li>Require the <code>CI / quality</code> check and require branches to be up to date.</li>
-    <li>Require conversation resolution and linear history.</li>
-    <li>Block force pushes and branch deletion.</li>
-    <li>Use zero mandatory outside approvals initially if this remains a single-maintainer repository; increase to one approval when another regular reviewer is available.</li>
+    <li><strong>Enabled:</strong> require pull requests for <code>main</code>.</li>
+    <li><strong>Enabled:</strong> require current branches and successful <code>quality</code> and <code>Vercel</code> checks.</li>
+    <li><strong>Enabled:</strong> require conversation resolution and linear history.</li>
+    <li><strong>Enabled:</strong> include administrators and block force pushes and branch deletion.</li>
+    <li><strong>Configured:</strong> zero mandatory outside approvals while this is a single-maintainer repository; increase to one approval when another regular reviewer is available.</li>
   </ul>
-  <p class="small">GitHub currently returns a plan/visibility restriction for branch protection while the repository is private. Apply the rule immediately after the repository becomes public, when the feature becomes available.</p>
+  <p class="small">The rule was applied immediately after publication and verified through the GitHub branch-protection API.</p>
 
   <h2>Vercel Git integration</h2>
   <ol>
@@ -97,18 +98,18 @@
     <li><strong>Completed:</strong> set <code>main</code> as the production branch and enabled automatic deployments for pull requests and non-production branches.</li>
     <li><strong>Completed:</strong> kept <code>RESEND_API_KEY</code>, <code>CONTACT_TO_EMAIL</code>, and <code>CONTACT_FROM_EMAIL</code> sensitive and production-only. A preview without mail credentials returns the existing safe 503 response.</li>
     <li>Use <code>CONTACT_ALLOWED_ORIGINS</code> only for additional controlled origins. Vercel preview origins are derived from <code>VERCEL_URL</code>.</li>
-    <li>Protect <code>main</code> with CI so production deploys originate only from merged, passing commits. Treat the Vercel deployment status as an additional required check after the integration creates a stable check name.</li>
-    <li>After connection, verify one pull-request preview, merge it, verify the production alias and <code>saycopy.app</code>, then retire manual CLI deployment as the normal path.</li>
+    <li><strong>Completed:</strong> protected <code>main</code> with required <code>quality</code> and <code>Vercel</code> checks so production deploys originate from merged, passing commits.</li>
+    <li><strong>Completed:</strong> verified a pull-request preview, merged it, and verified the Git-originated production deployment on <code>saycopy.app</code>. Native Git deployment is now the normal path.</li>
   </ol>
   <p>The contact function's in-memory rate limit is process-local and should not be treated as a durable anti-abuse control. Before sustained public traffic, configure Vercel Firewall/rate limiting or another durable shared limiter as an account-side follow-up.</p>
 
-  <h2>Explicit gates</h2>
+  <h2>Launch gates</h2>
   <table>
     <thead><tr><th>Action</th><th>Required confirmation</th></tr></thead>
     <tbody>
       <tr><td>Rename the GitHub repository</td><td><strong>Completed:</strong> <code>altitudeinfosys/saycopy</code>.</td></tr>
       <tr><td>Connect or modify Vercel Git settings and environment targets</td><td><strong>Completed:</strong> authorized in the July 15 launch-completion request.</td></tr>
-      <tr><td>Make the repository public</td><td>Final explicit public-visibility confirmation after merged-content review.</td></tr>
+      <tr><td>Make the repository public</td><td><strong>Completed:</strong> explicitly confirmed and anonymously verified July 15, 2026.</td></tr>
     </tbody>
   </table>
 
