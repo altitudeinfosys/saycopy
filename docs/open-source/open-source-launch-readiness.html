@@ -53,8 +53,8 @@
       <tr><td>Expo compatibility</td><td>Initial Expo Doctor run identified nine SDK 57 patch mismatches. Packages were updated only to Expo-supported patch ranges.</td><td><strong>20/20 checks passed</strong> after the update.</td></tr>
       <tr><td>Dependency advisories</td><td><code>npm audit</code> reports ten moderate entries representing the Expo tooling chain and <code>uuid@7.0.3</code> under <code>xcode@3.0.1</code>.</td><td>Known and monitored; no unsafe forced downgrade.</td></tr>
       <tr><td>Dependency licenses</td><td>The lockfile is overwhelmingly MIT, ISC, Apache-2.0, BSD, MPL-2.0, BlueOak, and similarly permissive licenses. <code>node-forge</code> offers a BSD-3-Clause option. <code>caniuse-lite</code> is CC-BY-4.0 data. The legacy <code>exit</code> package has an MIT license file despite older metadata shape.</td><td>No incompatible dependency license identified. Preserve dependency notices in distributions where required.</td></tr>
-      <tr><td>GitHub</td><td>At the audit baseline, the private repository had no description, homepage, topics, detected license, workflows, Dependabot alerts, or branch rules. Issues were enabled; wiki and discussions were disabled.</td><td>CI and repository configuration are merged. Dependabot alerts and automated security updates are enabled. Metadata, public-only security controls, and plan-gated branch protection remain launch actions.</td></tr>
-      <tr><td>Vercel</td><td>The live project <code>saycopy</code> has no Git repository connection and no root directory configured.</td><td>Keep the existing production deployment until Git integration is explicitly approved.</td></tr>
+      <tr><td>GitHub</td><td>At the audit baseline, the private repository had no description, homepage, topics, detected license, workflows, Dependabot alerts, or branch rules. Issues were enabled; wiki and discussions were disabled.</td><td>CI and repository configuration are merged. Dependabot alerts and automated security updates are enabled. Description, homepage, and topics are configured. Public-only security controls and plan-gated branch protection remain launch actions.</td></tr>
+      <tr><td>Vercel</td><td>The live project <code>saycopy</code> is connected to <code>altitudeinfosys/saycopy</code>, tracks <code>main</code> for production, uses <code>website</code> as its root directory, and has automatic deployments and pull-request comments enabled.</td><td>The three contact-mail secrets remain sensitive and production-only. Fork protection is enabled, so untrusted fork previews require authorization.</td></tr>
     </tbody>
   </table>
 
@@ -65,17 +65,17 @@
     <p>The registry's automated fix proposes replacing Expo 57 with Expo 46, a breaking and unsafe downgrade. Do not run <code>npm audit fix --force</code>. Continue using Expo-supported releases, let Dependabot report upstream resolution, and reassess when Expo or <code>xcode</code> updates the dependency.</p>
   </section>
 
-  <h2>Repository identity recommendation</h2>
+  <h2>Repository identity</h2>
   <section class="card">
-    <p>Rename <code>altitudeinfosys/Tarek-Wisper</code> to <strong><code>altitudeinfosys/saycopy</code></strong>. The lowercase name matches the product, npm package name, Vercel project, and public domain. GitHub redirects existing clone and web URLs after a rename, but local remotes, badges, Vercel integration, and repository metadata should still be updated and verified.</p>
+    <p><strong>Completed July 15, 2026:</strong> the repository is now <code>altitudeinfosys/saycopy</code>. The lowercase name matches the product, npm package name, Vercel project, and public domain. The shared local <code>origin</code> remote was updated to the canonical URL and verified against <code>main</code>.</p>
     <p>Do not change stable mobile identifiers such as the iOS bundle identifier or EAS project ID as part of the repository rename.</p>
   </section>
 
-  <h2>Recommended GitHub metadata</h2>
+  <h2>GitHub metadata</h2>
   <ul>
-    <li><strong>Description:</strong> Privacy-conscious iOS transcription and translation with a user-supplied OpenRouter key.</li>
-    <li><strong>Website:</strong> <a href="https://saycopy.app">https://saycopy.app</a></li>
-    <li><strong>Topics:</strong> <code>expo</code>, <code>react-native</code>, <code>ios</code>, <code>typescript</code>, <code>transcription</code>, <code>translation</code>, <code>openrouter</code>, <code>privacy</code></li>
+    <li><strong>Description:</strong> configured as “Privacy-conscious iOS transcription and translation with a user-supplied OpenRouter key.”</li>
+    <li><strong>Website:</strong> configured as <a href="https://saycopy.app">https://saycopy.app</a>.</li>
+    <li><strong>Topics:</strong> configured with <code>expo</code>, <code>react-native</code>, <code>ios</code>, <code>typescript</code>, <code>transcription</code>, <code>translation</code>, <code>openrouter</code>, and <code>privacy</code>.</li>
     <li><strong>Features:</strong> keep Issues enabled; keep Wiki disabled; enable Discussions later only if there is capacity to moderate it.</li>
     <li><strong>Security:</strong> Dependabot alerts and automated security updates are enabled privately. After publication, enable secret scanning, push protection, and private vulnerability reporting.</li>
   </ul>
@@ -90,12 +90,12 @@
   </ul>
   <p class="small">GitHub currently returns a plan/visibility restriction for branch protection while the repository is private. Apply the rule immediately after the repository becomes public, when the feature becomes available.</p>
 
-  <h2>Vercel Git integration plan</h2>
+  <h2>Vercel Git integration</h2>
   <ol>
-    <li>After the repository rename is complete, connect <code>altitudeinfosys/saycopy</code> to the existing Vercel project <code>saycopy</code>.</li>
-    <li>Set the project root directory to <code>website</code> and leave framework detection as Other/static.</li>
-    <li>Set <code>main</code> as the production branch. Allow automatic previews for pull requests and non-production branches.</li>
-    <li>Keep <code>RESEND_API_KEY</code>, <code>CONTACT_TO_EMAIL</code>, and <code>CONTACT_FROM_EMAIL</code> production-only. Do not expose the production Resend key to preview builds from contributor code. A preview without mail credentials should return the existing safe 503 response.</li>
+    <li><strong>Completed:</strong> connected <code>altitudeinfosys/saycopy</code> to the existing Vercel project <code>saycopy</code>.</li>
+    <li><strong>Completed:</strong> set the project root directory to <code>website</code> and retained the Other/static framework preset.</li>
+    <li><strong>Completed:</strong> set <code>main</code> as the production branch and enabled automatic deployments for pull requests and non-production branches.</li>
+    <li><strong>Completed:</strong> kept <code>RESEND_API_KEY</code>, <code>CONTACT_TO_EMAIL</code>, and <code>CONTACT_FROM_EMAIL</code> sensitive and production-only. A preview without mail credentials returns the existing safe 503 response.</li>
     <li>Use <code>CONTACT_ALLOWED_ORIGINS</code> only for additional controlled origins. Vercel preview origins are derived from <code>VERCEL_URL</code>.</li>
     <li>Protect <code>main</code> with CI so production deploys originate only from merged, passing commits. Treat the Vercel deployment status as an additional required check after the integration creates a stable check name.</li>
     <li>After connection, verify one pull-request preview, merge it, verify the production alias and <code>saycopy.app</code>, then retire manual CLI deployment as the normal path.</li>
@@ -106,8 +106,8 @@
   <table>
     <thead><tr><th>Action</th><th>Required confirmation</th></tr></thead>
     <tbody>
-      <tr><td>Rename the GitHub repository</td><td>Confirm the exact name <code>saycopy</code>.</td></tr>
-      <tr><td>Connect or modify Vercel Git settings and environment targets</td><td>Confirm account-side Vercel changes.</td></tr>
+      <tr><td>Rename the GitHub repository</td><td><strong>Completed:</strong> <code>altitudeinfosys/saycopy</code>.</td></tr>
+      <tr><td>Connect or modify Vercel Git settings and environment targets</td><td><strong>Completed:</strong> authorized in the July 15 launch-completion request.</td></tr>
       <tr><td>Make the repository public</td><td>Final explicit public-visibility confirmation after merged-content review.</td></tr>
     </tbody>
   </table>
