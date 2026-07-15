@@ -120,16 +120,39 @@ module.exports = async function handler(request, response) {
   const allowedTopics = new Set(["Support", "Privacy", "Feedback", "Other"]);
   const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-  if (
-    name.length < 2 ||
-    !validEmail ||
-    !allowedTopics.has(topic) ||
-    message.length < 10 ||
-    !Number.isFinite(startedAt) ||
-    elapsed < 1000 ||
-    elapsed > 24 * 60 * 60 * 1000
-  ) {
-    return sendJson(response, 400, { error: "Please check the form and try again." });
+  if (name.length < 2) {
+    return sendJson(response, 400, {
+      error: "Enter a name with at least 2 characters.",
+      field: "name",
+    });
+  }
+  if (!validEmail) {
+    return sendJson(response, 400, {
+      error: "Enter a valid email address so we can reply.",
+      field: "email",
+    });
+  }
+  if (!allowedTopics.has(topic)) {
+    return sendJson(response, 400, {
+      error: "Select what we can help you with.",
+      field: "topic",
+    });
+  }
+  if (message.length < 10) {
+    return sendJson(response, 400, {
+      error: "Enter a message with at least 10 non-space characters.",
+      field: "message",
+    });
+  }
+  if (!Number.isFinite(startedAt) || elapsed > 24 * 60 * 60 * 1000) {
+    return sendJson(response, 400, {
+      error: "This form has expired. Refresh the page and try again.",
+    });
+  }
+  if (elapsed < 1000) {
+    return sendJson(response, 400, {
+      error: "Please wait a moment, then send your message again.",
+    });
   }
 
   const apiKey = process.env.RESEND_API_KEY;

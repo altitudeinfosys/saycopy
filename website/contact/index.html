@@ -62,34 +62,45 @@
             <div class="form-grid">
               <div class="form-field">
                 <label for="name">Name</label>
-                <input id="name" name="name" type="text" autocomplete="name" minlength="2" maxlength="80" required />
+                <input id="name" name="name" type="text" autocomplete="name" minlength="2" maxlength="80" aria-describedby="name-error" required />
+                <span class="field-error" id="name-error" hidden></span>
               </div>
               <div class="form-field">
                 <label for="email">Email</label>
-                <input id="email" name="email" type="email" autocomplete="email" maxlength="254" required />
+                <input id="email" name="email" type="email" autocomplete="email" maxlength="254" aria-describedby="email-error" required />
+                <span class="field-error" id="email-error" hidden></span>
               </div>
             </div>
 
             <div class="form-field">
               <label for="topic">What can we help with?</label>
-              <select id="topic" name="topic" required>
+              <select id="topic" name="topic" aria-describedby="topic-error" required>
                 <option value="" selected disabled>Select a topic</option>
                 <option value="Support">App support</option>
                 <option value="Privacy">Privacy question</option>
                 <option value="Feedback">Product feedback</option>
                 <option value="Other">Something else</option>
               </select>
+              <span class="field-error" id="topic-error" hidden></span>
             </div>
 
             <div class="form-field">
               <label for="message">Message</label>
-              <textarea id="message" name="message" rows="7" minlength="10" maxlength="4000" required></textarea>
-              <span class="form-hint">Please do not include API keys or other secrets.</span>
+              <textarea id="message" name="message" rows="7" minlength="10" maxlength="4000" aria-describedby="message-hint message-error" required></textarea>
+              <span class="form-hint" id="message-hint">Please do not include API keys or other secrets.</span>
+              <span class="field-error" id="message-error" hidden></span>
+            </div>
+
+            <div class="form-feedback" id="form-feedback" role="status" aria-live="polite" hidden>
+              <span class="form-feedback-icon" id="form-feedback-icon" aria-hidden="true"></span>
+              <div>
+                <strong id="form-feedback-title"></strong>
+                <p id="form-feedback-message"></p>
+              </div>
             </div>
 
             <div class="form-actions">
               <button class="button button-primary" id="submit-button" type="submit">Send message</button>
-              <p class="form-status" id="form-status" role="status" aria-live="polite"></p>
             </div>
           </form>
         </section>
