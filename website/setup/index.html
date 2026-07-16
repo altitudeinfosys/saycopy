@@ -6,7 +6,7 @@
     <title>OpenRouter setup — SayCopy</title>
     <meta
       name="description"
-      content="Set up your OpenRouter API key for SayCopy in a few simple steps."
+      content="Create an OpenRouter key, add it to SayCopy, and choose transcription and translation models with this detailed setup guide."
     />
     <meta name="theme-color" content="#050b1a" />
     <link rel="icon" href="/assets/saycopy-icon.png" />
@@ -31,13 +31,38 @@
 
     <main class="page-main shell">
       <header class="page-header">
-        <p class="eyebrow">Setup guide</p>
+        <p class="eyebrow">About 2 minutes</p>
         <h1>Connect SayCopy to OpenRouter.</h1>
         <p>
           SayCopy does not require its own account. You provide an OpenRouter API key so requests
-          are billed directly to your OpenRouter account.
+          are billed directly to your OpenRouter account, then choose the speech and text models
+          you prefer.
         </p>
+        <div class="actions setup-actions">
+          <a class="button button-primary" href="https://openrouter.ai/" rel="noreferrer">
+            Create an OpenRouter account
+          </a>
+          <a
+            class="button button-secondary"
+            href="https://openrouter.ai/settings/keys"
+            rel="noreferrer"
+          >
+            Open API keys
+          </a>
+        </div>
       </header>
+
+      <section class="content-card setup-intro" aria-labelledby="before-you-start">
+        <h2 id="before-you-start">Before you start</h2>
+        <ul class="check-list">
+          <li>You need an OpenRouter account and a small credit balance.</li>
+          <li>Your key should be created for your use of SayCopy and kept private.</li>
+          <li>
+            SayCopy shows models that can use zero-data-retention routing, but model prices and
+            availability are controlled by OpenRouter.
+          </li>
+        </ul>
+      </section>
 
       <div class="steps">
         <article class="step">
@@ -85,6 +110,18 @@
         <article class="step">
           <span class="step-number">5</span>
           <div>
+            <h2>Choose your preferred models</h2>
+            <p>
+              In Settings, use <strong>Browse transcription models</strong> for speech-to-text and
+              <strong>Browse translation models</strong> for translation and cleanup. These are
+              separate because the two jobs use different kinds of models. If you are unsure, tap
+              <strong>Use recommended defaults</strong>.
+            </p>
+          </div>
+        </article>
+        <article class="step">
+          <span class="step-number">6</span>
+          <div>
             <h2>Record, then copy or share</h2>
             <p>
               Return to Record, choose Transcribe or Translate, and speak. When the result is ready,
@@ -93,6 +130,45 @@
           </div>
         </article>
       </div>
+
+      <section class="setup-grid" aria-label="OpenRouter setup details">
+        <article class="content-card">
+          <h2>Why are there two model choices?</h2>
+          <p>
+            Transcription models listen to audio and return text. Translation and cleanup models
+            receive that text and improve or translate it. A model may support one job without
+            supporting the other, so SayCopy keeps the choices separate.
+          </p>
+        </article>
+        <article class="content-card">
+          <h2>What does it cost?</h2>
+          <p>
+            SayCopy does not add a model subscription. OpenRouter charges your account according to
+            the models you select and shows usage in its activity dashboard. Start with a small
+            balance and spending limit until you understand your normal usage.
+          </p>
+        </article>
+      </section>
+
+      <section class="content-card content-card-spaced">
+        <h2>Troubleshooting</h2>
+        <h3>The token is not accepted</h3>
+        <p>
+          Copy the complete key again from OpenRouter, make sure no spaces were added, and confirm
+          the key has not been disabled or limited to different models.
+        </p>
+        <h3>A selected model does not run</h3>
+        <p>
+          Return to Settings and select the model from the appropriate in-app OpenRouter list.
+          Availability can change, and an account or key-level model restriction can also prevent
+          routing.
+        </p>
+        <h3>A request says payment is required</h3>
+        <p>
+          Check your OpenRouter balance and key spending limit. SayCopy cannot add credits or change
+          limits on your behalf.
+        </p>
+      </section>
 
       <section class="content-card content-card-spaced">
         <h2>Keep your key private</h2>
