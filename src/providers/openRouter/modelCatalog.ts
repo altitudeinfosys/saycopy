@@ -4,6 +4,7 @@ export type OpenRouterCatalogModel = {
 };
 
 export type OpenRouterModelCatalog = {
+  listTranscriptionModels(): Promise<readonly OpenRouterCatalogModel[]>;
   listTextModels(): Promise<readonly OpenRouterCatalogModel[]>;
 };
 
@@ -14,17 +15,27 @@ type FetchResponse = {
 
 type FetchLike = (url: string) => Promise<FetchResponse>;
 
-const MODELS_URL = 'https://openrouter.ai/api/v1/models?output_modalities=text&sort=most-popular';
+const TRANSCRIPTION_MODELS_URL =
+  'https://openrouter.ai/api/v1/models?output_modalities=transcription&sort=most-popular&zdr=true';
+const TEXT_MODELS_URL =
+  'https://openrouter.ai/api/v1/models?output_modalities=text&sort=most-popular&zdr=true';
+
 export function createOpenRouterModelCatalog(fetchImpl: FetchLike = fetch): OpenRouterModelCatalog {
   return {
+    async listTranscriptionModels() {
+      return listModels(fetchImpl, TRANSCRIPTION_MODELS_URL);
+    },
     async listTextModels() {
-      return listModels(fetchImpl);
+      return listModels(fetchImpl, TEXT_MODELS_URL);
     },
   };
 }
 
-async function listModels(fetchImpl: FetchLike): Promise<readonly OpenRouterCatalogModel[]> {
-  const response = await fetchImpl(MODELS_URL);
+async function listModels(
+  fetchImpl: FetchLike,
+  modelsUrl: string,
+): Promise<readonly OpenRouterCatalogModel[]> {
+  const response = await fetchImpl(modelsUrl);
   if (!response.ok) {
     throw new Error('Could not load OpenRouter models.');
   }

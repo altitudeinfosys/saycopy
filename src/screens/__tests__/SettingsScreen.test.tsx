@@ -300,15 +300,19 @@ describe('SettingsScreen', () => {
     expect(screen.getByText('Recommended transcription models')).toBeTruthy();
     expect(screen.getByText('Translation and cleanup model')).toBeTruthy();
     expect(screen.getByText('openai/gpt-4.1-mini')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Browse OpenRouter transcription models' })).toBeNull();
+    expect(
+      screen.getByRole('button', { name: 'Browse OpenRouter transcription models' }),
+    ).toBeTruthy();
 
-    fireEvent.press(screen.getByRole('button', { name: 'Recommended transcription model Best Quality' }));
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Recommended transcription model Alternative' }),
+    );
 
     await waitFor(() => {
-      expect(settingsRepository.settings.transcriptionModelId).toBe('openai/gpt-4o-transcribe');
+      expect(settingsRepository.settings.transcriptionModelId).toBe('google/chirp-3');
     });
     expect(settingsRepository.saveSettings).toHaveBeenCalledWith({
-      transcriptionModelId: 'openai/gpt-4o-transcribe',
+      transcriptionModelId: 'google/chirp-3',
     });
 
     fireEvent.press(screen.getByRole('button', { name: 'Recommended model Fast' }));
@@ -379,6 +383,7 @@ describe('SettingsScreen', () => {
 
   it('loads, searches, and activates a translation model selected from OpenRouter', async () => {
     const modelCatalog: OpenRouterModelCatalog = {
+      listTranscriptionModels: jest.fn(async () => []),
       listTextModels: jest.fn(async () => [
         { id: 'google/gemini-3.1-flash-lite', name: 'Gemini Flash Lite' },
         { id: 'anthropic/claude-sonnet-4.6', name: 'Claude Sonnet 4.6' },
@@ -403,6 +408,61 @@ describe('SettingsScreen', () => {
       });
     });
     expect(screen.queryByLabelText('Search OpenRouter translation models')).toBeNull();
+  });
+
+  it('loads, searches, and activates a transcription model selected from OpenRouter', async () => {
+    const modelCatalog: OpenRouterModelCatalog = {
+      listTranscriptionModels: jest.fn(async () => [
+        { id: 'openai/whisper-large-v3', name: 'Whisper Large V3' },
+        { id: 'google/chirp-3', name: 'Chirp 3' },
+      ]),
+      listTextModels: jest.fn(async () => []),
+    };
+    const { settingsRepository } = renderSettingsScreen({ modelCatalog });
+
+    await screen.findByText('Transcription model');
+    fireEvent.press(screen.getByRole('button', { name: 'Browse OpenRouter transcription models' }));
+
+    expect(await screen.findByText('Chirp 3')).toBeTruthy();
+    fireEvent.changeText(screen.getByLabelText('Search OpenRouter transcription models'), 'whisper');
+    expect(screen.queryByText('Chirp 3')).toBeNull();
+
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Transcription model openai/whisper-large-v3' }),
+    );
+
+    await waitFor(() => {
+      expect(settingsRepository.saveSettings).toHaveBeenCalledWith({
+        transcriptionModelId: 'openai/whisper-large-v3',
+      });
+    });
+    expect(screen.queryByLabelText('Search OpenRouter transcription models')).toBeNull();
+  });
+
+  it('restores both model selections to the recommended defaults', async () => {
+    const settingsRepository = new MemorySettingsRepository({
+      ...DEFAULT_APP_SETTINGS,
+      transcriptionModelId: 'google/chirp-3',
+      customModelId: 'aion-labs/aion-2.0',
+      modelPresetId: 'best_quality',
+    });
+    renderSettingsScreen({ settingsRepository });
+
+    await screen.findByText('AI model choices');
+    fireEvent.press(screen.getByRole('button', { name: 'Use recommended model defaults' }));
+
+    await waitFor(() => {
+      expect(settingsRepository.saveSettings).toHaveBeenCalledWith({
+        transcriptionModelId: 'openai/whisper-large-v3',
+        customModelId: '',
+        modelPresetId: 'balanced',
+      });
+      expect(settingsRepository.settings).toMatchObject({
+        transcriptionModelId: 'openai/whisper-large-v3',
+        customModelId: '',
+        modelPresetId: 'balanced',
+      });
+    });
   });
 
 

@@ -21,12 +21,12 @@ export const TRANSCRIPTION_MODEL_RECOMMENDATIONS = [
     modelId: 'openai/whisper-large-v3-turbo',
   },
   {
-    label: 'Balanced',
+    label: 'Recommended',
     modelId: DEFAULT_TRANSCRIPTION_MODEL_ID,
   },
   {
-    label: 'Best Quality',
-    modelId: 'openai/gpt-4o-transcribe',
+    label: 'Alternative',
+    modelId: 'google/chirp-3',
   },
 ] as const satisfies readonly TranscriptionModelRecommendation[];
 
