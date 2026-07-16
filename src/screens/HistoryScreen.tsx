@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { BackHandler, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { getHistoryPrimaryText, type HistoryItem, type Tag } from '../domain/history';
 import type { HistoryRepository } from '../storage/sqlite/historyRepository';
@@ -94,6 +94,20 @@ export default function HistoryScreen({ repository, onOpenItem }: HistoryScreenP
       setIsLoading(false);
     }
   }, [query, repository, selectedTag]);
+
+  useEffect(() => {
+    if (!selectedHistoryItemId || onOpenItem) {
+      return undefined;
+    }
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      setSelectedHistoryItemId(null);
+      void loadHistoryItems();
+      return true;
+    });
+
+    return () => subscription.remove();
+  }, [loadHistoryItems, onOpenItem, selectedHistoryItemId]);
 
   useEffect(() => {
     let isActive = true;

@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { BackHandler } from 'react-native';
 
 import { AppShell } from './App';
 import { createRecordFlowProcessors, type AppDependencies } from './runtime/appDependencies';
@@ -80,5 +81,31 @@ describe('App shell', () => {
 
     expect(await screen.findByText('OpenRouter token missing')).toBeTruthy();
     expect(screen.getByText('Recording defaults')).toBeTruthy();
+  });
+
+  it('returns to Record from another tab when Android back is pressed', async () => {
+    let hardwareBackHandler: Parameters<typeof BackHandler.addEventListener>[1] | undefined;
+    const remove = jest.fn();
+    const backHandlerSpy = jest
+      .spyOn(BackHandler, 'addEventListener')
+      .mockImplementation((_eventName, handler) => {
+        hardwareBackHandler = handler;
+        return { remove };
+      });
+
+    try {
+      render(<AppShell dependencies={createTestAppDependencies()} />);
+      fireEvent.press(screen.getByRole('tab', { name: 'Settings' }));
+      expect(await screen.findByText('OpenRouter token missing')).toBeTruthy();
+
+      act(() => {
+        expect(hardwareBackHandler?.({} as never)).toBe(true);
+      });
+
+      expect(await screen.findByText('Tap to record')).toBeTruthy();
+      expect(remove).toHaveBeenCalled();
+    } finally {
+      backHandlerSpy.mockRestore();
+    }
   });
 });

@@ -2,10 +2,12 @@ const appConfig = require('../../app.json') as {
   readonly expo: {
     readonly name?: string;
     readonly android?: {
+      readonly allowBackup?: boolean;
       readonly adaptiveIcon?: {
         readonly backgroundColor?: string;
         readonly foregroundImage?: string;
       };
+      readonly blockedPermissions?: readonly string[];
       readonly package?: string;
       readonly versionCode?: number;
     };
@@ -36,22 +38,29 @@ const easConfig = require('../../eas.json') as {
 };
 
 describe('Expo app config', () => {
-  it('uses the SayCopy product name without changing the existing application identity', () => {
+  it('uses the SayCopy product name and confirmed Android application identity', () => {
     expect(appConfig.expo.name).toBe('SayCopy');
-    expect(appConfig.expo.android?.package).toBe('com.tarekalaaddin.tarekwisper');
+    expect(appConfig.expo.android?.package).toBe('com.altitudeinfosys.saycopy');
   });
 
   it('declares Android application identity and adaptive icon metadata', () => {
     expect(appConfig.expo.android).toEqual(
       expect.objectContaining({
-        package: 'com.tarekalaaddin.tarekwisper',
-        versionCode: 1,
+        allowBackup: false,
+        blockedPermissions: expect.arrayContaining([
+          'android.permission.FOREGROUND_SERVICE',
+          'android.permission.READ_EXTERNAL_STORAGE',
+          'android.permission.SYSTEM_ALERT_WINDOW',
+          'android.permission.WRITE_EXTERNAL_STORAGE',
+        ]),
+        package: 'com.altitudeinfosys.saycopy',
         adaptiveIcon: {
           foregroundImage: './assets/icon.png',
           backgroundColor: '#F8FAFC',
         },
       }),
     );
+    expect(appConfig.expo.android?.versionCode).toBeUndefined();
   });
 
   it('keeps Android audio recording permission explicit in the audio plugin config', () => {

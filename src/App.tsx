@@ -1,6 +1,14 @@
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import {
+  BackHandler,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import RecordScreen from './screens/RecordScreen';
@@ -23,6 +31,19 @@ export default function App() {
 export function AppShell({ dependencies: injectedDependencies }: AppProps = {}) {
   const [activeTab, setActiveTab] = useState<AppTab>('Record');
   const [dependencies] = useState(() => injectedDependencies ?? createAppDependencies());
+
+  useEffect(() => {
+    if (activeTab === 'Record') {
+      return undefined;
+    }
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      setActiveTab('Record');
+      return true;
+    });
+
+    return () => subscription.remove();
+  }, [activeTab]);
 
   return (
     <SafeAreaProvider>
