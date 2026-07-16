@@ -59,7 +59,8 @@
             <tr><td>Repository baseline</td><td><span class="status pass">Verified</span></td><td>Feature branch <code>codex/google-play-launch</code> started clean from <code>origin/main</code> at <code>a10247d</code>.</td></tr>
             <tr><td>Permanent Android application ID</td><td><span class="status pass">Confirmed</span></td><td><code>com.altitudeinfosys.saycopy</code> was explicitly confirmed on July 16, 2026 before the first Play app or artifact upload. The iOS bundle ID remains unchanged.</td></tr>
             <tr><td>Play Console organization access</td><td><span class="status pass">Verified</span></td><td>Authenticated account is the existing Altitude Information Systems LLC organization account. Organization details, D-U-N-S-backed identity data, and a verified organization website are present. The Console exposes Android package registration and already shows two registered packages.</td></tr>
-            <tr><td>Production Android App Bundle</td><td><span class="status pending">Not built</span></td><td>Build only after application-ID confirmation. Use the EAS <code>production</code> profile, which emits an AAB and auto-increments the remote Android version code.</td></tr>
+            <tr><td>Play Console app</td><td><span class="status pass">Created</span></td><td>SayCopy was created in the Altitude Information Systems LLC Play Console account on July 16, 2026 with package <code>com.altitudeinfosys.saycopy</code>, type App, and free pricing. Google confirmed the package name was available before creation.</td></tr>
+            <tr><td>Production Android App Bundle</td><td><span class="status pending">Queued</span></td><td>EAS production build <code>b4fdb446-1de7-4266-ad86-737bf6121929</code> is queued with version <code>1.0.0</code>, version code <code>2</code>, SDK 57, store distribution, and the confirmed package ID. EAS created the Android upload keystore; verify the completed AAB before Play upload.</td></tr>
             <tr><td>Physical Android device</td><td><span class="status pending">Unavailable</span></td><td>No physical device was connected during the audit. Complete a release smoke test on at least one real arm64 phone before production submission if one becomes available.</td></tr>
             <tr><td>Final production submission</td><td><span class="status blocked">Action confirmation required</span></td><td>Present a final preflight after every Play form and the selected AAB are complete, then obtain explicit confirmation immediately before sending for Google review.</td></tr>
           </tbody>
@@ -74,7 +75,7 @@
             <tr><td>Product/version</td><td>Expo name <strong>SayCopy</strong>, version <code>1.0.0</code>. EAS remote Android version code is currently <code>1</code>; production auto-increment should make the first new production build <code>2</code>. Apple build 4 is independent and must not be changed.</td><td><span class="status pass">Ready</span></td></tr>
             <tr><td>SDK levels</td><td>Expo SDK 57 / React Native 0.86 generate Android min SDK 24, target SDK 36, and compile SDK 36. This meets the Google Play requirement for new apps effective August 31, 2026.</td><td><span class="status pass">Ready</span></td></tr>
             <tr><td>64-bit/device compatibility</td><td>The branch's local release APK contains <code>arm64-v8a</code>, <code>armeabi-v7a</code>, <code>x86</code>, and <code>x86_64</code>. The production AAB will let Play deliver ABI-specific splits. Portrait phone UI is supported; tablets are not being claimed for launch.</td><td><span class="status pass">Ready</span></td></tr>
-            <tr><td>Signing</td><td>EAS credentials should hold the upload keystore. At first Play upload, enroll in Play App Signing so Google holds the app-signing key while the EAS key remains the upload key. Preserve both credential records.</td><td><span class="status pending">Console step</span></td></tr>
+            <tr><td>Signing</td><td>EAS created and securely stores the Android upload keystore for the production build. At first Play upload, enroll in Play App Signing so Google holds the app-signing key while the EAS key remains the upload key. Preserve both credential records.</td><td><span class="status pending">AAB upload step</span></td></tr>
             <tr><td>Permissions</td><td>Required production permissions are <code>INTERNET</code>, <code>RECORD_AUDIO</code>, and <code>MODIFY_AUDIO_SETTINGS</code>. Background service, storage, overlay, vibration, wake-lock, network-state, and biometric permissions are explicitly blocked because the app does not use those capabilities.</td><td><span class="status pass">Hardened</span></td></tr>
             <tr><td>Microphone disclosure</td><td>The Android runtime prompt names SayCopy and explains transcription/translation. Recording starts only after user action. Denial produces the in-app error “Microphone permission is required to record.”</td><td><span class="status pass">Verified</span></td></tr>
             <tr><td>Network security</td><td>Production requests use <code>https://openrouter.ai</code>. No cleartext endpoint or custom trust override was found. The app sends only user-requested processing traffic and does not contain a shared provider key.</td><td><span class="status pass">Ready</span></td></tr>
@@ -111,7 +112,7 @@
         <h2>Google Play listing copy</h2>
         <h3>App name (7/30)</h3>
         <div class="copy">SayCopy</div>
-        <h3>Short description (69/80)</h3>
+        <h3>Short description (70/80)</h3>
         <div class="copy">Transcribe and translate voice notes with your own OpenRouter API key.</div>
         <h3>Full description</h3>
         <div class="copy">SayCopy turns short voice recordings into text you can edit, copy, share, and keep in a local history.
@@ -192,7 +193,7 @@ The review key is limited and may be revoked after review. If it does not work, 
             <tr><td>Play icon</td><td>512×512, 32-bit PNG, alpha permitted, at most 1 MB. The approved SayCopy icon is preserved exactly at <code>assets/saycopy-play-icon-512.png</code>.</td><td><span class="status pass">Ready</span></td></tr>
             <tr><td>Feature graphic</td><td>1024×500, 8-bit RGB PNG without alpha at <code>assets/saycopy-feature-graphic-1024x500.png</code>. It uses the approved mark, brand colors, and edge-safe copy.</td><td><span class="status pass">Ready</span></td></tr>
             <tr><td>Phone screenshots</td><td>At least two; target four polished 1080×1920 portrait PNG/JPEG screenshots: Record, processed result, History, and Settings/translation. No secret key may be visible.</td><td><span class="status pending">Final build needed</span></td></tr>
-            <tr><td>Tablet screenshots</td><td>Do not upload at launch unless tablet support is deliberately enabled and tested.</td><td><span class="status pass">Out of scope</span></td></tr>
+            <tr><td>Tablet screenshots</td><td>Play Console currently marks 7-inch and 10-inch tablet screenshot groups as required. Upload only after the final package is tested on representative tablet sizes; do not reuse stretched phone screenshots.</td><td><span class="status pending">Final build and tablet test needed</span></td></tr>
           </tbody>
         </table>
       </section>
@@ -202,8 +203,13 @@ The review key is limited and may be revoked after review. If it does not work, 
         <ol>
           <li><strong>Complete:</strong> permanent Android application ID confirmed as <code>com.altitudeinfosys.saycopy</code>.</li>
           <li><strong>Complete:</strong> Play Console login confirms an existing organization account with D-U-N-S-backed identity details, a verified organization website, and Android package-name registration enabled.</li>
-          <li>Create the Play app only after confirming the organization developer identity and application ID.</li>
-          <li>Build the production AAB with EAS, verify package/version/SDK/signature/permissions, and archive its checksum.</li>
+          <li><strong>Complete:</strong> Play Console app created after the owner confirmed the Developer Program Policies and U.S. export-law certifications.</li>
+          <li><strong>Complete:</strong> privacy URL, no-ads, non-government, no-financial-features, no-health-features, and no-advertising-ID declarations saved.</li>
+          <li><strong>Complete:</strong> Productivity category, Audio recorder / Notebook / Productivity tags, public support email and website, and listing descriptions saved. Icon, feature graphic, and final screenshots remain to upload.</li>
+          <li><strong>Draft complete:</strong> Data safety declares encrypted-in-transit collection of User IDs, voice or sound recordings, and other user-generated content for app functionality; no data sharing and no SayCopy account. The form cannot be finalized until Target audience is complete.</li>
+          <li><strong>In progress:</strong> EAS production AAB queued as version <code>1.0.0</code> / code <code>2</code>; verify package/version/SDK/signature/permissions and archive its checksum when complete.</li>
+          <li><strong>Owner action required:</strong> authorize the IARC Terms of Service before starting the content-rating questionnaire.</li>
+          <li><strong>Credential required:</strong> create a fresh, low-limit OpenRouter reviewer key, copy it locally, and explicitly authorize transmitting it to Google Play. Never reuse a key exposed in chat.</li>
           <li>Enroll in Play App Signing and upload the AAB to internal testing first.</li>
           <li>Install the Play-delivered internal build and repeat the production test matrix.</li>
           <li>Complete Store listing, Main store listing, App content, Data safety, Content rating, Target audience, App access, Ads, policy declarations, pricing, and country distribution.</li>
