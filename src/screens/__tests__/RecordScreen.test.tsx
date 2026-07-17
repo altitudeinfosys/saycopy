@@ -22,7 +22,11 @@ import {
   createDemoHistoryRepository,
   createDemoSettingsRepository,
 } from '../../storage/demoAppRepositories';
-import type { AppSettings, SettingsRepository } from '../../storage/settingsRepository';
+import {
+  DEFAULT_APP_SETTINGS,
+  type AppSettings,
+  type SettingsRepository,
+} from '../../storage/settingsRepository';
 import type {
   CreateHistoryItemInput,
   HistoryRepository,
@@ -604,6 +608,30 @@ describe('RecordScreen', () => {
         { isCurrent: expect.any(Function) },
       );
     });
+  });
+
+  it('explains the reliable Whisper fallback for Auto with an explicit-language model', async () => {
+    const settingsRepository = createSettingsRepositoryMock({
+      ...DEFAULT_APP_SETTINGS,
+      sourceLanguageId: 'auto',
+      transcriptionModelId: 'deepgram/nova-3',
+    });
+
+    render(
+      <RecordScreen
+        recordingController={createInjectedRecordingController()}
+        settingsRepository={settingsRepository}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText('Source: Auto-detect')).toBeTruthy());
+    expandRecordingOptions();
+
+    expect(
+      screen.getByText(
+        'Auto-detect uses Whisper Large V3 because deepgram/nova-3 requires a specific language.',
+      ),
+    ).toBeTruthy();
   });
 
   it('blocks voice recording until saved settings finish loading', async () => {

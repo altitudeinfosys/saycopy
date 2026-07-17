@@ -2,6 +2,7 @@ import {
   getTranscriptionLanguageBadge,
   getTranscriptionLanguageSupport,
   isKnownCompatibleTranscriptionModel,
+  resolveTranscriptionModelId,
 } from '../transcriptionModelLanguages';
 
 describe('transcription model language support', () => {
@@ -27,12 +28,25 @@ describe('transcription model language support', () => {
     );
   });
 
-  it('summarizes verified coverage when source language is auto-detect', () => {
+  it('distinguishes models that can auto-detect all supported app languages', () => {
     expect(getTranscriptionLanguageBadge('openai/whisper-large-v3', 'auto')).toBe(
-      'English · Spanish · Arabic',
+      'Auto-detect supported',
     );
-    expect(getTranscriptionLanguageBadge('nvidia/parakeet-tdt-0.6b-v3', 'auto')).toBe(
-      'English · Spanish',
+    expect(getTranscriptionLanguageBadge('deepgram/nova-3', 'auto')).toBe('Choose a language');
+    expect(isKnownCompatibleTranscriptionModel('deepgram/nova-3', 'auto')).toBe(false);
+    expect(isKnownCompatibleTranscriptionModel('provider/future-model', 'auto')).toBe(false);
+  });
+
+  it('falls back to Whisper for auto-detect with an incompatible or unverified model', () => {
+    expect(resolveTranscriptionModelId('deepgram/nova-3', 'auto')).toBe(
+      'openai/whisper-large-v3',
+    );
+    expect(resolveTranscriptionModelId('provider/future-model', 'auto')).toBe(
+      'openai/whisper-large-v3',
+    );
+    expect(resolveTranscriptionModelId('deepgram/nova-3', 'arabic')).toBe('deepgram/nova-3');
+    expect(resolveTranscriptionModelId('microsoft/mai-transcribe-1.5', 'auto')).toBe(
+      'microsoft/mai-transcribe-1.5',
     );
   });
 });

@@ -375,8 +375,12 @@ export default function SettingsScreen({
 
     const sourceLanguageId = settingsRef.current?.sourceLanguageId ?? 'auto';
     if (!isKnownCompatibleTranscriptionModel(transcriptionModelId, sourceLanguageId)) {
+      const message =
+        sourceLanguageId === 'auto'
+          ? `${transcriptionModelId} is not verified for automatic English, Spanish, and Arabic detection. Choose a language or an Auto-compatible model.`
+          : `${transcriptionModelId} does not support ${getLanguageLabel(sourceLanguageId)}. Choose another transcription model.`;
       setErrorText(
-        `${transcriptionModelId} does not support ${getLanguageLabel(sourceLanguageId)}. Choose another transcription model.`,
+        message,
       );
       return;
     }
@@ -420,6 +424,25 @@ export default function SettingsScreen({
   async function handleSelectRecommendedModel(modelPresetId: ModelPresetId) {
     setCustomModelInput('');
     await saveSetting({ customModelId: '', modelPresetId });
+  }
+
+  async function handleSelectSourceLanguage(sourceLanguageId: LanguageId) {
+    const currentTranscriptionModelId = settingsRef.current?.transcriptionModelId;
+
+    if (
+      sourceLanguageId === 'auto' &&
+      currentTranscriptionModelId &&
+      !isKnownCompatibleTranscriptionModel(currentTranscriptionModelId, sourceLanguageId)
+    ) {
+      setTranscriptionModelInput(DEFAULT_TRANSCRIPTION_MODEL_ID);
+      await saveSetting({
+        sourceLanguageId,
+        transcriptionModelId: DEFAULT_TRANSCRIPTION_MODEL_ID,
+      });
+      return;
+    }
+
+    await saveSetting({ sourceLanguageId });
   }
 
   async function handleToggleTranslationModelPicker() {
@@ -641,6 +664,12 @@ export default function SettingsScreen({
         <Text style={styles.modelHelp}>
           Checking compatibility for: {getLanguageLabel(settings.sourceLanguageId)}
         </Text>
+        {settings.sourceLanguageId === 'auto' ? (
+          <Text style={styles.modelHelp}>
+            Auto-detect is limited to models verified to recognize English, Spanish, and Arabic
+            without a language hint. Models that require an explicit language are hidden.
+          </Text>
+        ) : null}
         {selectedTranscriptionSupport === 'unsupported' ? (
           <Text accessibilityRole="alert" style={styles.warningText}>
             The active model does not support {getLanguageLabel(settings.sourceLanguageId)}.
@@ -690,8 +719,9 @@ export default function SettingsScreen({
         <View style={styles.controlGroup}>
           <Text style={styles.controlLabel}>Choose from OpenRouter</Text>
           <Text style={styles.modelHelp}>
-            Models known not to support {getLanguageLabel(settings.sourceLanguageId)} are hidden.
-            New or unverified models remain available with a warning.
+            {settings.sourceLanguageId === 'auto'
+              ? 'Only models verified for automatic English, Spanish, and Arabic detection are shown.'
+              : `Models known not to support ${getLanguageLabel(settings.sourceLanguageId)} are hidden. New or unverified models remain available with a warning.`}
           </Text>
           <Pressable
             accessibilityLabel="Browse OpenRouter transcription models"
@@ -913,7 +943,9 @@ export default function SettingsScreen({
                 key={language.id}
                 accessibilityLabel={`Default source language ${language.label}`}
                 label={language.label}
-                onSelect={(sourceLanguageId: LanguageId) => void saveSetting({ sourceLanguageId })}
+                onSelect={(sourceLanguageId: LanguageId) =>
+                  void handleSelectSourceLanguage(sourceLanguageId)
+                }
                 selected={settings.sourceLanguageId === language.id}
                 value={language.id}
               />

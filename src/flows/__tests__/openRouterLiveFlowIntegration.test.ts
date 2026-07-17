@@ -130,6 +130,38 @@ describe('OpenRouter live flow integration with mocked fetch', () => {
     );
   });
 
+  it('uses Whisper for Auto when the selected model requires an explicit language', async () => {
+    const fetchImpl = createFetchMock(jsonResponse({ text: 'مرحبا بالعالم' }));
+    const historyRepository = createHistoryRepository();
+    const provider = createProvider({ fetchImpl });
+
+    const result = await runTranscriptionFlow(
+      { provider, historyRepository },
+      {
+        audio: {
+          uri: 'file:///tmp/openrouter-auto.m4a',
+          base64Audio: 'BASE64_AUDIO_PAYLOAD',
+          format: 'm4a',
+        },
+        sourceLanguageId: 'auto',
+        transcriptionModelId: 'deepgram/nova-3',
+        modelPresetId: 'balanced',
+        cleanupEnabled: false,
+      },
+    );
+
+    expect(result).toMatchObject({ status: 'success', transcript: 'مرحبا بالعالم' });
+    expect(fetchImpl).toHaveBeenCalledWith(
+      'https://openrouter.test/api/v1/audio/transcriptions',
+      expect.objectContaining({
+        body: expect.stringContaining('"model":"openai/whisper-large-v3"'),
+      }),
+    );
+    expect(historyRepository.createHistoryItem).toHaveBeenCalledWith(
+      expect.objectContaining({ sttModelId: 'openai/whisper-large-v3' }),
+    );
+  });
+
   it('runs successful manual translation through OpenRouter and saves text-only history', async () => {
     const fetchImpl = createFetchMock(
       jsonResponse({ choices: [{ message: { content: 'Buenos dias.' } }] }),

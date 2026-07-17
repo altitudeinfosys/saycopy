@@ -137,7 +137,8 @@ describe('runTranscriptionFlow', () => {
       transcript: 'raw transcript without cleanup',
       notice: {
         code: 'cleanup_failed',
-        message: 'Cleanup failed. Showing the raw transcript.',
+        message:
+          'Cleanup failed: OpenRouter is temporarily unavailable. Showing the raw transcript.',
       },
       historyItem: {
         id: 'history-raw',

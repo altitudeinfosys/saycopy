@@ -1,4 +1,5 @@
 import { getEffectiveChatModelId } from '../../domain/modelPresets';
+import { resolveTranscriptionModelId } from '../../domain/transcriptionModelLanguages';
 import type {
   FlowCleanupTranscriptInput,
   FlowTextResult,
@@ -14,8 +15,6 @@ import {
   buildTranslationChatRequest,
 } from './requests';
 
-const WHISPER_MODEL_ID = 'openai/whisper-large-v3';
-
 export type OpenRouterProvider = TranscriptionProvider & TranslationProvider;
 
 export type OpenRouterProviderOptions = {
@@ -26,18 +25,22 @@ export function createOpenRouterProvider({
   client,
 }: OpenRouterProviderOptions): OpenRouterProvider {
   async function transcribeAudio(input: FlowTranscribeAudioInput): Promise<FlowTextResult> {
+    const modelId = resolveTranscriptionModelId(
+      input.transcriptionModelId,
+      input.sourceLanguageId,
+    );
     const result = await client.requestTranscription(
       buildTranscriptionRequest({
         base64Audio: input.audio.base64Audio,
         format: input.audio.format,
         languageId: input.sourceLanguageId,
-        modelId: input.transcriptionModelId,
+        modelId,
       }),
     );
 
     return {
       text: result.text,
-      modelId: input.transcriptionModelId ?? WHISPER_MODEL_ID,
+      modelId,
     };
   }
 
