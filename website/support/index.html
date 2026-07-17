@@ -3,8 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Support — SayCopy</title>
-    <meta name="description" content="Help and contact information for the SayCopy iOS app." />
+    <title>Help &amp; FAQ — SayCopy</title>
+    <meta
+      name="description"
+      content="Understand SayCopy language detection, transcription models, translation, cleanup, privacy, and common troubleshooting steps."
+    />
     <meta name="theme-color" content="#050b1a" />
     <link rel="icon" href="/assets/saycopy-icon.png" />
     <link rel="canonical" href="https://saycopy.app/support" />
@@ -28,53 +31,216 @@
 
     <main class="page-main shell">
       <header class="page-header">
-        <p class="eyebrow">SayCopy support</p>
-        <h1>Simple answers when something gets in the way.</h1>
+        <p class="eyebrow">Help &amp; FAQ</p>
+        <h1>Know exactly what SayCopy is doing.</h1>
         <p>
-          Start with the quick checks below. If the problem continues, send us a message and we will help.
+          Learn which model handles your recording, how Auto-detect works, what Light cleanup
+          changes, and what to check when a result is not what you expected.
         </p>
       </header>
 
-      <div class="content-stack">
-        <section class="content-card">
-          <h2>Contact support</h2>
-          <p>
-            Use the <a href="/contact">SayCopy contact form</a>. Include your iPhone model, iOS
-            version, what you were trying to do, and the exact error message if one appeared.
+      <nav class="content-card help-index" aria-label="Help topics">
+        <h2>Jump to a topic</h2>
+        <div class="help-links">
+          <a href="#language">Recording language</a>
+          <a href="#models">Model choices</a>
+          <a href="#cleanup">Cleanup and translation</a>
+          <a href="#faq">Common questions</a>
+          <a href="#troubleshooting">Troubleshooting</a>
+        </div>
+      </nav>
+
+      <div class="content-stack help-stack">
+        <section class="content-card" id="language">
+          <p class="section-kicker">Start here</p>
+          <h2>Choose how SayCopy handles the recording language</h2>
+          <div class="choice-grid">
+            <article class="choice-card">
+              <span class="choice-label">Auto-detect</span>
+              <h3>SayCopy identifies the spoken language for you.</h3>
+              <p>
+                Auto-detect uses <strong>GPT-4o Transcribe</strong> as a dedicated engine. It is
+                designed to return the transcript in the language you spoke instead of translating
+                it into English.
+              </p>
+            </article>
+            <article class="choice-card">
+              <span class="choice-label">English, Spanish, or Arabic</span>
+              <h3>Your preferred transcription model is used.</h3>
+              <p>
+                Choose a language when you want SayCopy to send a language hint to your preferred
+                model, such as Deepgram Nova-3, Whisper, Chirp, MAI, or another compatible model.
+              </p>
+            </article>
+          </div>
+          <p class="note">
+            Selecting Auto-detect does not erase or replace your preferred model. In Settings you
+            may see both <strong>Preferred: deepgram/nova-3</strong> and
+            <strong>Auto engine: openai/gpt-4o-transcribe</strong>. That is expected.
           </p>
-          <p class="note">Never include your OpenRouter API key in a support email or screenshot.</p>
         </section>
 
-        <section class="content-card">
-          <h2>“OpenRouter token missing”</h2>
+        <section class="content-card" id="models">
+          <p class="section-kicker">The model map</p>
+          <h2>SayCopy separates three different jobs</h2>
+          <dl class="model-map">
+            <div>
+              <dt>Preferred transcription model</dt>
+              <dd>
+                Converts speech into text when you explicitly select English, Spanish, or Arabic.
+                You can choose it from the OpenRouter transcription-model list.
+              </dd>
+            </div>
+            <div>
+              <dt>Auto-detect engine</dt>
+              <dd>
+                Detects and transcribes the spoken language when Recording language is set to
+                Auto-detect. This is currently GPT-4o Transcribe and is independent of the preferred
+                model.
+              </dd>
+            </div>
+            <div>
+              <dt>Text-processing model</dt>
+              <dd>
+                Works after speech-to-text. It handles every translation and, when enabled, Light
+                cleanup. The Fast, Balanced, and Best Quality presets apply to this step.
+              </dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="content-card" id="cleanup">
+          <p class="section-kicker">After transcription</p>
+          <h2>Light cleanup is not translation</h2>
+          <div class="choice-grid">
+            <article class="choice-card">
+              <span class="choice-label">Light cleanup on</span>
+              <p>
+                A text model improves punctuation, capitalization, spacing, obvious filler, and
+                small transcription artifacts. It must preserve the original language and script.
+              </p>
+            </article>
+            <article class="choice-card">
+              <span class="choice-label">Light cleanup off</span>
+              <p>
+                SayCopy shows the raw speech-to-text result and skips the second model call. This is
+                useful when comparing the original transcript with a cleaned result.
+              </p>
+            </article>
+          </div>
           <p>
-            Follow the <a href="/setup">OpenRouter setup guide</a>, then paste your key into SayCopy
-            Settings and tap <strong>Save token</strong>.
+            SayCopy changes languages only in <strong>Translate</strong> mode. In that mode, speech
+            is transcribed first and then the text-processing model translates it into the target
+            language you selected.
+          </p>
+        </section>
+
+        <section class="content-card" id="faq">
+          <p class="section-kicker">Common questions</p>
+          <h2>Frequently asked questions</h2>
+          <div class="faq-list">
+            <details>
+              <summary>I selected Deepgram. Why does Auto-detect show GPT-4o Transcribe?</summary>
+              <p>
+                Deepgram remains your preferred model and is used when you select English, Spanish,
+                or Arabic. Auto-detect uses a dedicated engine because providers expose different
+                language-detection controls, and omitting a language does not behave consistently
+                across all of them.
+              </p>
+            </details>
+            <details>
+              <summary>Can I keep Whisper, Chirp, MAI, or NVIDIA selected?</summary>
+              <p>
+                Yes. Any available model can remain your preferred transcription model while
+                Auto-detect uses its dedicated engine. When you choose a specific language, SayCopy
+                uses the preferred model if it supports that language.
+              </p>
+            </details>
+            <details>
+              <summary>Why not use each provider's own Auto-detect option?</summary>
+              <p>
+                Provider controls are not standardized. Some require a separate detection flag,
+                some accept a special language value, and some do not support every SayCopy
+                language. A dedicated Auto engine gives users one consistent behavior.
+              </p>
+            </details>
+            <details>
+              <summary>Do the Fast, Balanced, and Best Quality presets change speech-to-text?</summary>
+              <p>
+                No. Those presets choose the text-processing model used for translation and Light
+                cleanup. Your preferred transcription model and the Auto engine are separate.
+              </p>
+            </details>
+            <details>
+              <summary>Does turning Light cleanup off disable translation?</summary>
+              <p>
+                No. It skips cleanup only in Transcribe mode. Translate mode still uses the active
+                text-processing model because translation is the requested result.
+              </p>
+            </details>
+            <details>
+              <summary>Where are my recordings and history stored?</summary>
+              <p>
+                Version 1 stores history on the current device. It does not sync between devices,
+                and deleting the app may remove that local history. Temporary recordings are sent
+                for processing and are not kept in SayCopy history.
+              </p>
+            </details>
+          </div>
+        </section>
+
+        <section class="content-card" id="troubleshooting">
+          <p class="section-kicker">Quick checks</p>
+          <h2>Troubleshooting</h2>
+
+          <h3>Auto-detect returns the wrong language</h3>
+          <p>
+            Confirm you have the latest SayCopy build and that Recording language says
+            <strong>Auto-detect</strong>. Try a clear five-to-ten-second recording. To compare
+            results, turn Light cleanup off once, then retry with the explicit language selected.
           </p>
 
-          <h2>A request was rejected</h2>
+          <h3>Cleanup failed</h3>
           <p>
-            Confirm that your OpenRouter key is active, your account has available credit, and its
-            spending limit has not been reached. You can also try one of SayCopy's recommended models.
+            SayCopy should keep and display the raw transcript. Retry after a moment or turn Light
+            cleanup off. Cleanup uses the text-processing model, so it can fail even when the
+            speech-to-text step succeeded.
           </p>
 
-          <h2>The microphone does not start</h2>
+          <h3>“OpenRouter token missing”</h3>
           <p>
-            Open iOS <strong>Settings → Privacy &amp; Security → Microphone</strong> and make sure
+            Follow the <a href="/setup">OpenRouter setup guide</a>, paste your key into SayCopy
+            Settings, and tap <strong>Save token</strong>.
+          </p>
+
+          <h3>A request was rejected or payment is required</h3>
+          <p>
+            Confirm your OpenRouter key is active, your account has available credit, and its
+            spending limit has not been reached. Model availability and account restrictions can
+            also affect routing.
+          </p>
+
+          <h3>The microphone does not start</h3>
+          <p>
+            Open device <strong>Settings → Privacy &amp; Security → Microphone</strong> and make sure
             SayCopy is enabled. Then reopen the app and try again.
           </p>
 
-          <h2>A request timed out</h2>
+          <h3>A request timed out</h3>
           <p>
             Check your internet connection and try a shorter recording. Model providers can also be
             temporarily busy, so retrying after a moment may help.
           </p>
+        </section>
 
-          <h2>Where is my history?</h2>
+        <section class="content-card">
+          <h2>Still need help?</h2>
           <p>
-            Version 1 stores history only on the current device. It does not sync between iPhones or
-            iPads. Deleting the app may remove that local history.
+            Use the <a href="/contact">SayCopy contact form</a>. Include your device model, operating
+            system version, recording language setting, preferred transcription model, whether
+            Light cleanup was on, and the exact error message if one appeared.
           </p>
+          <p class="note">Never include your OpenRouter API key in a support message or screenshot.</p>
         </section>
       </div>
     </main>

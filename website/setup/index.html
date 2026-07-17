@@ -117,6 +117,11 @@
               separate because the two jobs use different kinds of models. If you are unsure, tap
               <strong>Use recommended defaults</strong>.
             </p>
+            <p>
+              Your preferred transcription model is used when you select English, Spanish, or
+              Arabic. Auto-detect uses a separate GPT-4o Transcribe engine, so choosing Auto does
+              not replace your preferred model.
+            </p>
           </div>
         </article>
         <article class="step">
@@ -141,6 +146,22 @@
           </p>
         </article>
         <article class="content-card">
+          <h2>How does Auto-detect work?</h2>
+          <p>
+            Auto-detect uses GPT-4o Transcribe to identify the spoken language and preserve it in
+            the transcript. Your preferred model stays saved and is used whenever you select a
+            language explicitly.
+          </p>
+        </article>
+        <article class="content-card">
+          <h2>What does Light cleanup do?</h2>
+          <p>
+            When enabled in Transcribe mode, the active text model improves punctuation, spacing,
+            capitalization, and small artifacts without translating the transcript. Turning it off
+            returns the raw speech-to-text result.
+          </p>
+        </article>
+        <article class="content-card">
           <h2>What does it cost?</h2>
           <p>
             SayCopy does not add a model subscription. OpenRouter charges your account according to
@@ -152,6 +173,12 @@
 
       <section class="content-card content-card-spaced">
         <h2>Troubleshooting</h2>
+        <h3>Auto-detect and my preferred model show different names</h3>
+        <p>
+          This is expected. Auto-detect has a dedicated engine, while the preferred model is used
+          for recordings where you select English, Spanish, or Arabic. See the
+          <a href="/support#language">language and model guide</a> for examples.
+        </p>
         <h3>The token is not accepted</h3>
         <p>
           Copy the complete key again from OpenRouter, make sure no spaces were added, and confirm

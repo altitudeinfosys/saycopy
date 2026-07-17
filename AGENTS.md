@@ -28,3 +28,11 @@
 - This includes requirements captures, product specs, design docs, implementation plans, research summaries, testing guides, and handoff notes.
 - Store project artifacts inside this project folder, preferably under `docs/`.
 - Keep transient tool state, local servers, scratch files, and generated companion sessions out of Git unless explicitly requested.
+
+## User Documentation Parity
+
+- Every user-facing behavior change must include a documentation review in the same pull request.
+- Update `website/support/index.html`, `website/setup/index.html`, or both whenever a change affects setup, model selection, language behavior, Auto-detect, transcription, translation, Light cleanup, privacy, billing, storage, permissions, or troubleshooting.
+- Use the same labels and terminology in the app and website so users do not have to translate between two explanations.
+- When a behavior change does not require a help or tutorial update, state the reason in the pull-request description.
+- Validate the affected website pages and internal links before considering the change complete.
