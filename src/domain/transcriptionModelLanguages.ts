@@ -2,6 +2,8 @@ import type { ConcreteLanguageId, LanguageId } from './languages';
 
 export type TranscriptionLanguageSupport = 'supported' | 'preview' | 'unsupported' | 'unverified';
 
+export const AUTO_DETECT_TRANSCRIPTION_MODEL_ID = 'openai/whisper-large-v3';
+
 type ModelLanguageSupport = Partial<
   Readonly<Record<ConcreteLanguageId, Exclude<TranscriptionLanguageSupport, 'unverified'>>>
 >;
@@ -39,6 +41,13 @@ const VERIFIED_MODEL_LANGUAGE_SUPPORT: Readonly<Record<string, ModelLanguageSupp
   },
 };
 
+const VERIFIED_AUTO_DETECT_MODELS: ReadonlySet<string> = new Set([
+  'google/chirp-3',
+  'microsoft/mai-transcribe-1.5',
+  AUTO_DETECT_TRANSCRIPTION_MODEL_ID,
+  'openai/whisper-large-v3-turbo',
+]);
+
 const LANGUAGE_LABELS: Readonly<Record<ConcreteLanguageId, string>> = {
   english: 'English',
   spanish: 'Spanish',
@@ -50,7 +59,11 @@ export function getTranscriptionLanguageSupport(
   sourceLanguageId: LanguageId,
 ): TranscriptionLanguageSupport {
   if (sourceLanguageId === 'auto') {
-    return 'unverified';
+    if (VERIFIED_AUTO_DETECT_MODELS.has(modelId)) {
+      return modelId === 'google/chirp-3' ? 'preview' : 'supported';
+    }
+
+    return VERIFIED_MODEL_LANGUAGE_SUPPORT[modelId] ? 'unsupported' : 'unverified';
   }
 
   return VERIFIED_MODEL_LANGUAGE_SUPPORT[modelId]?.[sourceLanguageId] ?? 'unverified';
@@ -60,7 +73,29 @@ export function isKnownCompatibleTranscriptionModel(
   modelId: string,
   sourceLanguageId: LanguageId,
 ): boolean {
-  return getTranscriptionLanguageSupport(modelId, sourceLanguageId) !== 'unsupported';
+  const support = getTranscriptionLanguageSupport(modelId, sourceLanguageId);
+
+  if (sourceLanguageId === 'auto') {
+    return support === 'supported' || support === 'preview';
+  }
+
+  return support !== 'unsupported';
+}
+
+export function resolveTranscriptionModelId(
+  modelId: string | undefined,
+  sourceLanguageId: LanguageId,
+): string {
+  const requestedModelId = modelId?.trim() || AUTO_DETECT_TRANSCRIPTION_MODEL_ID;
+
+  if (
+    sourceLanguageId === 'auto' &&
+    !isKnownCompatibleTranscriptionModel(requestedModelId, sourceLanguageId)
+  ) {
+    return AUTO_DETECT_TRANSCRIPTION_MODEL_ID;
+  }
+
+  return requestedModelId;
 }
 
 export function getTranscriptionLanguageBadge(
@@ -68,15 +103,18 @@ export function getTranscriptionLanguageBadge(
   sourceLanguageId: LanguageId,
 ): string {
   if (sourceLanguageId === 'auto') {
-    const support = VERIFIED_MODEL_LANGUAGE_SUPPORT[modelId];
-    if (!support) {
-      return 'Language support unverified';
-    }
+    const support = getTranscriptionLanguageSupport(modelId, sourceLanguageId);
 
-    return (Object.keys(LANGUAGE_LABELS) as ConcreteLanguageId[])
-      .filter((languageId) => support[languageId] !== 'unsupported')
-      .map((languageId) => LANGUAGE_LABELS[languageId])
-      .join(' · ');
+    switch (support) {
+      case 'supported':
+        return 'Auto-detect supported';
+      case 'preview':
+        return 'Auto-detect preview';
+      case 'unsupported':
+        return 'Choose a language';
+      default:
+        return 'Auto-detect unverified';
+    }
   }
 
   const languageLabel = LANGUAGE_LABELS[sourceLanguageId];

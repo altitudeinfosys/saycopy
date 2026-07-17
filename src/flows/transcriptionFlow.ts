@@ -1,4 +1,5 @@
 import type { TranscribeHistoryItem } from '../domain/history';
+import { isAppError } from '../domain/errors';
 import type { LanguageId } from '../domain/languages';
 import type { ModelPresetId } from '../domain/modelPresets';
 import type {
@@ -56,7 +57,7 @@ export async function runTranscriptionFlow(
       transcriptionModelId: input.transcriptionModelId,
     });
     let visibleText = sttResult.text;
-    let cleanupFailed = false;
+    let cleanupFailureMessage = '';
 
     if (input.cleanupEnabled) {
       try {
@@ -68,8 +69,10 @@ export async function runTranscriptionFlow(
             customModelId: input.customModelId,
           })
         ).text;
-      } catch {
-        cleanupFailed = true;
+      } catch (error) {
+        cleanupFailureMessage = isAppError(error)
+          ? `Cleanup failed: ${error.message} Showing the raw transcript.`
+          : 'Cleanup failed. Showing the raw transcript.';
       }
     }
 
@@ -82,13 +85,13 @@ export async function runTranscriptionFlow(
       sttModelId: sttResult.modelId,
     })) as TranscribeHistoryItem;
 
-    if (cleanupFailed) {
+    if (cleanupFailureMessage) {
       return {
         status: 'cleanup_failed',
         transcript: visibleText,
         notice: {
           code: 'cleanup_failed',
-          message: 'Cleanup failed. Showing the raw transcript.',
+          message: cleanupFailureMessage,
         },
         historyItem,
       };

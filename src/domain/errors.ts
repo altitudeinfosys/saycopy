@@ -29,6 +29,19 @@ export function isAppErrorCategory(value: string): value is AppErrorCategory {
   return APP_ERROR_CATEGORY_SET.has(value);
 }
 
+export function isAppError(value: unknown): value is AppError {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  const candidate = value as Partial<AppError>;
+  return (
+    typeof candidate.category === 'string' &&
+    isAppErrorCategory(candidate.category) &&
+    typeof candidate.message === 'string'
+  );
+}
+
 export function createAppError(
   category: AppErrorCategory,
   message: string,

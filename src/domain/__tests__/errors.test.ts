@@ -1,6 +1,7 @@
 import {
   APP_ERROR_CATEGORIES,
   createAppError,
+  isAppError,
   isAppErrorCategory,
   type AppErrorCategory,
 } from '../errors';
@@ -60,5 +61,11 @@ describe('error domain', () => {
   it('checks whether a value is an app error category', () => {
     expect(isAppErrorCategory('timeout')).toBe(true);
     expect(isAppErrorCategory('not_a_real_category')).toBe(false);
+  });
+
+  it('recognizes only complete sanitized app errors', () => {
+    expect(isAppError(createAppError('timeout', 'Request timed out.'))).toBe(true);
+    expect(isAppError(new Error('Request timed out.'))).toBe(false);
+    expect(isAppError({ category: 'not_real', message: 'Nope' })).toBe(false);
   });
 });

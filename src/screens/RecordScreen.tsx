@@ -16,6 +16,7 @@ import type { AppError } from '../domain/errors';
 import type { HistoryItem, Tag } from '../domain/history';
 import { LANGUAGE_OPTIONS, type ConcreteLanguageId, type LanguageId } from '../domain/languages';
 import { DEFAULT_TRANSCRIPTION_MODEL_ID, type ModelPresetId } from '../domain/modelPresets';
+import { resolveTranscriptionModelId } from '../domain/transcriptionModelLanguages';
 import type { TranscriptionFlowResult } from '../flows/transcriptionFlow';
 import type { TranslationFlowResult } from '../flows/translationFlow';
 import {
@@ -172,6 +173,12 @@ function RecordScreenContent({
     () => getLanguageLabel(sourceLanguageId),
     [sourceLanguageId],
   );
+  const effectiveTranscriptionModelId = resolveTranscriptionModelId(
+    transcriptionModelId,
+    sourceLanguageId,
+  );
+  const isAutoDetectFallbackActive =
+    sourceLanguageId === 'auto' && effectiveTranscriptionModelId !== transcriptionModelId;
   const languageOptionsTitle =
     mode === 'translate' ? 'Translation languages' : 'Recording language';
   const languageOptionsSummary =
@@ -721,6 +728,12 @@ function RecordScreenContent({
               onChange={handleSourceLanguageChange}
               value={sourceLanguageId}
             />
+            {isAutoDetectFallbackActive ? (
+              <Text style={styles.autoDetectNote}>
+                Auto-detect uses Whisper Large V3 because {transcriptionModelId} requires a
+                specific language.
+              </Text>
+            ) : null}
 
             {mode === 'translate' ? (
               <LanguageSelect
@@ -979,6 +992,17 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     gap: 16,
     padding: 14,
+  },
+  autoDetectNote: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
+    borderRadius: 8,
+    borderWidth: 1,
+    color: '#1E40AF',
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 17,
+    padding: 10,
   },
   compactRecorder: {
     alignItems: 'center',
