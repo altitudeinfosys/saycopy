@@ -11,6 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { HISTORY_MODES, type HistoryMode } from '../domain/history';
 import {
@@ -166,11 +167,16 @@ function CatalogPickerModal({
       presentationStyle="pageSheet"
       visible={visible}
     >
-      <View style={styles.pickerModalScreen}>
+      <SafeAreaView
+        edges={['top', 'bottom']}
+        style={styles.pickerModalScreen}
+        testID="model-picker-safe-area"
+      >
         <View style={styles.pickerModalHeader}>
           <Pressable
             accessibilityLabel={`Close ${title}`}
             accessibilityRole="button"
+            hitSlop={8}
             onPress={onClose}
             style={styles.pickerCloseButton}
           >
@@ -223,7 +229,7 @@ function CatalogPickerModal({
             }}
           />
         )}
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 }
@@ -259,6 +265,8 @@ export default function SettingsScreen({
   const [isTokenUpdatePending, setIsTokenUpdatePending] = useState(false);
   const [messageText, setMessageText] = useState('');
   const [errorText, setErrorText] = useState('');
+  const [transcriptionModelSaveMessage, setTranscriptionModelSaveMessage] = useState('');
+  const [textModelSaveMessage, setTextModelSaveMessage] = useState('');
 
   useEffect(() => {
     let isActive = true;
@@ -341,8 +349,11 @@ export default function SettingsScreen({
   async function handleSaveCustomModel() {
     const customModelId = customModelInput.trim();
     setCustomModelInput(customModelId);
+    setTextModelSaveMessage('');
     Keyboard.dismiss();
-    await saveSetting({ customModelId });
+    if (await saveSetting({ customModelId })) {
+      setTextModelSaveMessage('Custom text model saved');
+    }
   }
 
   async function handleUseRecommendedPreset() {
@@ -367,6 +378,7 @@ export default function SettingsScreen({
   async function handleSaveTranscriptionModel() {
     const transcriptionModelId = transcriptionModelInput.trim();
     setTranscriptionModelInput(transcriptionModelId);
+    setTranscriptionModelSaveMessage('');
     Keyboard.dismiss();
 
     if (!transcriptionModelId) {
@@ -386,7 +398,9 @@ export default function SettingsScreen({
       return;
     }
 
-    await saveSetting({ transcriptionModelId });
+    if (await saveSetting({ transcriptionModelId })) {
+      setTranscriptionModelSaveMessage('Transcription model saved');
+    }
   }
 
   async function handleSelectTranscriptionModel(transcriptionModelId: string) {
@@ -469,10 +483,10 @@ export default function SettingsScreen({
     }
   }
 
-  async function saveSetting(nextSettings: Partial<AppSettings>) {
+  async function saveSetting(nextSettings: Partial<AppSettings>): Promise<boolean> {
     const currentSettings = settingsRef.current;
     if (!currentSettings) {
-      return;
+      return false;
     }
 
     setMessageText('');
@@ -492,6 +506,7 @@ export default function SettingsScreen({
     try {
       await settingsRepository.saveSettings(nextSettings);
       setMessageText('Default settings saved');
+      return true;
     } catch {
       const latestSettings = settingsRef.current;
       const rollbackKeys = settingKeys.filter(
@@ -507,6 +522,7 @@ export default function SettingsScreen({
         setSettings(rolledBackSettings);
       }
       setErrorText('Could not save settings.');
+      return false;
     }
   }
 
@@ -739,7 +755,10 @@ export default function SettingsScreen({
             autoCapitalize="none"
             autoCorrect={false}
             blurOnSubmit
-            onChangeText={setTranscriptionModelInput}
+            onChangeText={(value) => {
+              setTranscriptionModelInput(value);
+              setTranscriptionModelSaveMessage('');
+            }}
             onSubmitEditing={() => void handleSaveTranscriptionModel()}
             placeholder="provider/model-id"
             placeholderTextColor="#94A3B8"
@@ -761,6 +780,11 @@ export default function SettingsScreen({
             >
               <Text style={styles.primaryButtonText}>Save transcription model</Text>
             </Pressable>
+            {transcriptionModelSaveMessage ? (
+              <Text accessibilityLiveRegion="polite" style={styles.inlineSavedText}>
+                {transcriptionModelSaveMessage}
+              </Text>
+            ) : null}
           </View>
         </View>
       </View>
@@ -834,7 +858,10 @@ export default function SettingsScreen({
             autoCapitalize="none"
             autoCorrect={false}
             blurOnSubmit
-            onChangeText={setCustomModelInput}
+            onChangeText={(value) => {
+              setCustomModelInput(value);
+              setTextModelSaveMessage('');
+            }}
             onSubmitEditing={() => void handleSaveCustomModel()}
             placeholder="provider/model-id"
             placeholderTextColor="#94A3B8"
@@ -871,6 +898,11 @@ export default function SettingsScreen({
                 Save custom model
               </Text>
             </Pressable>
+            {textModelSaveMessage ? (
+              <Text accessibilityLiveRegion="polite" style={styles.inlineSavedText}>
+                {textModelSaveMessage}
+              </Text>
+            ) : null}
             <Pressable
               accessibilityLabel="Use recommended preset"
               accessibilityRole="button"
@@ -1346,9 +1378,13 @@ const styles = StyleSheet.create({
   },
   pickerCloseButton: {
     alignItems: 'center',
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    borderWidth: 1,
     justifyContent: 'center',
     minHeight: 44,
     minWidth: 64,
+    paddingHorizontal: 12,
   },
   pickerModalList: {
     gap: 8,
@@ -1359,6 +1395,12 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     fontSize: 13,
     fontWeight: '800',
+  },
+  inlineSavedText: {
+    color: '#047857',
+    fontSize: 13,
+    fontWeight: '800',
+    paddingHorizontal: 2,
   },
   errorText: {
     color: '#B91C1C',

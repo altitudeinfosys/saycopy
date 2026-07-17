@@ -384,6 +384,50 @@ describe('SettingsScreen', () => {
     expect(customModelInput.props.blurOnSubmit).toBe(true);
   });
 
+  it('shows confirmation beside each custom model save control', async () => {
+    renderSettingsScreen();
+
+    await screen.findByText('1. Speech-to-text model');
+    fireEvent.changeText(
+      screen.getByLabelText('Custom OpenRouter transcription model ID'),
+      'openai/whisper-large-v3-turbo',
+    );
+    fireEvent.press(screen.getByRole('button', { name: 'Save custom transcription model' }));
+
+    expect(await screen.findByText('Transcription model saved')).toBeTruthy();
+
+    fireEvent.changeText(
+      screen.getByLabelText('Custom OpenRouter translation model ID'),
+      'google/gemini-3.1-flash-lite',
+    );
+    fireEvent.press(screen.getByRole('button', { name: 'Save custom translation model' }));
+
+    expect(await screen.findByText('Custom text model saved')).toBeTruthy();
+  });
+
+  it('keeps the model picker close control inside its own safe area', async () => {
+    const modelCatalog: OpenRouterModelCatalog = {
+      listTranscriptionModels: jest.fn(async () => []),
+      listTextModels: jest.fn(async () => [
+        { id: 'google/gemini-3.1-flash-lite', name: 'Gemini Flash Lite' },
+      ]),
+    };
+    renderSettingsScreen({ modelCatalog });
+
+    await screen.findByText('2. Text-processing model');
+    fireEvent.press(screen.getByRole('button', { name: 'Browse OpenRouter translation models' }));
+
+    const safeArea = await screen.findByTestId('model-picker-safe-area');
+    expect(safeArea.props.edges).toEqual(expect.arrayContaining(['top', 'bottom']));
+
+    const closeButton = screen.getByRole('button', { name: 'Close Translation model' });
+    expectMinimumTouchTarget(closeButton);
+    expect(closeButton.props.hitSlop).toBe(8);
+
+    fireEvent.press(closeButton);
+    expect(screen.queryByLabelText('Search OpenRouter translation models')).toBeNull();
+  });
+
   it('loads, searches, and activates a translation model selected from OpenRouter', async () => {
     const modelCatalog: OpenRouterModelCatalog = {
       listTranscriptionModels: jest.fn(async () => []),
