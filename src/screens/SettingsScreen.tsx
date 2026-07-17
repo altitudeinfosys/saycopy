@@ -4,6 +4,7 @@ import {
   Keyboard,
   Linking,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -168,7 +169,7 @@ function CatalogPickerModal({
       visible={visible}
     >
       <SafeAreaView
-        edges={['top', 'bottom']}
+        edges={Platform.OS === 'android' ? ['top', 'bottom'] : []}
         style={styles.pickerModalScreen}
         testID="model-picker-safe-area"
       >
@@ -176,9 +177,12 @@ function CatalogPickerModal({
           <Pressable
             accessibilityLabel={`Close ${title}`}
             accessibilityRole="button"
-            hitSlop={8}
+            hitSlop={Platform.OS === 'android' ? 8 : undefined}
             onPress={onClose}
-            style={styles.pickerCloseButton}
+            style={[
+              styles.pickerCloseButton,
+              Platform.OS === 'android' && styles.pickerCloseButtonAndroid,
+            ]}
           >
             <Text style={styles.catalogToggleButtonText}>Close</Text>
           </Pressable>
@@ -265,8 +269,7 @@ export default function SettingsScreen({
   const [isTokenUpdatePending, setIsTokenUpdatePending] = useState(false);
   const [messageText, setMessageText] = useState('');
   const [errorText, setErrorText] = useState('');
-  const [transcriptionModelSaveMessage, setTranscriptionModelSaveMessage] = useState('');
-  const [textModelSaveMessage, setTextModelSaveMessage] = useState('');
+  const [modelSaveMessage, setModelSaveMessage] = useState('');
 
   useEffect(() => {
     let isActive = true;
@@ -304,6 +307,15 @@ export default function SettingsScreen({
       isActive = false;
     };
   }, [settingsRepository, tokenStore]);
+
+  useEffect(() => {
+    if (!modelSaveMessage) {
+      return;
+    }
+
+    const timeout = setTimeout(() => setModelSaveMessage(''), 3500);
+    return () => clearTimeout(timeout);
+  }, [modelSaveMessage]);
 
   async function refreshTokenStatus() {
     setTokenStatus(await tokenStore.getTokenStatus());
@@ -349,16 +361,18 @@ export default function SettingsScreen({
   async function handleSaveCustomModel() {
     const customModelId = customModelInput.trim();
     setCustomModelInput(customModelId);
-    setTextModelSaveMessage('');
     Keyboard.dismiss();
-    if (await saveSetting({ customModelId })) {
-      setTextModelSaveMessage('Custom text model saved');
-    }
+    await saveModelChoice({ customModelId }, 'Custom text model saved');
   }
 
   async function handleUseRecommendedPreset() {
+    const modelPresetId = settingsRef.current?.modelPresetId ?? DEFAULT_MODEL_PRESET_ID;
+    const preset = MODEL_PRESETS.find((candidate) => candidate.id === modelPresetId);
     setCustomModelInput('');
-    await saveSetting({ customModelId: '' });
+    await saveModelChoice(
+      { customModelId: '' },
+      `${preset?.label ?? 'Recommended'} text-model preset saved`,
+    );
   }
 
   async function handleUseRecommendedModelDefaults() {
@@ -368,17 +382,19 @@ export default function SettingsScreen({
     setTranslationModelQuery('');
     setIsTranscriptionModelPickerOpen(false);
     setIsTranslationModelPickerOpen(false);
-    await saveSetting({
-      transcriptionModelId: DEFAULT_TRANSCRIPTION_MODEL_ID,
-      customModelId: '',
-      modelPresetId: DEFAULT_MODEL_PRESET_ID,
-    });
+    await saveModelChoice(
+      {
+        transcriptionModelId: DEFAULT_TRANSCRIPTION_MODEL_ID,
+        customModelId: '',
+        modelPresetId: DEFAULT_MODEL_PRESET_ID,
+      },
+      'Recommended model defaults saved',
+    );
   }
 
   async function handleSaveTranscriptionModel() {
     const transcriptionModelId = transcriptionModelInput.trim();
     setTranscriptionModelInput(transcriptionModelId);
-    setTranscriptionModelSaveMessage('');
     Keyboard.dismiss();
 
     if (!transcriptionModelId) {
@@ -398,14 +414,12 @@ export default function SettingsScreen({
       return;
     }
 
-    if (await saveSetting({ transcriptionModelId })) {
-      setTranscriptionModelSaveMessage('Transcription model saved');
-    }
+    await saveModelChoice({ transcriptionModelId }, 'Preferred transcription model saved');
   }
 
   async function handleSelectTranscriptionModel(transcriptionModelId: string) {
     setTranscriptionModelInput(transcriptionModelId);
-    await saveSetting({ transcriptionModelId });
+    await saveModelChoice({ transcriptionModelId }, 'Preferred transcription model saved');
   }
 
   async function handleToggleTranscriptionModelPicker() {
@@ -433,12 +447,19 @@ export default function SettingsScreen({
     setTranscriptionModelInput(modelId);
     setTranscriptionModelQuery('');
     setIsTranscriptionModelPickerOpen(false);
-    await saveSetting({ transcriptionModelId: modelId });
+    await saveModelChoice(
+      { transcriptionModelId: modelId },
+      'Preferred transcription model saved',
+    );
   }
 
   async function handleSelectRecommendedModel(modelPresetId: ModelPresetId) {
+    const preset = MODEL_PRESETS.find((candidate) => candidate.id === modelPresetId);
     setCustomModelInput('');
-    await saveSetting({ customModelId: '', modelPresetId });
+    await saveModelChoice(
+      { customModelId: '', modelPresetId },
+      `${preset?.label ?? 'Recommended'} text-model preset saved`,
+    );
   }
 
   async function handleSelectSourceLanguage(sourceLanguageId: LanguageId) {
@@ -470,7 +491,7 @@ export default function SettingsScreen({
     setCustomModelInput(modelId);
     setTranslationModelQuery('');
     setIsTranslationModelPickerOpen(false);
-    await saveSetting({ customModelId: modelId });
+    await saveModelChoice({ customModelId: modelId }, 'Custom text model saved');
   }
 
   async function handleOpenExternalUrl(url: string) {
@@ -483,7 +504,20 @@ export default function SettingsScreen({
     }
   }
 
-  async function saveSetting(nextSettings: Partial<AppSettings>): Promise<boolean> {
+  async function saveModelChoice(
+    nextSettings: Partial<AppSettings>,
+    successMessage: string,
+  ): Promise<void> {
+    setModelSaveMessage('');
+    if (await saveSetting(nextSettings, '')) {
+      setModelSaveMessage(successMessage);
+    }
+  }
+
+  async function saveSetting(
+    nextSettings: Partial<AppSettings>,
+    successMessage = 'Default settings saved',
+  ): Promise<boolean> {
     const currentSettings = settingsRef.current;
     if (!currentSettings) {
       return false;
@@ -505,7 +539,9 @@ export default function SettingsScreen({
 
     try {
       await settingsRepository.saveSettings(nextSettings);
-      setMessageText('Default settings saved');
+      if (successMessage) {
+        setMessageText(successMessage);
+      }
       return true;
     } catch {
       const latestSettings = settingsRef.current;
@@ -563,13 +599,14 @@ export default function SettingsScreen({
     MODEL_PRESETS[1].currentModelCandidate;
 
   return (
-    <ScrollView
-      automaticallyAdjustKeyboardInsets
-      contentContainerStyle={styles.content}
-      keyboardDismissMode="interactive"
-      keyboardShouldPersistTaps="handled"
-      style={styles.screen}
-    >
+    <View style={styles.screen}>
+      <ScrollView
+        automaticallyAdjustKeyboardInsets
+        contentContainerStyle={styles.content}
+        keyboardDismissMode="interactive"
+        keyboardShouldPersistTaps="handled"
+        style={styles.screen}
+      >
       <View style={styles.header}>
         <Text style={styles.screenTitle}>Settings</Text>
         <Text style={styles.screenStatus}>Local defaults and token storage</Text>
@@ -755,10 +792,7 @@ export default function SettingsScreen({
             autoCapitalize="none"
             autoCorrect={false}
             blurOnSubmit
-            onChangeText={(value) => {
-              setTranscriptionModelInput(value);
-              setTranscriptionModelSaveMessage('');
-            }}
+            onChangeText={setTranscriptionModelInput}
             onSubmitEditing={() => void handleSaveTranscriptionModel()}
             placeholder="provider/model-id"
             placeholderTextColor="#94A3B8"
@@ -780,11 +814,6 @@ export default function SettingsScreen({
             >
               <Text style={styles.primaryButtonText}>Save transcription model</Text>
             </Pressable>
-            {transcriptionModelSaveMessage ? (
-              <Text accessibilityLiveRegion="polite" style={styles.inlineSavedText}>
-                {transcriptionModelSaveMessage}
-              </Text>
-            ) : null}
           </View>
         </View>
       </View>
@@ -858,10 +887,7 @@ export default function SettingsScreen({
             autoCapitalize="none"
             autoCorrect={false}
             blurOnSubmit
-            onChangeText={(value) => {
-              setCustomModelInput(value);
-              setTextModelSaveMessage('');
-            }}
+            onChangeText={setCustomModelInput}
             onSubmitEditing={() => void handleSaveCustomModel()}
             placeholder="provider/model-id"
             placeholderTextColor="#94A3B8"
@@ -898,11 +924,6 @@ export default function SettingsScreen({
                 Save custom model
               </Text>
             </Pressable>
-            {textModelSaveMessage ? (
-              <Text accessibilityLiveRegion="polite" style={styles.inlineSavedText}>
-                {textModelSaveMessage}
-              </Text>
-            ) : null}
             <Pressable
               accessibilityLabel="Use recommended preset"
               accessibilityRole="button"
@@ -1071,7 +1092,15 @@ export default function SettingsScreen({
         title="Translation model"
         visible={isTranslationModelPickerOpen}
       />
-    </ScrollView>
+      </ScrollView>
+      {modelSaveMessage ? (
+        <View pointerEvents="none" style={styles.modelSaveToast}>
+          <Text accessibilityLiveRegion="polite" style={styles.modelSaveToastText}>
+            {modelSaveMessage}
+          </Text>
+        </View>
+      ) : null}
+    </View>
   );
 }
 
@@ -1378,12 +1407,14 @@ const styles = StyleSheet.create({
   },
   pickerCloseButton: {
     alignItems: 'center',
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
-    borderWidth: 1,
     justifyContent: 'center',
     minHeight: 44,
     minWidth: 64,
+  },
+  pickerCloseButtonAndroid: {
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    borderWidth: 1,
     paddingHorizontal: 12,
   },
   pickerModalList: {
@@ -1396,11 +1427,25 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
   },
-  inlineSavedText: {
+  modelSaveToast: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#6EE7B7',
+    borderRadius: 12,
+    borderWidth: 1,
+    bottom: 18,
+    elevation: 6,
+    left: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    position: 'absolute',
+    right: 20,
+    zIndex: 10,
+  },
+  modelSaveToastText: {
     color: '#047857',
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '800',
-    paddingHorizontal: 2,
+    textAlign: 'center',
   },
   errorText: {
     color: '#B91C1C',

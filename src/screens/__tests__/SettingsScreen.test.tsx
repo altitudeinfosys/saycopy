@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import type { ReactTestInstance } from 'react-test-renderer';
 
 import type { SecureTokenStore, TokenStatus } from '../../storage/secureTokenStore';
@@ -384,7 +384,7 @@ describe('SettingsScreen', () => {
     expect(customModelInput.props.blurOnSubmit).toBe(true);
   });
 
-  it('shows confirmation beside each custom model save control', async () => {
+  it('shows confirmation for each custom model save control', async () => {
     renderSettingsScreen();
 
     await screen.findByText('1. Speech-to-text model');
@@ -394,7 +394,7 @@ describe('SettingsScreen', () => {
     );
     fireEvent.press(screen.getByRole('button', { name: 'Save custom transcription model' }));
 
-    expect(await screen.findByText('Transcription model saved')).toBeTruthy();
+    expect(await screen.findByText('Preferred transcription model saved')).toBeTruthy();
 
     fireEvent.changeText(
       screen.getByLabelText('Custom OpenRouter translation model ID'),
@@ -405,12 +405,57 @@ describe('SettingsScreen', () => {
     expect(await screen.findByText('Custom text model saved')).toBeTruthy();
   });
 
-  it('keeps the model picker close control inside its own safe area', async () => {
+  it('shows save confirmation for one-tap recommended model choices', async () => {
+    renderSettingsScreen();
+
+    await screen.findByText('1. Speech-to-text model');
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Recommended transcription model Alternative' }),
+    );
+    expect(await screen.findByText('Preferred transcription model saved')).toBeTruthy();
+
+    fireEvent.press(screen.getByRole('button', { name: 'Recommended model Fast' }));
+    expect(await screen.findByText('Fast text-model preset saved')).toBeTruthy();
+  });
+
+  it('applies modal safe-area and close-button protection only on Android', async () => {
+    const originalPlatformOS = Platform.OS;
+    Object.defineProperty(Platform, 'OS', { configurable: true, value: 'android' });
     const modelCatalog: OpenRouterModelCatalog = {
       listTranscriptionModels: jest.fn(async () => []),
       listTextModels: jest.fn(async () => [
         { id: 'google/gemini-3.1-flash-lite', name: 'Gemini Flash Lite' },
       ]),
+    };
+    try {
+      renderSettingsScreen({ modelCatalog });
+
+      await screen.findByText('2. Text-processing model');
+      fireEvent.press(
+        screen.getByRole('button', { name: 'Browse OpenRouter translation models' }),
+      );
+
+      const safeArea = await screen.findByTestId('model-picker-safe-area');
+      expect(safeArea.props.edges).toEqual(expect.arrayContaining(['top', 'bottom']));
+
+      const closeButton = screen.getByRole('button', { name: 'Close Translation model' });
+      expectMinimumTouchTarget(closeButton);
+      expect(closeButton.props.hitSlop).toBe(8);
+      expect(StyleSheet.flatten(closeButton.props.style)).toEqual(
+        expect.objectContaining({ borderWidth: 1, paddingHorizontal: 12 }),
+      );
+
+      fireEvent.press(closeButton);
+      expect(screen.queryByLabelText('Search OpenRouter translation models')).toBeNull();
+    } finally {
+      Object.defineProperty(Platform, 'OS', { configurable: true, value: originalPlatformOS });
+    }
+  });
+
+  it('preserves the native iOS page-sheet close-button appearance', async () => {
+    const modelCatalog: OpenRouterModelCatalog = {
+      listTranscriptionModels: jest.fn(async () => []),
+      listTextModels: jest.fn(async () => []),
     };
     renderSettingsScreen({ modelCatalog });
 
@@ -418,14 +463,10 @@ describe('SettingsScreen', () => {
     fireEvent.press(screen.getByRole('button', { name: 'Browse OpenRouter translation models' }));
 
     const safeArea = await screen.findByTestId('model-picker-safe-area');
-    expect(safeArea.props.edges).toEqual(expect.arrayContaining(['top', 'bottom']));
-
+    expect(safeArea.props.edges).toEqual([]);
     const closeButton = screen.getByRole('button', { name: 'Close Translation model' });
-    expectMinimumTouchTarget(closeButton);
-    expect(closeButton.props.hitSlop).toBe(8);
-
-    fireEvent.press(closeButton);
-    expect(screen.queryByLabelText('Search OpenRouter translation models')).toBeNull();
+    expect(closeButton.props.hitSlop).toBeUndefined();
+    expect(StyleSheet.flatten(closeButton.props.style)?.borderWidth).toBeUndefined();
   });
 
   it('loads, searches, and activates a translation model selected from OpenRouter', async () => {
