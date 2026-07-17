@@ -88,6 +88,12 @@ describe('OpenRouter request builders', () => {
         expect.stringContaining('punctuation, capitalization, spacing'),
       );
       expect(request.body.messages[0]?.content).toEqual(expect.stringContaining('preserve meaning'));
+      expect(request.body.messages[0]?.content).toEqual(
+        expect.stringContaining('without translating it'),
+      );
+      expect(request.body.messages[0]?.content).toEqual(
+        expect.stringContaining('exactly the same language and script'),
+      );
     });
   });
 

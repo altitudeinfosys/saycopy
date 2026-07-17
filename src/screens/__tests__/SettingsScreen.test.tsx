@@ -465,7 +465,7 @@ describe('SettingsScreen', () => {
     expect(screen.queryByText('Parakeet V3')).toBeNull();
   });
 
-  it('switches an explicit-language-only model to Whisper when Auto-detect is selected', async () => {
+  it('keeps the preferred model saved when Auto-detect is selected', async () => {
     const settingsRepository = new MemorySettingsRepository({
       ...DEFAULT_APP_SETTINGS,
       sourceLanguageId: 'arabic',
@@ -479,20 +479,20 @@ describe('SettingsScreen', () => {
     await waitFor(() => {
       expect(settingsRepository.saveSettings).toHaveBeenCalledWith({
         sourceLanguageId: 'auto',
-        transcriptionModelId: 'openai/whisper-large-v3',
       });
       expect(settingsRepository.settings).toMatchObject({
         sourceLanguageId: 'auto',
-        transcriptionModelId: 'openai/whisper-large-v3',
+        transcriptionModelId: 'deepgram/nova-3',
       });
     });
   });
 
-  it('hides transcription models that require an explicit language from Auto-detect', async () => {
+  it('keeps every preferred transcription model available while Auto-detect is selected', async () => {
     const modelCatalog: OpenRouterModelCatalog = {
       listTranscriptionModels: jest.fn(async () => [
         { id: 'deepgram/nova-3', name: 'Nova-3' },
         { id: 'openai/whisper-large-v3', name: 'Whisper Large V3' },
+        { id: 'openai/gpt-4o-transcribe', name: 'GPT-4o Transcribe' },
       ]),
       listTextModels: jest.fn(async () => []),
     };
@@ -501,8 +501,9 @@ describe('SettingsScreen', () => {
     await screen.findByText('1. Speech-to-text model');
     fireEvent.press(screen.getByRole('button', { name: 'Browse OpenRouter transcription models' }));
 
-    expect((await screen.findAllByText('Auto-detect supported')).length).toBeGreaterThan(0);
-    expect(screen.queryByText('Nova-3')).toBeNull();
+    expect(await screen.findByText('Nova-3')).toBeTruthy();
+    expect(screen.getByText('Whisper Large V3')).toBeTruthy();
+    expect(screen.getByText('GPT-4o Transcribe')).toBeTruthy();
   });
 
   it('blocks a known incompatible custom transcription model', async () => {

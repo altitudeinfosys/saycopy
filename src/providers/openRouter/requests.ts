@@ -79,9 +79,11 @@ export function buildCleanupChatRequest({
   return buildChatRequest({
     modelId,
     systemPrompt:
-      'Lightly clean up the transcription. Fix punctuation, capitalization, spacing, ' +
-      'obvious filler, and small transcription artifacts while you preserve meaning. ' +
-      'Return only the cleaned text.',
+      'Lightly clean up the transcription without translating it. Detect the language of the ' +
+      'written input and return the result in exactly the same language and script. If the input ' +
+      'is Arabic, keep it Arabic; if Spanish, keep it Spanish; if English, keep it English. ' +
+      'Fix only punctuation, capitalization, spacing, obvious filler, and small transcription ' +
+      'artifacts while you preserve meaning. Return only the cleaned text.',
     text,
   });
 }

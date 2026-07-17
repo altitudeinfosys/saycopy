@@ -28,25 +28,31 @@ describe('transcription model language support', () => {
     );
   });
 
-  it('distinguishes models that can auto-detect all supported app languages', () => {
-    expect(getTranscriptionLanguageBadge('openai/whisper-large-v3', 'auto')).toBe(
-      'Auto-detect supported',
+  it('allows every preferred model to coexist with the dedicated Auto engine', () => {
+    expect(getTranscriptionLanguageBadge('openai/gpt-4o-transcribe', 'auto')).toBe(
+      'Preferred model for selected languages',
     );
-    expect(getTranscriptionLanguageBadge('deepgram/nova-3', 'auto')).toBe('Choose a language');
-    expect(isKnownCompatibleTranscriptionModel('deepgram/nova-3', 'auto')).toBe(false);
-    expect(isKnownCompatibleTranscriptionModel('provider/future-model', 'auto')).toBe(false);
+    expect(getTranscriptionLanguageBadge('openai/whisper-large-v3', 'auto')).toBe(
+      'Preferred model for selected languages',
+    );
+    expect(getTranscriptionLanguageBadge('deepgram/nova-3', 'auto')).toBe(
+      'Preferred model for selected languages',
+    );
+    expect(isKnownCompatibleTranscriptionModel('deepgram/nova-3', 'auto')).toBe(true);
+    expect(isKnownCompatibleTranscriptionModel('provider/future-model', 'auto')).toBe(true);
   });
 
-  it('falls back to Whisper for auto-detect with an incompatible or unverified model', () => {
+  it('uses GPT-4o Transcribe for reliable original-language auto-detect', () => {
     expect(resolveTranscriptionModelId('deepgram/nova-3', 'auto')).toBe(
-      'openai/whisper-large-v3',
+      'openai/gpt-4o-transcribe',
     );
     expect(resolveTranscriptionModelId('provider/future-model', 'auto')).toBe(
-      'openai/whisper-large-v3',
+      'openai/gpt-4o-transcribe',
     );
     expect(resolveTranscriptionModelId('deepgram/nova-3', 'arabic')).toBe('deepgram/nova-3');
+    expect(resolveTranscriptionModelId(undefined, 'english')).toBe('openai/whisper-large-v3');
     expect(resolveTranscriptionModelId('microsoft/mai-transcribe-1.5', 'auto')).toBe(
-      'microsoft/mai-transcribe-1.5',
+      'openai/gpt-4o-transcribe',
     );
   });
 });

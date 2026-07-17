@@ -130,7 +130,7 @@ describe('OpenRouter live flow integration with mocked fetch', () => {
     );
   });
 
-  it('uses Whisper for Auto when the selected model requires an explicit language', async () => {
+  it('uses GPT-4o Transcribe for Auto while preserving the selected explicit-language model', async () => {
     const fetchImpl = createFetchMock(jsonResponse({ text: 'مرحبا بالعالم' }));
     const historyRepository = createHistoryRepository();
     const provider = createProvider({ fetchImpl });
@@ -154,11 +154,11 @@ describe('OpenRouter live flow integration with mocked fetch', () => {
     expect(fetchImpl).toHaveBeenCalledWith(
       'https://openrouter.test/api/v1/audio/transcriptions',
       expect.objectContaining({
-        body: expect.stringContaining('"model":"openai/whisper-large-v3"'),
+        body: expect.stringContaining('"model":"openai/gpt-4o-transcribe"'),
       }),
     );
     expect(historyRepository.createHistoryItem).toHaveBeenCalledWith(
-      expect.objectContaining({ sttModelId: 'openai/whisper-large-v3' }),
+      expect.objectContaining({ sttModelId: 'openai/gpt-4o-transcribe' }),
     );
   });
 
