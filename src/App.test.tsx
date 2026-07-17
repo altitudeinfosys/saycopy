@@ -79,6 +79,6 @@ describe('App shell', () => {
     fireEvent.press(screen.getByRole('tab', { name: 'Settings' }));
 
     expect(await screen.findByText('OpenRouter token missing')).toBeTruthy();
-    expect(screen.getByText('Defaults')).toBeTruthy();
+    expect(screen.getByText('Recording defaults')).toBeTruthy();
   });
 });
