@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  FlatList,
   Keyboard,
   Linking,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -24,6 +26,11 @@ import {
   TRANSCRIPTION_MODEL_RECOMMENDATIONS,
   type ModelPresetId,
 } from '../domain/modelPresets';
+import {
+  getTranscriptionLanguageBadge,
+  getTranscriptionLanguageSupport,
+  isKnownCompatibleTranscriptionModel,
+} from '../domain/transcriptionModelLanguages';
 import {
   createOpenRouterModelCatalog,
   type OpenRouterCatalogModel,
@@ -114,6 +121,110 @@ function filterCatalogModels(
         model.name.toLowerCase().includes(normalizedQuery),
     )
     .slice(0, 80);
+}
+
+function getLanguageLabel(languageId: LanguageId): string {
+  return LANGUAGE_OPTIONS.find((language) => language.id === languageId)?.label ?? 'Auto-detect';
+}
+
+type CatalogPickerModalProps = {
+  readonly emptyText: string;
+  readonly isLoading: boolean;
+  readonly loadingText: string;
+  readonly models: readonly OpenRouterCatalogModel[];
+  readonly onChangeQuery: (query: string) => void;
+  readonly onClose: () => void;
+  readonly onSelectModel: (modelId: string) => void;
+  readonly query: string;
+  readonly renderBadge?: (modelId: string) => string;
+  readonly searchAccessibilityLabel: string;
+  readonly selectedModelId: string;
+  readonly title: string;
+  readonly visible: boolean;
+};
+
+function CatalogPickerModal({
+  emptyText,
+  isLoading,
+  loadingText,
+  models,
+  onChangeQuery,
+  onClose,
+  onSelectModel,
+  query,
+  renderBadge,
+  searchAccessibilityLabel,
+  selectedModelId,
+  title,
+  visible,
+}: CatalogPickerModalProps) {
+  return (
+    <Modal
+      animationType="slide"
+      onRequestClose={onClose}
+      presentationStyle="pageSheet"
+      visible={visible}
+    >
+      <View style={styles.pickerModalScreen}>
+        <View style={styles.pickerModalHeader}>
+          <Pressable
+            accessibilityLabel={`Close ${title}`}
+            accessibilityRole="button"
+            onPress={onClose}
+            style={styles.pickerCloseButton}
+          >
+            <Text style={styles.catalogToggleButtonText}>Close</Text>
+          </Pressable>
+          <Text style={[styles.sectionTitle, styles.pickerModalTitle]}>{title}</Text>
+        </View>
+        <TextInput
+          accessibilityLabel={searchAccessibilityLabel}
+          autoCapitalize="none"
+          autoCorrect={false}
+          onChangeText={onChangeQuery}
+          placeholder="Search provider or model"
+          placeholderTextColor="#94A3B8"
+          style={styles.tokenInput}
+          value={query}
+        />
+        {isLoading ? (
+          <Text accessibilityLiveRegion="polite" style={styles.modelHelp}>
+            {loadingText}
+          </Text>
+        ) : (
+          <FlatList
+            contentContainerStyle={styles.pickerModalList}
+            data={models}
+            keyboardShouldPersistTaps="handled"
+            keyExtractor={(model) => model.id}
+            ListEmptyComponent={
+              <Text accessibilityLiveRegion="polite" style={styles.modelHelp}>
+                {emptyText}
+              </Text>
+            }
+            renderItem={({ item: model }) => {
+              const isSelected = selectedModelId === model.id;
+              const badge = renderBadge?.(model.id);
+
+              return (
+                <Pressable
+                  accessibilityLabel={`${title} ${model.id}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isSelected }}
+                  onPress={() => onSelectModel(model.id)}
+                  style={[styles.catalogModelRow, isSelected && styles.modelRowSelected]}
+                >
+                  <Text style={styles.modelLabel}>{model.name}</Text>
+                  <Text style={styles.modelId}>{model.id}</Text>
+                  {badge ? <Text style={styles.languageBadge}>{badge}</Text> : null}
+                </Pressable>
+              );
+            }}
+          />
+        )}
+      </View>
+    </Modal>
+  );
 }
 
 export default function SettingsScreen({
@@ -262,6 +373,14 @@ export default function SettingsScreen({
       return;
     }
 
+    const sourceLanguageId = settingsRef.current?.sourceLanguageId ?? 'auto';
+    if (!isKnownCompatibleTranscriptionModel(transcriptionModelId, sourceLanguageId)) {
+      setErrorText(
+        `${transcriptionModelId} does not support ${getLanguageLabel(sourceLanguageId)}. Choose another transcription model.`,
+      );
+      return;
+    }
+
     await saveSetting({ transcriptionModelId });
   }
 
@@ -386,9 +505,15 @@ export default function SettingsScreen({
     return filterCatalogModels(translationCatalogModels, translationModelQuery);
   }, [translationCatalogModels, translationModelQuery]);
 
+  const selectedSourceLanguageId = settings?.sourceLanguageId ?? 'auto';
   const visibleTranscriptionCatalogModels = useMemo(() => {
-    return filterCatalogModels(transcriptionCatalogModels, transcriptionModelQuery);
-  }, [transcriptionCatalogModels, transcriptionModelQuery]);
+    return filterCatalogModels(
+      transcriptionCatalogModels.filter((model) =>
+        isKnownCompatibleTranscriptionModel(model.id, selectedSourceLanguageId),
+      ),
+      transcriptionModelQuery,
+    );
+  }, [selectedSourceLanguageId, transcriptionCatalogModels, transcriptionModelQuery]);
 
   if (isLoading || !settings || !tokenStatus) {
     return (
@@ -399,6 +524,14 @@ export default function SettingsScreen({
   }
 
   const selectedPreset = MODEL_PRESETS.find((preset) => preset.id === settings.modelPresetId);
+  const selectedTranscriptionSupport = getTranscriptionLanguageSupport(
+    settings.transcriptionModelId,
+    settings.sourceLanguageId,
+  );
+  const selectedTextModelId =
+    settings.customModelId ||
+    selectedPreset?.currentModelCandidate ||
+    MODEL_PRESETS[1].currentModelCandidate;
 
   return (
     <ScrollView
@@ -481,8 +614,8 @@ export default function SettingsScreen({
       <View style={styles.surface}>
         <Text style={styles.sectionTitle}>AI model choices</Text>
         <Text style={styles.privacyNote}>
-          Choose your preferred transcription and translation models below. If you are unsure,
-          restore SayCopy&apos;s recommended defaults at any time.
+          Voice recordings use two separate steps: speech-to-text first, then optional text
+          processing for cleanup or translation. Choose one model for each step.
         </Text>
         <Pressable
           accessibilityLabel="Use recommended model defaults"
@@ -497,10 +630,28 @@ export default function SettingsScreen({
       <View style={styles.surface}>
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleGroup}>
-            <Text style={styles.sectionTitle}>Transcription model</Text>
-            <Text style={styles.sectionSubtitle}>Using: {settings.transcriptionModelId}</Text>
+            <Text style={styles.sectionTitle}>1. Speech-to-text model</Text>
+            <Text style={styles.sectionSubtitle}>Active: {settings.transcriptionModelId}</Text>
           </View>
         </View>
+        <Text style={styles.modelHelp}>
+          Converts voice recordings into raw text in both Transcribe and Translate modes. This
+          choice is independent from the text-processing preset below.
+        </Text>
+        <Text style={styles.modelHelp}>
+          Checking compatibility for: {getLanguageLabel(settings.sourceLanguageId)}
+        </Text>
+        {selectedTranscriptionSupport === 'unsupported' ? (
+          <Text accessibilityRole="alert" style={styles.warningText}>
+            The active model does not support {getLanguageLabel(settings.sourceLanguageId)}.
+            Choose another transcription model before recording.
+          </Text>
+        ) : selectedTranscriptionSupport === 'unverified' && settings.sourceLanguageId !== 'auto' ? (
+          <Text style={styles.warningText}>
+            Language support for this model is unverified. Confirm it supports{' '}
+            {getLanguageLabel(settings.sourceLanguageId)} before recording.
+          </Text>
+        ) : null}
 
         <View style={styles.controlGroup}>
           <Text style={styles.controlLabel}>Recommended transcription models</Text>
@@ -524,6 +675,12 @@ export default function SettingsScreen({
                     {isSelected ? <Text style={styles.modelSelectedText}>Selected</Text> : null}
                   </View>
                   <Text style={styles.modelId}>{recommendation.modelId}</Text>
+                  <Text style={styles.languageBadge}>
+                    {getTranscriptionLanguageBadge(
+                      recommendation.modelId,
+                      settings.sourceLanguageId,
+                    )}
+                  </Text>
                 </Pressable>
               );
             })}
@@ -533,7 +690,8 @@ export default function SettingsScreen({
         <View style={styles.controlGroup}>
           <Text style={styles.controlLabel}>Choose from OpenRouter</Text>
           <Text style={styles.modelHelp}>
-            Only transcription models compatible with zero-data-retention routing are shown.
+            Models known not to support {getLanguageLabel(settings.sourceLanguageId)} are hidden.
+            New or unverified models remain available with a warning.
           </Text>
           <Pressable
             accessibilityLabel="Browse OpenRouter transcription models"
@@ -542,52 +700,8 @@ export default function SettingsScreen({
             onPress={() => void handleToggleTranscriptionModelPicker()}
             style={styles.catalogToggleButton}
           >
-            <Text style={styles.catalogToggleButtonText}>
-              {isTranscriptionModelPickerOpen ? 'Hide model picker' : 'Browse transcription models'}
-            </Text>
+            <Text style={styles.catalogToggleButtonText}>Browse transcription models</Text>
           </Pressable>
-          {isTranscriptionModelPickerOpen ? (
-            <View style={styles.catalogPicker}>
-              <TextInput
-                accessibilityLabel="Search OpenRouter transcription models"
-                autoCapitalize="none"
-                autoCorrect={false}
-                onChangeText={setTranscriptionModelQuery}
-                placeholder="Search provider or model"
-                placeholderTextColor="#94A3B8"
-                style={styles.tokenInput}
-                value={transcriptionModelQuery}
-              />
-              {isTranscriptionCatalogLoading ? (
-                <Text accessibilityLiveRegion="polite" style={styles.modelHelp}>
-                  Loading OpenRouter transcription models
-                </Text>
-              ) : visibleTranscriptionCatalogModels.length > 0 ? (
-                <ScrollView nestedScrollEnabled style={styles.catalogList}>
-                  {visibleTranscriptionCatalogModels.map((model) => (
-                    <Pressable
-                      key={model.id}
-                      accessibilityLabel={`Transcription model ${model.id}`}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: settings.transcriptionModelId === model.id }}
-                      onPress={() => void handleSelectTranscriptionCatalogModel(model.id)}
-                      style={[
-                        styles.catalogModelRow,
-                        settings.transcriptionModelId === model.id && styles.modelRowSelected,
-                      ]}
-                    >
-                      <Text style={styles.modelLabel}>{model.name}</Text>
-                      <Text style={styles.modelId}>{model.id}</Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              ) : (
-                <Text accessibilityLiveRegion="polite" style={styles.modelHelp}>
-                  No matching transcription models.
-                </Text>
-              )}
-            </View>
-          ) : null}
         </View>
 
         <View style={styles.controlGroup}>
@@ -606,7 +720,8 @@ export default function SettingsScreen({
             value={transcriptionModelInput}
           />
           <Text style={styles.modelHelp}>
-            Advanced: enter a transcription model ID that supports zero-data-retention routing.
+            Advanced: enter a transcription model ID that supports zero-data-retention routing and
+            your source language. Known incompatible choices are blocked.
           </Text>
           <View style={styles.modelButtonColumn}>
             <Pressable
@@ -624,17 +739,27 @@ export default function SettingsScreen({
       <View style={styles.surface}>
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleGroup}>
-            <Text style={styles.sectionTitle}>Translation and cleanup model</Text>
+            <Text style={styles.sectionTitle}>2. Text-processing model</Text>
             <Text style={styles.sectionSubtitle}>
               {settings.customModelId
-                ? `Using custom: ${settings.customModelId}`
-                : `Using recommended: ${selectedPreset?.label ?? 'Balanced'}`}
+                ? `Active custom model: ${settings.customModelId}`
+                : `Active preset: ${selectedPreset?.label ?? 'Balanced'} — ${selectedTextModelId}`}
             </Text>
           </View>
         </View>
+        <Text style={styles.modelHelp}>
+          Used for every translation. In Transcribe mode, it is used only when Light cleanup is On.
+          It does not change the speech-to-text model above.
+        </Text>
 
         <View style={styles.controlGroup}>
-          <Text style={styles.controlLabel}>Recommended translation and cleanup models</Text>
+          <Text style={styles.controlLabel}>Preset choices</Text>
+          {settings.customModelId ? (
+            <Text style={styles.warningText}>
+              Presets are inactive while a custom model is active. Tap a preset to switch back to
+              it.
+            </Text>
+          ) : null}
           <View style={styles.modelList}>
             {MODEL_PRESETS.map((preset) => {
               const isSelectedRecommendedModel =
@@ -666,6 +791,7 @@ export default function SettingsScreen({
                     ) : null}
                   </View>
                   <Text style={styles.modelId}>{preset.currentModelCandidate}</Text>
+                  <Text style={styles.modelHelp}>{preset.description}</Text>
                 </Pressable>
               );
             })}
@@ -673,7 +799,7 @@ export default function SettingsScreen({
         </View>
 
         <View style={styles.controlGroup}>
-          <Text style={styles.controlLabel}>Custom translation and cleanup model</Text>
+          <Text style={styles.controlLabel}>Custom text model (overrides preset)</Text>
           <TextInput
             accessibilityLabel="Custom OpenRouter translation model ID"
             autoCapitalize="none"
@@ -688,8 +814,8 @@ export default function SettingsScreen({
             value={customModelInput}
           />
           <Text style={styles.modelHelp}>
-            Leave blank to use the selected recommendation. The picker only shows text models
-            compatible with zero-data-retention routing.
+            Saving or choosing a custom model makes it active for both translation and light
+            cleanup. The picker only shows text models compatible with zero-data-retention routing.
           </Text>
           <Pressable
             accessibilityLabel="Browse OpenRouter translation models"
@@ -698,52 +824,8 @@ export default function SettingsScreen({
             onPress={() => void handleToggleTranslationModelPicker()}
             style={styles.catalogToggleButton}
           >
-            <Text style={styles.catalogToggleButtonText}>
-              {isTranslationModelPickerOpen ? 'Hide model picker' : 'Browse translation models'}
-            </Text>
+            <Text style={styles.catalogToggleButtonText}>Browse text models</Text>
           </Pressable>
-          {isTranslationModelPickerOpen ? (
-            <View style={styles.catalogPicker}>
-              <TextInput
-                accessibilityLabel="Search OpenRouter translation models"
-                autoCapitalize="none"
-                autoCorrect={false}
-                onChangeText={setTranslationModelQuery}
-                placeholder="Search provider or model"
-                placeholderTextColor="#94A3B8"
-                style={styles.tokenInput}
-                value={translationModelQuery}
-              />
-              {isTranslationCatalogLoading ? (
-                <Text accessibilityLiveRegion="polite" style={styles.modelHelp}>
-                  Loading OpenRouter models
-                </Text>
-              ) : visibleTranslationCatalogModels.length > 0 ? (
-                <ScrollView nestedScrollEnabled style={styles.catalogList}>
-                  {visibleTranslationCatalogModels.map((model) => (
-                    <Pressable
-                      key={model.id}
-                      accessibilityLabel={`Translation model ${model.id}`}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: settings.customModelId === model.id }}
-                      onPress={() => void handleSelectTranslationCatalogModel(model.id)}
-                      style={[
-                        styles.catalogModelRow,
-                        settings.customModelId === model.id && styles.modelRowSelected,
-                      ]}
-                    >
-                      <Text style={styles.modelLabel}>{model.name}</Text>
-                      <Text style={styles.modelId}>{model.id}</Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              ) : (
-                <Text accessibilityLiveRegion="polite" style={styles.modelHelp}>
-                  No matching translation models.
-                </Text>
-              )}
-            </View>
-          ) : null}
           <View style={styles.modelButtonColumn}>
             <Pressable
               accessibilityLabel="Save custom translation model"
@@ -757,7 +839,7 @@ export default function SettingsScreen({
                 numberOfLines={1}
                 style={styles.primaryButtonText}
               >
-                Save translation model
+                Save custom model
               </Text>
             </Pressable>
             <Pressable
@@ -772,15 +854,40 @@ export default function SettingsScreen({
                 numberOfLines={1}
                 style={styles.secondaryButtonText}
               >
-                Use recommended preset
+                {`Use ${selectedPreset?.label ?? 'Balanced'} preset`}
               </Text>
             </Pressable>
           </View>
         </View>
+
+        <View style={styles.controlGroup}>
+          <Text style={styles.controlLabel}>Light cleanup after transcription</Text>
+          <View style={styles.optionRow}>
+            <OptionButton
+              accessibilityLabel="Default cleanup On"
+              label="On"
+              onSelect={() => void saveSetting({ cleanupEnabled: true })}
+              selected={settings.cleanupEnabled}
+              value="on"
+            />
+            <OptionButton
+              accessibilityLabel="Default cleanup Off"
+              label="Off"
+              onSelect={() => void saveSetting({ cleanupEnabled: false })}
+              selected={!settings.cleanupEnabled}
+              value="off"
+            />
+          </View>
+          <Text style={styles.modelHelp}>
+            {settings.cleanupEnabled
+              ? `On: after speech-to-text, ${selectedTextModelId} makes light punctuation, capitalization, and filler-word corrections.`
+              : 'Off: Transcribe returns the raw speech-to-text result and skips the second model call. Translation still uses the active text model.'}
+          </Text>
+        </View>
       </View>
 
       <View style={styles.surface}>
-        <Text style={styles.sectionTitle}>Defaults</Text>
+        <Text style={styles.sectionTitle}>Recording defaults</Text>
 
         <View style={styles.controlGroup}>
           <Text style={styles.controlLabel}>Default mode</Text>
@@ -832,41 +939,6 @@ export default function SettingsScreen({
           </View>
         </View>
 
-        <View style={styles.controlGroup}>
-          <Text style={styles.controlLabel}>Default preset</Text>
-          <View style={styles.optionRow}>
-            {MODEL_PRESETS.map((preset) => (
-              <OptionButton
-                key={preset.id}
-                accessibilityLabel={`Default preset ${preset.label}`}
-                label={preset.label}
-                onSelect={(modelPresetId: ModelPresetId) => void saveSetting({ modelPresetId })}
-                selected={settings.modelPresetId === preset.id}
-                value={preset.id}
-              />
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.controlGroup}>
-          <Text style={styles.controlLabel}>Light cleanup</Text>
-          <View style={styles.optionRow}>
-            <OptionButton
-              accessibilityLabel="Default cleanup On"
-              label="On"
-              onSelect={() => void saveSetting({ cleanupEnabled: true })}
-              selected={settings.cleanupEnabled}
-              value="on"
-            />
-            <OptionButton
-              accessibilityLabel="Default cleanup Off"
-              label="Off"
-              onSelect={() => void saveSetting({ cleanupEnabled: false })}
-              selected={!settings.cleanupEnabled}
-              value="off"
-            />
-          </View>
-        </View>
       </View>
 
       <View style={styles.surface}>
@@ -904,6 +976,38 @@ export default function SettingsScreen({
           {errorText}
         </Text>
       ) : null}
+
+      <CatalogPickerModal
+        emptyText="No matching transcription models."
+        isLoading={isTranscriptionCatalogLoading}
+        loadingText="Loading OpenRouter transcription models"
+        models={visibleTranscriptionCatalogModels}
+        onChangeQuery={setTranscriptionModelQuery}
+        onClose={() => setIsTranscriptionModelPickerOpen(false)}
+        onSelectModel={(modelId) => void handleSelectTranscriptionCatalogModel(modelId)}
+        query={transcriptionModelQuery}
+        renderBadge={(modelId) =>
+          getTranscriptionLanguageBadge(modelId, settings.sourceLanguageId)
+        }
+        searchAccessibilityLabel="Search OpenRouter transcription models"
+        selectedModelId={settings.transcriptionModelId}
+        title="Transcription model"
+        visible={isTranscriptionModelPickerOpen}
+      />
+      <CatalogPickerModal
+        emptyText="No matching text models."
+        isLoading={isTranslationCatalogLoading}
+        loadingText="Loading OpenRouter text models"
+        models={visibleTranslationCatalogModels}
+        onChangeQuery={setTranslationModelQuery}
+        onClose={() => setIsTranslationModelPickerOpen(false)}
+        onSelectModel={(modelId) => void handleSelectTranslationCatalogModel(modelId)}
+        query={translationModelQuery}
+        searchAccessibilityLabel="Search OpenRouter translation models"
+        selectedModelId={settings.customModelId}
+        title="Translation model"
+        visible={isTranslationModelPickerOpen}
+      />
     </ScrollView>
   );
 }
@@ -1147,6 +1251,29 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
   },
+  warningText: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+    borderRadius: 8,
+    borderWidth: 1,
+    color: '#92400E',
+    flexShrink: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 17,
+    padding: 10,
+  },
+  languageBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#EEF2FF',
+    borderRadius: 999,
+    color: '#3730A3',
+    fontSize: 11,
+    fontWeight: '800',
+    marginTop: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
   catalogToggleButton: {
     alignItems: 'center',
     borderColor: '#2563EB',
@@ -1161,12 +1288,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
   },
-  catalogPicker: {
-    gap: 10,
-  },
-  catalogList: {
-    maxHeight: 280,
-  },
   catalogModelRow: {
     backgroundColor: '#F8FAFC',
     borderColor: '#E2E8F0',
@@ -1176,6 +1297,31 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: 10,
     paddingVertical: 8,
+  },
+  pickerModalScreen: {
+    backgroundColor: '#F8FAFC',
+    flex: 1,
+    gap: 14,
+    padding: 20,
+    paddingTop: 28,
+  },
+  pickerModalHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+  },
+  pickerModalTitle: {
+    flex: 1,
+  },
+  pickerCloseButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+    minWidth: 64,
+  },
+  pickerModalList: {
+    gap: 8,
+    paddingBottom: 28,
   },
   savedText: {
     color: '#047857',

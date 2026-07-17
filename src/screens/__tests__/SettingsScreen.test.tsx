@@ -152,7 +152,7 @@ describe('SettingsScreen', () => {
     expectMinimumTouchTarget(screen.getByRole('button', { name: 'Save token' }));
     expectMinimumTouchTarget(screen.getByRole('button', { name: 'Clear token' }));
 
-    await screen.findByText('Defaults');
+    await screen.findByText('Recording defaults');
     expectMinimumTouchTarget(screen.getByRole('button', { name: 'Default mode Translate' }));
     expectMinimumTouchTarget(
       screen.getByRole('button', { name: 'Default source language Arabic' }),
@@ -160,7 +160,7 @@ describe('SettingsScreen', () => {
     expectMinimumTouchTarget(
       screen.getByRole('button', { name: 'Default target language Arabic' }),
     );
-    expectMinimumTouchTarget(screen.getByRole('button', { name: 'Default preset Best Quality' }));
+    expectMinimumTouchTarget(screen.getByRole('button', { name: 'Recommended model Best Quality' }));
   });
 
   it('shows token present state without rendering the secret token', async () => {
@@ -268,12 +268,12 @@ describe('SettingsScreen', () => {
   it('persists non-secret default preset and language controls', async () => {
     const { settingsRepository } = renderSettingsScreen();
 
-    await screen.findByText('Defaults');
+    await screen.findByText('Recording defaults');
 
     fireEvent.press(screen.getByRole('button', { name: 'Default mode Translate' }));
     fireEvent.press(screen.getByRole('button', { name: 'Default source language Spanish' }));
     fireEvent.press(screen.getByRole('button', { name: 'Default target language Arabic' }));
-    fireEvent.press(screen.getByRole('button', { name: 'Default preset Fast' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Recommended model Fast' }));
     fireEvent.press(screen.getByRole('button', { name: 'Default cleanup Off' }));
 
     await waitFor(() => {
@@ -288,17 +288,20 @@ describe('SettingsScreen', () => {
     expect(settingsRepository.saveSettings).toHaveBeenCalledWith({ defaultMode: 'translate' });
     expect(settingsRepository.saveSettings).toHaveBeenCalledWith({ sourceLanguageId: 'spanish' });
     expect(settingsRepository.saveSettings).toHaveBeenCalledWith({ targetLanguageId: 'arabic' });
-    expect(settingsRepository.saveSettings).toHaveBeenCalledWith({ modelPresetId: 'fast' });
+    expect(settingsRepository.saveSettings).toHaveBeenCalledWith({
+      customModelId: '',
+      modelPresetId: 'fast',
+    });
     expect(settingsRepository.saveSettings).toHaveBeenCalledWith({ cleanupEnabled: false });
   });
 
   it('shows separate transcription and translation model controls with recommendations and custom IDs', async () => {
     const { settingsRepository } = renderSettingsScreen();
 
-    await screen.findByText('Transcription model');
+    await screen.findByText('1. Speech-to-text model');
 
     expect(screen.getByText('Recommended transcription models')).toBeTruthy();
-    expect(screen.getByText('Translation and cleanup model')).toBeTruthy();
+    expect(screen.getByText('2. Text-processing model')).toBeTruthy();
     expect(screen.getByText('openai/gpt-4.1-mini')).toBeTruthy();
     expect(
       screen.getByRole('button', { name: 'Browse OpenRouter transcription models' }),
@@ -354,7 +357,7 @@ describe('SettingsScreen', () => {
   it('saves custom transcription and translation models from keyboard Done actions', async () => {
     const { settingsRepository } = renderSettingsScreen();
 
-    await screen.findByText('Transcription model');
+    await screen.findByText('1. Speech-to-text model');
 
     const transcriptionModelInput = screen.getByLabelText('Custom OpenRouter transcription model ID');
     fireEvent.changeText(transcriptionModelInput, 'openai/whisper-large-v3-turbo');
@@ -391,7 +394,7 @@ describe('SettingsScreen', () => {
     };
     const { settingsRepository } = renderSettingsScreen({ modelCatalog });
 
-    await screen.findByText('Translation and cleanup model');
+    await screen.findByText('2. Text-processing model');
     fireEvent.press(screen.getByRole('button', { name: 'Browse OpenRouter translation models' }));
 
     expect(await screen.findByText('Claude Sonnet 4.6')).toBeTruthy();
@@ -420,7 +423,7 @@ describe('SettingsScreen', () => {
     };
     const { settingsRepository } = renderSettingsScreen({ modelCatalog });
 
-    await screen.findByText('Transcription model');
+    await screen.findByText('1. Speech-to-text model');
     fireEvent.press(screen.getByRole('button', { name: 'Browse OpenRouter transcription models' }));
 
     expect(await screen.findByText('Chirp 3')).toBeTruthy();
@@ -437,6 +440,75 @@ describe('SettingsScreen', () => {
       });
     });
     expect(screen.queryByLabelText('Search OpenRouter transcription models')).toBeNull();
+  });
+
+  it('filters known incompatible Arabic transcription models and shows language badges', async () => {
+    const modelCatalog: OpenRouterModelCatalog = {
+      listTranscriptionModels: jest.fn(async () => [
+        { id: 'google/chirp-3', name: 'Chirp 3' },
+        { id: 'nvidia/parakeet-tdt-0.6b-v3', name: 'Parakeet V3' },
+        { id: 'provider/future-model', name: 'Future Model' },
+      ]),
+      listTextModels: jest.fn(async () => []),
+    };
+    const settingsRepository = new MemorySettingsRepository({
+      ...DEFAULT_APP_SETTINGS,
+      sourceLanguageId: 'arabic',
+    });
+    renderSettingsScreen({ modelCatalog, settingsRepository });
+
+    await screen.findByText('1. Speech-to-text model');
+    fireEvent.press(screen.getByRole('button', { name: 'Browse OpenRouter transcription models' }));
+
+    expect(await screen.findByText('Arabic preview')).toBeTruthy();
+    expect(screen.getByText('Arabic support unverified')).toBeTruthy();
+    expect(screen.queryByText('Parakeet V3')).toBeNull();
+  });
+
+  it('blocks a known incompatible custom transcription model', async () => {
+    const settingsRepository = new MemorySettingsRepository({
+      ...DEFAULT_APP_SETTINGS,
+      sourceLanguageId: 'arabic',
+    });
+    renderSettingsScreen({ settingsRepository });
+
+    await screen.findByText('1. Speech-to-text model');
+    fireEvent.changeText(
+      screen.getByLabelText('Custom OpenRouter transcription model ID'),
+      'nvidia/parakeet-tdt-0.6b-v3',
+    );
+    fireEvent.press(screen.getByRole('button', { name: 'Save custom transcription model' }));
+
+    expect(
+      await screen.findByText(
+        'nvidia/parakeet-tdt-0.6b-v3 does not support Arabic. Choose another transcription model.',
+      ),
+    ).toBeTruthy();
+    expect(settingsRepository.saveSettings).not.toHaveBeenCalledWith({
+      transcriptionModelId: 'nvidia/parakeet-tdt-0.6b-v3',
+    });
+  });
+
+  it('explains that a custom text model overrides presets and cleanup off skips only cleanup', async () => {
+    const settingsRepository = new MemorySettingsRepository({
+      ...DEFAULT_APP_SETTINGS,
+      customModelId: 'aion-labs/aion-2.0',
+      cleanupEnabled: false,
+    });
+    renderSettingsScreen({ settingsRepository });
+
+    expect(await screen.findByText('2. Text-processing model')).toBeTruthy();
+    expect(screen.getByText('Active custom model: aion-labs/aion-2.0')).toBeTruthy();
+    expect(
+      screen.getByText(
+        'Presets are inactive while a custom model is active. Tap a preset to switch back to it.',
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        'Off: Transcribe returns the raw speech-to-text result and skips the second model call. Translation still uses the active text model.',
+      ),
+    ).toBeTruthy();
   });
 
   it('restores both model selections to the recommended defaults', async () => {
@@ -470,7 +542,7 @@ describe('SettingsScreen', () => {
     const settingsRepository = new RejectingSourceLanguageSettingsRepository();
     renderSettingsScreen({ settingsRepository });
 
-    await screen.findByText('Defaults');
+    await screen.findByText('Recording defaults');
 
     await act(async () => {
       fireEvent.press(screen.getByRole('button', { name: 'Default mode Translate' }));
@@ -494,7 +566,7 @@ describe('SettingsScreen', () => {
     const settingsRepository = new OutOfOrderSourceLanguageSettingsRepository();
     renderSettingsScreen({ settingsRepository });
 
-    await screen.findByText('Defaults');
+    await screen.findByText('Recording defaults');
 
     fireEvent.press(screen.getByRole('button', { name: 'Default source language Spanish' }));
     fireEvent.press(screen.getByRole('button', { name: 'Default source language English' }));
