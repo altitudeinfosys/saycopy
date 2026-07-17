@@ -610,7 +610,7 @@ describe('RecordScreen', () => {
     });
   });
 
-  it('explains the reliable Whisper fallback for Auto with an explicit-language model', async () => {
+  it('explains the reliable original-language model used for Auto', async () => {
     const settingsRepository = createSettingsRepositoryMock({
       ...DEFAULT_APP_SETTINGS,
       sourceLanguageId: 'auto',
@@ -629,7 +629,7 @@ describe('RecordScreen', () => {
 
     expect(
       screen.getByText(
-        'Auto-detect uses Whisper Large V3 because deepgram/nova-3 requires a specific language.',
+        'Auto-detect uses GPT-4o Transcribe to preserve the detected language. Select a language to use deepgram/nova-3 instead.',
       ),
     ).toBeTruthy();
   });

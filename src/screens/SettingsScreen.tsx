@@ -30,6 +30,7 @@ import {
   getTranscriptionLanguageBadge,
   getTranscriptionLanguageSupport,
   isKnownCompatibleTranscriptionModel,
+  resolveTranscriptionModelId,
 } from '../domain/transcriptionModelLanguages';
 import {
   createOpenRouterModelCatalog,
@@ -427,21 +428,6 @@ export default function SettingsScreen({
   }
 
   async function handleSelectSourceLanguage(sourceLanguageId: LanguageId) {
-    const currentTranscriptionModelId = settingsRef.current?.transcriptionModelId;
-
-    if (
-      sourceLanguageId === 'auto' &&
-      currentTranscriptionModelId &&
-      !isKnownCompatibleTranscriptionModel(currentTranscriptionModelId, sourceLanguageId)
-    ) {
-      setTranscriptionModelInput(DEFAULT_TRANSCRIPTION_MODEL_ID);
-      await saveSetting({
-        sourceLanguageId,
-        transcriptionModelId: DEFAULT_TRANSCRIPTION_MODEL_ID,
-      });
-      return;
-    }
-
     await saveSetting({ sourceLanguageId });
   }
 
@@ -547,8 +533,12 @@ export default function SettingsScreen({
   }
 
   const selectedPreset = MODEL_PRESETS.find((preset) => preset.id === settings.modelPresetId);
-  const selectedTranscriptionSupport = getTranscriptionLanguageSupport(
+  const effectiveTranscriptionModelId = resolveTranscriptionModelId(
     settings.transcriptionModelId,
+    settings.sourceLanguageId,
+  );
+  const selectedTranscriptionSupport = getTranscriptionLanguageSupport(
+    effectiveTranscriptionModelId,
     settings.sourceLanguageId,
   );
   const selectedTextModelId =
@@ -654,7 +644,14 @@ export default function SettingsScreen({
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleGroup}>
             <Text style={styles.sectionTitle}>1. Speech-to-text model</Text>
-            <Text style={styles.sectionSubtitle}>Active: {settings.transcriptionModelId}</Text>
+            <Text style={styles.sectionSubtitle}>
+              Preferred: {settings.transcriptionModelId}
+            </Text>
+            {settings.sourceLanguageId === 'auto' ? (
+              <Text style={styles.sectionSubtitle}>
+                Auto engine: {effectiveTranscriptionModelId}
+              </Text>
+            ) : null}
           </View>
         </View>
         <Text style={styles.modelHelp}>
@@ -666,8 +663,9 @@ export default function SettingsScreen({
         </Text>
         {settings.sourceLanguageId === 'auto' ? (
           <Text style={styles.modelHelp}>
-            Auto-detect is limited to models verified to recognize English, Spanish, and Arabic
-            without a language hint. Models that require an explicit language are hidden.
+            Auto-detect uses GPT-4o Transcribe so the detected language is preserved instead of
+            translated into English. Your preferred model stays saved and is used when you select
+            a language.
           </Text>
         ) : null}
         {selectedTranscriptionSupport === 'unsupported' ? (
@@ -720,7 +718,7 @@ export default function SettingsScreen({
           <Text style={styles.controlLabel}>Choose from OpenRouter</Text>
           <Text style={styles.modelHelp}>
             {settings.sourceLanguageId === 'auto'
-              ? 'Only models verified for automatic English, Spanish, and Arabic detection are shown.'
+              ? 'Choose any preferred model here. Auto-detect uses its dedicated GPT-4o Transcribe engine, without changing this choice.'
               : `Models known not to support ${getLanguageLabel(settings.sourceLanguageId)} are hidden. New or unverified models remain available with a warning.`}
           </Text>
           <Pressable
@@ -750,8 +748,9 @@ export default function SettingsScreen({
             value={transcriptionModelInput}
           />
           <Text style={styles.modelHelp}>
-            Advanced: enter a transcription model ID that supports zero-data-retention routing and
-            your source language. Known incompatible choices are blocked.
+            {settings.sourceLanguageId === 'auto'
+              ? 'Advanced: save any preferred transcription model here. It will be used when you select a language; Auto-detect continues to use GPT-4o Transcribe.'
+              : 'Advanced: enter a transcription model ID that supports zero-data-retention routing and your source language. Known incompatible choices are blocked.'}
           </Text>
           <View style={styles.modelButtonColumn}>
             <Pressable
