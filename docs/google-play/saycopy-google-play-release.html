@@ -42,7 +42,7 @@
     <main>
       <header>
         <h1>SayCopy Google Play release record</h1>
-        <p class="lede">Version 1.0.0 · Altitude Information Systems LLC · updated July 16, 2026</p>
+        <p class="lede">Version 1.1.0 · Altitude Information Systems LLC · updated July 18, 2026</p>
         <p class="note warning">
           This record separates verified app behavior from account-side decisions. Do not create the
           Play app, build the production Android artifact, or upload anything until the permanent
@@ -60,7 +60,7 @@
             <tr><td>Permanent Android application ID</td><td><span class="status pass">Confirmed</span></td><td><code>com.altitudeinfosys.saycopy</code> was explicitly confirmed on July 16, 2026 before the first Play app or artifact upload. The iOS bundle ID remains unchanged.</td></tr>
             <tr><td>Play Console organization access</td><td><span class="status pass">Verified</span></td><td>Authenticated account is the existing Altitude Information Systems LLC organization account. Organization details, D-U-N-S-backed identity data, and a verified organization website are present. The Console exposes Android package registration and already shows two registered packages.</td></tr>
             <tr><td>Play Console app</td><td><span class="status pass">Created</span></td><td>SayCopy was created in the Altitude Information Systems LLC Play Console account on July 16, 2026 with package <code>com.altitudeinfosys.saycopy</code>, type App, and free pricing. Google confirmed the package name was available before creation.</td></tr>
-            <tr><td>Production Android App Bundle</td><td><span class="status pending">Queued</span></td><td>EAS production build <code>b4fdb446-1de7-4266-ad86-737bf6121929</code> is queued with version <code>1.0.0</code>, version code <code>2</code>, SDK 57, store distribution, and the confirmed package ID. EAS created the Android upload keystore; verify the completed AAB before Play upload.</td></tr>
+            <tr><td>Production Android App Bundle</td><td><span class="status pending">Build required</span></td><td>The earlier version <code>1.0.0</code> artifact is superseded and must not be uploaded. Build and verify a new EAS production AAB for release <code>1.1.0</code> with the confirmed package ID and current SDK 57 patch level.</td></tr>
             <tr><td>Physical Android device</td><td><span class="status pending">Unavailable</span></td><td>No physical device was connected during the audit. Complete a release smoke test on at least one real arm64 phone before production submission if one becomes available.</td></tr>
             <tr><td>Final production submission</td><td><span class="status blocked">Action confirmation required</span></td><td>Present a final preflight after every Play form and the selected AAB are complete, then obtain explicit confirmation immediately before sending for Google review.</td></tr>
           </tbody>
@@ -72,7 +72,7 @@
         <table>
           <thead><tr><th>Area</th><th>Verified result</th><th>Status</th></tr></thead>
           <tbody>
-            <tr><td>Product/version</td><td>Expo name <strong>SayCopy</strong>, version <code>1.0.0</code>. EAS remote Android version code is currently <code>1</code>; production auto-increment should make the first new production build <code>2</code>. Apple build 4 is independent and must not be changed.</td><td><span class="status pass">Ready</span></td></tr>
+            <tr><td>Product/version</td><td>Expo name <strong>SayCopy</strong>, release version <code>1.1.0</code>. EAS manages Android version code and iOS build number remotely with production auto-increment enabled.</td><td><span class="status pass">Ready</span></td></tr>
             <tr><td>SDK levels</td><td>Expo SDK 57 / React Native 0.86 generate Android min SDK 24, target SDK 36, and compile SDK 36. This meets the Google Play requirement for new apps effective August 31, 2026.</td><td><span class="status pass">Ready</span></td></tr>
             <tr><td>64-bit/device compatibility</td><td>The branch's local release APK contains <code>arm64-v8a</code>, <code>armeabi-v7a</code>, <code>x86</code>, and <code>x86_64</code>. The production AAB will let Play deliver ABI-specific splits. Portrait phone UI is supported; tablets are not being claimed for launch.</td><td><span class="status pass">Ready</span></td></tr>
             <tr><td>Signing</td><td>EAS created and securely stores the Android upload keystore for the production build. At first Play upload, enroll in Play App Signing so Google holds the app-signing key while the EAS key remains the upload key. Preserve both credential records.</td><td><span class="status pending">AAB upload step</span></td></tr>
@@ -83,8 +83,8 @@
             <tr><td>OpenRouter routing</td><td>Requests set zero-data-retention routing. The app and policy do not promise that OpenRouter or every model provider retains nothing; handling remains subject to the user's OpenRouter settings and provider policies.</td><td><span class="status pass">Aligned</span></td></tr>
             <tr><td>Android navigation</td><td>Hardware back now returns History detail to History and returns History/Settings tabs to Record before exiting from the root screen.</td><td><span class="status pass">Fixed/tested</span></td></tr>
             <tr><td>Release-mode build</td><td>A local release APK built successfully with Node 20.19.4. Its manifest reports label <strong>SayCopy</strong>, version <code>1.0.0</code> / code <code>1</code>, min SDK 24, target/compile SDK 36, backup disabled, no service, and only Internet, microphone, audio-settings, plus the Android dynamic-receiver signature permission. SHA-256: <code>0a4282b5ce1194ef0981b3679085fdb6c781970529639329d9e3767a2354ff8d</code>. It is debug-signed for local testing and must never be uploaded.</td><td><span class="status pass">Verified</span></td></tr>
-            <tr><td>Automated validation</td><td>Current branch: 29 suites / 212 tests passed, TypeScript passed, lint passed, and Expo Doctor reported 20/20 checks. Security audit found no high or critical production dependency advisory; ten moderate transitive Expo tooling advisories remain upstream.</td><td><span class="status pass">Ready</span></td></tr>
-            <tr><td>Toolchain parity</td><td>EAS is configured for Node 20.19.4. The local shell reported Node 20.19.1, below the repository's declared minimum, so final release checks should run with 20.19.4 even though current checks pass.</td><td><span class="status pending">Local warning</span></td></tr>
+            <tr><td>Automated validation</td><td>Current branch: 30 suites / 233 tests passed, TypeScript passed, lint passed, and Expo Doctor reported 20/20 checks after updating the required Expo SDK 57 patches.</td><td><span class="status pass">Ready</span></td></tr>
+            <tr><td>Toolchain parity</td><td>Final local release checks ran with Node 24.14.0, which satisfies the repository and React Native engine requirements. EAS production builds use a compatible managed build image.</td><td><span class="status pass">Ready</span></td></tr>
           </tbody>
         </table>
       </section>
@@ -207,7 +207,7 @@ The review key is limited and may be revoked after review. If it does not work, 
           <li><strong>Complete:</strong> privacy URL, no-ads, non-government, no-financial-features, no-health-features, and no-advertising-ID declarations saved.</li>
           <li><strong>Complete:</strong> Productivity category, Audio recorder / Notebook / Productivity tags, public support email and website, and listing descriptions saved. Icon, feature graphic, and final screenshots remain to upload.</li>
           <li><strong>Draft complete:</strong> Data safety declares encrypted-in-transit collection of User IDs, voice or sound recordings, and other user-generated content for app functionality; no data sharing and no SayCopy account. The form cannot be finalized until Target audience is complete.</li>
-          <li><strong>In progress:</strong> EAS production AAB queued as version <code>1.0.0</code> / code <code>2</code>; verify package/version/SDK/signature/permissions and archive its checksum when complete.</li>
+          <li><strong>In progress:</strong> build the superseding EAS production AAB for version <code>1.1.0</code>; verify package/version/SDK/signature/permissions and archive its checksum when complete.</li>
           <li><strong>Owner action required:</strong> authorize the IARC Terms of Service before starting the content-rating questionnaire.</li>
           <li><strong>Credential required:</strong> create a fresh, low-limit OpenRouter reviewer key, copy it locally, and explicitly authorize transmitting it to Google Play. Never reuse a key exposed in chat.</li>
           <li>Enroll in Play App Signing and upload the AAB to internal testing first.</li>
