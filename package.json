@@ -27,7 +27,7 @@
     "doctor": "expo-doctor"
   },
   "dependencies": {
-    "@react-navigation/bottom-tabs": "^7.18.7",
+    "@react-navigation/bottom-tabs": "^7.18.11",
     "@react-navigation/native": "^7.3.7",
     "expo": "~57.0.7",
     "expo-asset": "~57.0.6",
