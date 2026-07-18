@@ -1,6 +1,6 @@
 # SayCopy
 
-SayCopy is a privacy-conscious iOS app for recording, transcribing, translating, organizing, and copying spoken text. It is built with Expo and React Native and uses a user-supplied OpenRouter API key.
+SayCopy is a privacy-conscious mobile app for recording, transcribing, translating, organizing, and copying spoken text on iOS and Android. It is built with Expo and React Native and uses a user-supplied OpenRouter API key.
 
 [Website](https://saycopy.app) · [Setup guide](https://saycopy.app/setup) · [Support](https://saycopy.app/support) · [Security policy](SECURITY.md)
 
@@ -27,7 +27,8 @@ Review the public [privacy page](https://saycopy.app/privacy) and the source bef
 
 - Node.js 20.19.4 or a compatible newer release
 - npm 10
-- Xcode and an iOS Simulator for native development
+- Xcode and an iOS Simulator for iOS development
+- Android Studio and an Android Virtual Device for Android development
 - Expo tooling invoked through the project scripts
 
 ### Get started
@@ -61,7 +62,7 @@ CI runs the same checks for pull requests and pushes to `main`.
 - `docs/` — product, release, testing, and project records
 - `.github/` — CI, Dependabot, and contribution templates
 
-Some stable Expo, EAS, bundle, and package identifiers retain the project's earlier internal name. Changing identifiers used by an already-released mobile app can break updates, so they are not repository-renaming targets.
+Some stable Expo, EAS, and iOS bundle identifiers retain the project's earlier internal name. Changing an identifier used by an already-released app can break updates, so the iOS identifier is not a repository-renaming target. The permanent Android application ID is `com.altitudeinfosys.saycopy`, confirmed before the first Google Play upload.
 
 ## Contributing
 

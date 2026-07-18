@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import { StyleSheet } from 'react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { BackHandler, StyleSheet } from 'react-native';
 import type { ReactTestInstance } from 'react-test-renderer';
 
 import { getHistoryPrimaryText, type HistoryItem, type Tag } from '../../domain/history';
@@ -357,5 +357,40 @@ describe('HistoryScreen', () => {
       expect(screen.getByText('Edited preview text')).toBeTruthy();
       expect(screen.queryByText('Original preview text')).toBeNull();
     });
+  });
+
+  it('returns from detail when Android back is pressed', async () => {
+    let hardwareBackHandler: Parameters<typeof BackHandler.addEventListener>[1] | undefined;
+    const remove = jest.fn();
+    const backHandlerSpy = jest
+      .spyOn(BackHandler, 'addEventListener')
+      .mockImplementation((_eventName, handler) => {
+        hardwareBackHandler = handler;
+        return { remove };
+      });
+    const repository = new MemoryHistoryRepository([
+      createHistoryItem({
+        id: 'history-1',
+        text: 'Android back navigation item',
+        createdAt: '2026-07-05T12:00:00.000Z',
+      }),
+    ]);
+
+    try {
+      render(<HistoryScreen repository={repository} />);
+      expect(await screen.findByText('Android back navigation item')).toBeTruthy();
+      fireEvent.press(screen.getByRole('button', { name: 'Open Android back navigation item' }));
+      expect(await screen.findByLabelText('History text')).toBeTruthy();
+
+      act(() => {
+        expect(hardwareBackHandler?.({} as never)).toBe(true);
+      });
+
+      expect(await screen.findByText('Android back navigation item')).toBeTruthy();
+      expect(screen.queryByLabelText('History text')).toBeNull();
+      expect(remove).toHaveBeenCalled();
+    } finally {
+      backHandlerSpy.mockRestore();
+    }
   });
 });
