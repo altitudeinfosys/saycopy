@@ -1,5 +1,14 @@
 # Agent Instructions
 
+## Pre-Work Repository Gate
+
+- Apply this gate at the start of every task involving this repository, before investigation, implementation, experiments, builds, releases, or documentation work.
+- Inspect every checkout or worktree that may be used with `git status --short --branch`. Confirm there are no staged, unstaged, or untracked changes that have not been intentionally preserved.
+- Confirm the current branch has an upstream and contains no local commits that still need to be pushed. Check for ahead/behind state and verify that prior intended work is committed, pushed, and merged or otherwise explicitly accounted for before starting unrelated work.
+- Fetch the latest remote state with `git fetch origin main --prune`. In the primary checkout, switch to `main` and run `git pull --ff-only origin main`. In a secondary worktree where `main` is checked out elsewhere, create the new work branch directly from the freshly fetched `origin/main`.
+- Do not begin new work from a dirty, ahead, behind, detached, conflicted, stale, or unpublished checkout. Do not silently commit, stash, discard, overwrite, or push unknown user work. Stop and report the exact repository state and the smallest action needed to make it safe.
+- Start a new feature branch only after the repository is clean, all prior intended commits are published, and the branch point is verified to match the latest `origin/main`.
+
 ## Start From Latest Main
 
 - Before starting any new branch, worktree, workdir, repository modification, implementation, experiment, or investigation that may lead to code changes, update from the latest upstream main first.
