@@ -37,11 +37,11 @@
     "expo-secure-store": "~57.0.1",
     "expo-sqlite": "~57.0.1",
     "expo-status-bar": "~57.0.1",
-    "react": "19.2.3",
+    "react": "19.2.7",
     "react-native": "0.86.0",
-    "react-native-gesture-handler": "~2.32.0",
-    "react-native-safe-area-context": "~5.7.0",
-    "react-native-screens": "4.25.2"
+    "react-native-gesture-handler": "~3.1.0",
+    "react-native-safe-area-context": "~5.8.0",
+    "react-native-screens": "4.26.2"
   },
   "devDependencies": {
     "@react-native/jest-preset": "0.86.0",
