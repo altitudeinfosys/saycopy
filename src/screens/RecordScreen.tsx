@@ -40,6 +40,7 @@ type RecordScreenContentProps = Omit<RecordScreenProps, 'recordingController'> &
 type SettingsLoadStatus = 'loading' | 'ready' | 'failed';
 
 const SETTINGS_LOAD_FAILURE_MESSAGE = 'Could not load default settings.';
+const SOURCE_LANGUAGE_SAVE_FAILURE_MESSAGE = 'Could not save recording language.';
 
 function getLanguageLabel(languageId: LanguageId) {
   return LANGUAGE_OPTIONS.find((language) => language.id === languageId)?.label ?? 'Selected language';
@@ -152,6 +153,9 @@ function RecordScreenContent({
   const autoProcessedAudioUriRef = useRef<string | null>(null);
   const currentHistoryItemIdRef = useRef<string | null>(null);
   const operationGenerationRef = useRef(0);
+  const sourceLanguageSaveChainRef = useRef<Promise<void>>(Promise.resolve());
+  const sourceLanguageSaveRequestIdRef = useRef(0);
+  const isMountedRef = useRef(true);
   const [defaultResultActions] = useState(createResultActions);
   const activeRecordingController = recordingController;
   const activeResultActions = resultActions ?? defaultResultActions;
@@ -286,7 +290,10 @@ function RecordScreenContent({
   }, []);
 
   useEffect(() => {
+    isMountedRef.current = true;
+
     return () => {
+      isMountedRef.current = false;
       invalidateOpenRouterOperations();
       void activeRecordingController.cancel();
     };
@@ -667,6 +674,25 @@ function RecordScreenContent({
 
   function handleSourceLanguageChange(languageId: LanguageId) {
     setSourceLanguageId(languageId);
+    setFlowErrorText((currentErrorText) =>
+      currentErrorText === SOURCE_LANGUAGE_SAVE_FAILURE_MESSAGE ? '' : currentErrorText,
+    );
+
+    if (!settingsRepository) {
+      return;
+    }
+
+    sourceLanguageSaveRequestIdRef.current += 1;
+    const requestId = sourceLanguageSaveRequestIdRef.current;
+    sourceLanguageSaveChainRef.current = sourceLanguageSaveChainRef.current.then(async () => {
+      try {
+        await settingsRepository.saveSettings({ sourceLanguageId: languageId });
+      } catch {
+        if (isMountedRef.current && sourceLanguageSaveRequestIdRef.current === requestId) {
+          setFlowErrorText(SOURCE_LANGUAGE_SAVE_FAILURE_MESSAGE);
+        }
+      }
+    });
   }
 
   function handleTargetLanguageChange(languageId: LanguageId) {
