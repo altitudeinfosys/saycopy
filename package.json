@@ -1,6 +1,6 @@
 {
   "name": "saycopy",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "description": "A privacy-conscious Expo app for transcription and translation with a user-supplied OpenRouter key.",
   "license": "Apache-2.0",
