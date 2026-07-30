@@ -484,6 +484,40 @@ describe('RecordScreen', () => {
     });
   });
 
+  it('persists a changed recording language across Record screen remounts', async () => {
+    const settingsRepository = createSettingsRepositoryMock({
+      ...DEFAULT_APP_SETTINGS,
+      sourceLanguageId: 'english',
+    });
+    const saveSettings = jest.spyOn(settingsRepository, 'saveSettings');
+    const firstRender = render(
+      <RecordScreen
+        recordingController={createInjectedRecordingController()}
+        settingsRepository={settingsRepository}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText('Source: English')).toBeTruthy());
+    expandRecordingOptions();
+    fireEvent.press(screen.getByRole('button', { name: 'Source language Auto-detect' }));
+
+    await waitFor(() => {
+      expect(saveSettings).toHaveBeenCalledWith({
+        sourceLanguageId: 'auto',
+      });
+    });
+
+    firstRender.unmount();
+    render(
+      <RecordScreen
+        recordingController={createInjectedRecordingController()}
+        settingsRepository={settingsRepository}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText('Source: Auto-detect')).toBeTruthy());
+  });
+
   it('uses changed from and to languages for the next manual translation', async () => {
     const recordFlowProcessors = createScreenRecordFlowProcessors();
 
