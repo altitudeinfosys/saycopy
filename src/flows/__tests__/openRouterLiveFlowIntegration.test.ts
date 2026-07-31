@@ -174,6 +174,55 @@ describe('OpenRouter live flow integration with mocked fetch', () => {
     );
   });
 
+  it.each([
+    ['error', 'provider error'],
+    ['content_filter', 'content filter'],
+    [undefined, 'missing finish reason'],
+  ] as const)(
+    'saves the raw transcript when cleanup reports %s (%s)',
+    async (finishReason, _description) => {
+      const cleanupChoice = {
+        message: { content: 'Partial cleanup must not replace the complete transcript.' },
+        ...(finishReason ? { finish_reason: finishReason } : {}),
+      };
+      const fetchImpl = createFetchMock(
+        jsonResponse({ text: 'The complete raw transcription remains available.' }),
+        jsonResponse({ choices: [cleanupChoice] }),
+      );
+      const historyRepository = createHistoryRepository();
+      const provider = createProvider({ fetchImpl });
+
+      const result = await runTranscriptionFlow(
+        { provider, historyRepository },
+        {
+          audio: {
+            uri: 'file:///tmp/openrouter-incomplete-cleanup.m4a',
+            base64Audio: 'BASE64_AUDIO_PAYLOAD',
+            format: 'm4a',
+          },
+          sourceLanguageId: 'english',
+          modelPresetId: 'balanced',
+          cleanupEnabled: true,
+        },
+      );
+
+      expect(result).toMatchObject({
+        status: 'cleanup_failed',
+        transcript: 'The complete raw transcription remains available.',
+        notice: {
+          code: 'cleanup_failed',
+          provider: 'openrouter',
+          reason: 'malformed_response',
+        },
+      });
+      expect(historyRepository.createHistoryItem).toHaveBeenCalledWith(
+        expect.objectContaining({
+          primaryText: 'The complete raw transcription remains available.',
+        }),
+      );
+    },
+  );
+
   it('uses GPT-4o Transcribe for Auto while preserving the selected explicit-language model', async () => {
     const fetchImpl = createFetchMock(jsonResponse({ text: 'مرحبا بالعالم' }));
     const historyRepository = createHistoryRepository();

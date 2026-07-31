@@ -54,14 +54,14 @@ export function createOpenRouterProvider({
       }),
     );
 
-    if (result.finishReason === 'length') {
+    if (result.finishReason !== 'stop') {
       throw createAppError(
         'malformed_response',
-        'OpenRouter stopped Light cleanup before it finished.',
+        'OpenRouter did not finish Light cleanup normally.',
         {
           provider: 'openrouter',
           retryable: true,
-          cause: { finishReason: result.finishReason },
+          cause: { finishReason: result.finishReason ?? 'missing' },
         },
       );
     }
