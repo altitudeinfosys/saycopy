@@ -60,7 +60,7 @@ export function createOpenRouterProvider({
         'OpenRouter did not finish Light cleanup normally.',
         {
           provider: 'openrouter',
-          retryable: true,
+          retryable: false,
           cause: { finishReason: result.finishReason ?? 'missing' },
         },
       );

@@ -61,7 +61,7 @@ export async function runTranscriptionFlow(
     let visibleText = sttResult.text;
     let cleanupFailureNotice: TranscriptionFlowCleanupFailedResult['notice'] | undefined;
 
-    if (input.cleanupEnabled) {
+    if (input.cleanupEnabled && sttResult.text.trim()) {
       try {
         visibleText = (
           await dependencies.provider.cleanupTranscript({

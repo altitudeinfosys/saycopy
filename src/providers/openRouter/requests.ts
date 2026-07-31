@@ -31,7 +31,7 @@ export type OpenRouterChatMessage = {
 export type OpenRouterChatRequestBody = {
   readonly model: string;
   readonly temperature: number;
-  readonly max_tokens?: number;
+  readonly max_completion_tokens?: number;
   readonly messages: readonly OpenRouterChatMessage[];
   readonly provider: OpenRouterProviderPreferences;
 };
@@ -80,7 +80,7 @@ export function buildCleanupChatRequest({
 }): OpenRouterRequestDescriptor<OpenRouterChatRequestBody> {
   return buildChatRequest({
     modelId,
-    maxTokens: LIGHT_CLEANUP_MAX_OUTPUT_TOKENS,
+    maxCompletionTokens: LIGHT_CLEANUP_MAX_OUTPUT_TOKENS,
     systemPrompt:
       'Lightly clean up the transcription without translating it. Detect the language of the ' +
       'written input and return the result in exactly the same language and script. If the input ' +
@@ -110,12 +110,12 @@ export function buildTranslationChatRequest({
 }
 
 function buildChatRequest({
-  maxTokens,
+  maxCompletionTokens,
   modelId,
   systemPrompt,
   text,
 }: {
-  readonly maxTokens?: number;
+  readonly maxCompletionTokens?: number;
   readonly modelId: string;
   readonly systemPrompt: string;
   readonly text: string;
@@ -126,7 +126,9 @@ function buildChatRequest({
     body: {
       model: modelId,
       temperature: LOW_TEMPERATURE,
-      ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
+      ...(maxCompletionTokens === undefined
+        ? {}
+        : { max_completion_tokens: maxCompletionTokens }),
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: text },

@@ -128,7 +128,7 @@ describe('OpenRouter live flow integration with mocked fetch', () => {
       'https://openrouter.test/api/v1/chat/completions',
       expect.objectContaining({
         body: expect.stringMatching(
-          /"model":"openai\/gpt-4\.1-mini".*"max_tokens":1024/,
+          /"model":"openai\/gpt-4\.1-mini".*"max_completion_tokens":1024/,
         ),
       }),
     );

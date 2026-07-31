@@ -210,6 +210,49 @@ describe('runTranscriptionFlow', () => {
     );
   });
 
+  it('skips cleanup for a blank raw transcription', async () => {
+    const provider = {
+      transcribeAudio: jest.fn().mockResolvedValue({
+        text: '   ',
+        modelId: 'openai/whisper-large-v3',
+      }),
+      cleanupTranscript: jest.fn(),
+    };
+    const historyRepository = {
+      createHistoryItem: jest.fn().mockResolvedValue({
+        id: 'history-blank',
+        mode: 'transcribe',
+        sourceType: 'voice',
+        sourceLanguageId: 'english',
+        transcript: '   ',
+        createdAt: '2026-07-30T12:06:00.000Z',
+      }),
+    };
+
+    const result = await runTranscriptionFlow(
+      { provider, historyRepository },
+      {
+        audio: {
+          uri: 'file:///tmp/blank-recording.m4a',
+          base64Audio: 'blank-recording-base64',
+          format: 'm4a',
+        },
+        sourceLanguageId: 'english',
+        modelPresetId: 'balanced',
+        cleanupEnabled: true,
+      },
+    );
+
+    expect(provider.cleanupTranscript).not.toHaveBeenCalled();
+    expect(historyRepository.createHistoryItem).toHaveBeenCalledWith(
+      expect.objectContaining({ primaryText: '   ' }),
+    );
+    expect(result).toMatchObject({
+      status: 'success',
+      transcript: '   ',
+    });
+  });
+
   it('propagates sanitized provider errors without saving raw error payloads', async () => {
     const sanitizedError = createAppError('missing_token', 'OpenRouter API token is required.', {
       provider: 'openrouter',
