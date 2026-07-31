@@ -111,7 +111,7 @@ describe('OpenRouter client', () => {
   it('posts chat requests with auth and parses assistant content responses', async () => {
     const fetchImpl = createFetchMock(
       jsonResponse({
-        choices: [{ message: { content: 'Hello.' } }],
+        choices: [{ finish_reason: 'stop', message: { content: 'Hello.' } }],
       }),
     );
     const client = createOpenRouterClient({
@@ -122,6 +122,7 @@ describe('OpenRouter client', () => {
 
     await expect(client.requestChatCompletion(chatRequest)).resolves.toEqual({
       content: 'Hello.',
+      finishReason: 'stop',
     });
 
     expect(fetchImpl).toHaveBeenCalledWith('https://openrouter.test/api/v1/chat/completions', {

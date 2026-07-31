@@ -138,7 +138,9 @@ describe('runTranscriptionFlow', () => {
       notice: {
         code: 'cleanup_failed',
         message:
-          'Cleanup failed: OpenRouter is temporarily unavailable. Showing the raw transcript.',
+          'Light cleanup wasn’t completed. Your original transcription was saved and is ready to use.',
+        provider: 'openrouter',
+        reason: 'provider_unavailable',
       },
       historyItem: {
         id: 'history-raw',
@@ -148,6 +150,106 @@ describe('runTranscriptionFlow', () => {
         transcript: 'raw transcript without cleanup',
         createdAt: '2026-07-05T12:05:00.000Z',
       },
+    });
+  });
+
+  it('does not turn a cleanup payment rejection into a transcription credit error', async () => {
+    const provider = {
+      transcribeAudio: jest.fn().mockResolvedValue({
+        text: 'the original transcription is still useful',
+        modelId: 'openai/whisper-large-v3',
+      }),
+      cleanupTranscript: jest.fn().mockRejectedValue(
+        createAppError('payment_required', 'OpenRouter account credits are required.', {
+          provider: 'openrouter',
+          retryable: false,
+        }),
+      ),
+    };
+    const historyRepository = {
+      createHistoryItem: jest.fn().mockResolvedValue({
+        id: 'history-payment-fallback',
+        mode: 'transcribe',
+        sourceType: 'voice',
+        sourceLanguageId: 'english',
+        transcript: 'the original transcription is still useful',
+        createdAt: '2026-07-30T12:05:00.000Z',
+      }),
+    };
+
+    const result = await runTranscriptionFlow(
+      { provider, historyRepository },
+      {
+        audio: {
+          uri: 'file:///tmp/payment-fallback.m4a',
+          base64Audio: 'payment-fallback-base64',
+          format: 'm4a',
+        },
+        sourceLanguageId: 'english',
+        modelPresetId: 'best_quality',
+        cleanupEnabled: true,
+      },
+    );
+
+    expect(result).toMatchObject({
+      status: 'cleanup_failed',
+      transcript: 'the original transcription is still useful',
+      notice: {
+        code: 'cleanup_failed',
+        provider: 'openrouter',
+        reason: 'payment_required',
+      },
+    });
+    expect(result.status === 'cleanup_failed' ? result.notice.message : '').not.toMatch(
+      /credit|required/i,
+    );
+    expect(historyRepository.createHistoryItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        primaryText: 'the original transcription is still useful',
+      }),
+    );
+  });
+
+  it('skips cleanup for a blank raw transcription', async () => {
+    const provider = {
+      transcribeAudio: jest.fn().mockResolvedValue({
+        text: '   ',
+        modelId: 'openai/whisper-large-v3',
+      }),
+      cleanupTranscript: jest.fn(),
+    };
+    const historyRepository = {
+      createHistoryItem: jest.fn().mockResolvedValue({
+        id: 'history-blank',
+        mode: 'transcribe',
+        sourceType: 'voice',
+        sourceLanguageId: 'english',
+        transcript: '   ',
+        createdAt: '2026-07-30T12:06:00.000Z',
+      }),
+    };
+
+    const result = await runTranscriptionFlow(
+      { provider, historyRepository },
+      {
+        audio: {
+          uri: 'file:///tmp/blank-recording.m4a',
+          base64Audio: 'blank-recording-base64',
+          format: 'm4a',
+        },
+        sourceLanguageId: 'english',
+        modelPresetId: 'balanced',
+        cleanupEnabled: true,
+      },
+    );
+
+    expect(provider.cleanupTranscript).not.toHaveBeenCalled();
+    expect(historyRepository.createHistoryItem).toHaveBeenCalledWith(
+      expect.objectContaining({ primaryText: '   ' }),
+    );
+    expect(result).toMatchObject({
+      status: 'success',
+      transcript: '   ',
     });
   });
 

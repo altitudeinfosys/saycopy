@@ -42,6 +42,7 @@ export type OpenRouterTranscriptionResult = {
 
 export type OpenRouterChatResult = {
   readonly content: string;
+  readonly finishReason?: string;
 };
 
 export type OpenRouterClient = {
@@ -214,7 +215,12 @@ function parseChatResponse(payload: unknown): OpenRouterChatResult {
     isRecord(firstChoice.message) &&
     typeof firstChoice.message.content === 'string'
   ) {
-    return { content: firstChoice.message.content };
+    return {
+      content: firstChoice.message.content,
+      ...(typeof firstChoice.finish_reason === 'string'
+        ? { finishReason: firstChoice.finish_reason }
+        : {}),
+    };
   }
 
   throw mapOpenRouterMalformedResponseError(payload);

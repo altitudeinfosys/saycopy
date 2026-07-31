@@ -83,7 +83,9 @@ describe('OpenRouter live flow integration with mocked fetch', () => {
   it('runs successful STT cleanup through OpenRouter and saves the cleaned transcript', async () => {
     const fetchImpl = createFetchMock(
       jsonResponse({ text: 'hello from raw audio' }),
-      jsonResponse({ choices: [{ message: { content: 'Hello from raw audio.' } }] }),
+      jsonResponse({
+        choices: [{ finish_reason: 'stop', message: { content: 'Hello from raw audio.' } }],
+      }),
     );
     const historyRepository = createHistoryRepository();
     const provider = createProvider({ fetchImpl });
@@ -125,10 +127,101 @@ describe('OpenRouter live flow integration with mocked fetch', () => {
       2,
       'https://openrouter.test/api/v1/chat/completions',
       expect.objectContaining({
-        body: expect.stringContaining('"model":"openai/gpt-4.1-mini"'),
+        body: expect.stringMatching(
+          /"model":"openai\/gpt-4\.1-mini".*"max_completion_tokens":1024/,
+        ),
       }),
     );
   });
+
+  it('saves the raw transcript when bounded cleanup reaches its output limit', async () => {
+    const fetchImpl = createFetchMock(
+      jsonResponse({ text: 'Raw transcription remains complete.' }),
+      jsonResponse({
+        choices: [{ finish_reason: 'length', message: { content: 'Raw transcription' } }],
+      }),
+    );
+    const historyRepository = createHistoryRepository();
+    const provider = createProvider({ fetchImpl });
+
+    const result = await runTranscriptionFlow(
+      { provider, historyRepository },
+      {
+        audio: {
+          uri: 'file:///tmp/openrouter-bounded-cleanup.m4a',
+          base64Audio: 'BASE64_AUDIO_PAYLOAD',
+          format: 'm4a',
+        },
+        sourceLanguageId: 'english',
+        modelPresetId: 'best_quality',
+        cleanupEnabled: true,
+      },
+    );
+
+    expect(result).toMatchObject({
+      status: 'cleanup_failed',
+      transcript: 'Raw transcription remains complete.',
+      notice: {
+        code: 'cleanup_failed',
+        provider: 'openrouter',
+        reason: 'malformed_response',
+      },
+    });
+    expect(historyRepository.createHistoryItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        primaryText: 'Raw transcription remains complete.',
+      }),
+    );
+  });
+
+  it.each([
+    ['error', 'provider error'],
+    ['content_filter', 'content filter'],
+    [undefined, 'missing finish reason'],
+  ] as const)(
+    'saves the raw transcript when cleanup reports %s (%s)',
+    async (finishReason, _description) => {
+      const cleanupChoice = {
+        message: { content: 'Partial cleanup must not replace the complete transcript.' },
+        ...(finishReason ? { finish_reason: finishReason } : {}),
+      };
+      const fetchImpl = createFetchMock(
+        jsonResponse({ text: 'The complete raw transcription remains available.' }),
+        jsonResponse({ choices: [cleanupChoice] }),
+      );
+      const historyRepository = createHistoryRepository();
+      const provider = createProvider({ fetchImpl });
+
+      const result = await runTranscriptionFlow(
+        { provider, historyRepository },
+        {
+          audio: {
+            uri: 'file:///tmp/openrouter-incomplete-cleanup.m4a',
+            base64Audio: 'BASE64_AUDIO_PAYLOAD',
+            format: 'm4a',
+          },
+          sourceLanguageId: 'english',
+          modelPresetId: 'balanced',
+          cleanupEnabled: true,
+        },
+      );
+
+      expect(result).toMatchObject({
+        status: 'cleanup_failed',
+        transcript: 'The complete raw transcription remains available.',
+        notice: {
+          code: 'cleanup_failed',
+          provider: 'openrouter',
+          reason: 'malformed_response',
+        },
+      });
+      expect(historyRepository.createHistoryItem).toHaveBeenCalledWith(
+        expect.objectContaining({
+          primaryText: 'The complete raw transcription remains available.',
+        }),
+      );
+    },
+  );
 
   it('uses GPT-4o Transcribe for Auto while preserving the selected explicit-language model', async () => {
     const fetchImpl = createFetchMock(jsonResponse({ text: 'مرحبا بالعالم' }));

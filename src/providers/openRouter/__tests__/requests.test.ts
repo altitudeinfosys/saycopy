@@ -3,6 +3,7 @@ import {
   buildCleanupChatRequest,
   buildTranscriptionRequest,
   buildTranslationChatRequest,
+  LIGHT_CLEANUP_MAX_OUTPUT_TOKENS,
 } from '../requests';
 
 describe('OpenRouter request builders', () => {
@@ -77,6 +78,7 @@ describe('OpenRouter request builders', () => {
       expect(request.method).toBe('POST');
       expect(request.body.model).toBe('google/gemini-3.1-flash-lite');
       expect(request.body.temperature).toBeLessThanOrEqual(0.2);
+      expect(request.body.max_completion_tokens).toBe(LIGHT_CLEANUP_MAX_OUTPUT_TOKENS);
       expect(request.body.messages).toEqual([
         {
           role: 'system',
@@ -121,6 +123,7 @@ describe('OpenRouter request builders', () => {
           provider: { zdr: true },
         },
       });
+      expect(request.body).not.toHaveProperty('max_completion_tokens');
       expect(request.body.temperature).toBeLessThanOrEqual(0.2);
       expect(request.body.messages[0]?.content).toEqual(
         expect.stringContaining('Return only the translated text'),
