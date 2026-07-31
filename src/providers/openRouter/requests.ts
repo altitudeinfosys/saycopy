@@ -31,6 +31,7 @@ export type OpenRouterChatMessage = {
 export type OpenRouterChatRequestBody = {
   readonly model: string;
   readonly temperature: number;
+  readonly max_tokens?: number;
   readonly messages: readonly OpenRouterChatMessage[];
   readonly provider: OpenRouterProviderPreferences;
 };
@@ -43,6 +44,7 @@ const TRANSCRIPTION_PATH = '/api/v1/audio/transcriptions';
 const CHAT_COMPLETIONS_PATH = '/api/v1/chat/completions';
 const WHISPER_MODEL = 'openai/whisper-large-v3';
 const LOW_TEMPERATURE = 0.1;
+export const LIGHT_CLEANUP_MAX_OUTPUT_TOKENS = 1024;
 
 export function buildTranscriptionRequest({
   base64Audio,
@@ -78,6 +80,7 @@ export function buildCleanupChatRequest({
 }): OpenRouterRequestDescriptor<OpenRouterChatRequestBody> {
   return buildChatRequest({
     modelId,
+    maxTokens: LIGHT_CLEANUP_MAX_OUTPUT_TOKENS,
     systemPrompt:
       'Lightly clean up the transcription without translating it. Detect the language of the ' +
       'written input and return the result in exactly the same language and script. If the input ' +
@@ -107,10 +110,12 @@ export function buildTranslationChatRequest({
 }
 
 function buildChatRequest({
+  maxTokens,
   modelId,
   systemPrompt,
   text,
 }: {
+  readonly maxTokens?: number;
   readonly modelId: string;
   readonly systemPrompt: string;
   readonly text: string;
@@ -121,6 +126,7 @@ function buildChatRequest({
     body: {
       model: modelId,
       temperature: LOW_TEMPERATURE,
+      ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: text },

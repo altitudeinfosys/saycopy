@@ -1,4 +1,5 @@
 import { getEffectiveChatModelId } from '../../domain/modelPresets';
+import { createAppError } from '../../domain/errors';
 import { resolveTranscriptionModelId } from '../../domain/transcriptionModelLanguages';
 import type {
   FlowCleanupTranscriptInput,
@@ -52,6 +53,25 @@ export function createOpenRouterProvider({
         modelId,
       }),
     );
+
+    if (result.finishReason === 'length') {
+      throw createAppError(
+        'malformed_response',
+        'OpenRouter stopped Light cleanup before it finished.',
+        {
+          provider: 'openrouter',
+          retryable: true,
+          cause: { finishReason: result.finishReason },
+        },
+      );
+    }
+
+    if (!result.content.trim()) {
+      throw createAppError('malformed_response', 'OpenRouter returned an empty cleanup result.', {
+        provider: 'openrouter',
+        retryable: true,
+      });
+    }
 
     return {
       text: result.content,

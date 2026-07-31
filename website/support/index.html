@@ -119,6 +119,7 @@
               <p>
                 A text model improves punctuation, capitalization, spacing, obvious filler, and
                 small transcription artifacts. It must preserve the original language and script.
+                SayCopy limits this polishing step so it cannot become an open-ended rewrite.
               </p>
             </article>
             <article class="choice-card">
@@ -211,9 +212,9 @@
 
           <h3>Cleanup failed</h3>
           <p>
-            SayCopy should keep and display the raw transcript. Retry after a moment or turn Light
-            cleanup off. Cleanup uses the text-processing model, so it can fail even when the
-            speech-to-text step succeeded.
+            SayCopy keeps, saves, and displays the original transcription. You can use it
+            immediately, retry after a moment, or turn Light cleanup off. Cleanup uses the
+            text-processing model, so it can fail even when the speech-to-text step succeeded.
           </p>
 
           <h3>“OpenRouter token missing”</h3>

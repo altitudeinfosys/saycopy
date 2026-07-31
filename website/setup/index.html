@@ -158,8 +158,9 @@
           <h2>What does Light cleanup do?</h2>
           <p>
             When enabled in Transcribe mode, the active text model improves punctuation, spacing,
-            capitalization, and small artifacts without translating the transcript. Turning it off
-            returns the raw speech-to-text result.
+            capitalization, and small artifacts without translating the transcript. SayCopy bounds
+            this polishing step and keeps the original transcription if cleanup cannot finish.
+            Turning it off returns the raw speech-to-text result directly.
           </p>
         </article>
         <article class="content-card">

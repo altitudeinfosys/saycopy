@@ -1,5 +1,5 @@
 import type { TranscribeHistoryItem } from '../domain/history';
-import { isAppError } from '../domain/errors';
+import { isAppError, type AppErrorCategory } from '../domain/errors';
 import type { LanguageId } from '../domain/languages';
 import type { ModelPresetId } from '../domain/modelPresets';
 import type {
@@ -37,6 +37,8 @@ export type TranscriptionFlowCleanupFailedResult = {
   readonly notice: {
     readonly code: 'cleanup_failed';
     readonly message: string;
+    readonly provider?: string;
+    readonly reason?: AppErrorCategory;
   };
   readonly historyItem: TranscribeHistoryItem;
 };
@@ -57,7 +59,7 @@ export async function runTranscriptionFlow(
       transcriptionModelId: input.transcriptionModelId,
     });
     let visibleText = sttResult.text;
-    let cleanupFailureMessage = '';
+    let cleanupFailureNotice: TranscriptionFlowCleanupFailedResult['notice'] | undefined;
 
     if (input.cleanupEnabled) {
       try {
@@ -70,9 +72,17 @@ export async function runTranscriptionFlow(
           })
         ).text;
       } catch (error) {
-        cleanupFailureMessage = isAppError(error)
-          ? `Cleanup failed: ${error.message} Showing the raw transcript.`
-          : 'Cleanup failed. Showing the raw transcript.';
+        cleanupFailureNotice = {
+          code: 'cleanup_failed',
+          message:
+            'Light cleanup wasn’t completed. Your original transcription was saved and is ready to use.',
+          ...(isAppError(error)
+            ? {
+                ...(error.provider ? { provider: error.provider } : {}),
+                reason: error.category,
+              }
+            : {}),
+        };
       }
     }
 
@@ -85,14 +95,11 @@ export async function runTranscriptionFlow(
       sttModelId: sttResult.modelId,
     })) as TranscribeHistoryItem;
 
-    if (cleanupFailureMessage) {
+    if (cleanupFailureNotice) {
       return {
         status: 'cleanup_failed',
         transcript: visibleText,
-        notice: {
-          code: 'cleanup_failed',
-          message: cleanupFailureMessage,
-        },
+        notice: cleanupFailureNotice,
         historyItem,
       };
     }

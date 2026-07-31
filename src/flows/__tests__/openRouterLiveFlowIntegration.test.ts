@@ -83,7 +83,9 @@ describe('OpenRouter live flow integration with mocked fetch', () => {
   it('runs successful STT cleanup through OpenRouter and saves the cleaned transcript', async () => {
     const fetchImpl = createFetchMock(
       jsonResponse({ text: 'hello from raw audio' }),
-      jsonResponse({ choices: [{ message: { content: 'Hello from raw audio.' } }] }),
+      jsonResponse({
+        choices: [{ finish_reason: 'stop', message: { content: 'Hello from raw audio.' } }],
+      }),
     );
     const historyRepository = createHistoryRepository();
     const provider = createProvider({ fetchImpl });
@@ -125,7 +127,49 @@ describe('OpenRouter live flow integration with mocked fetch', () => {
       2,
       'https://openrouter.test/api/v1/chat/completions',
       expect.objectContaining({
-        body: expect.stringContaining('"model":"openai/gpt-4.1-mini"'),
+        body: expect.stringMatching(
+          /"model":"openai\/gpt-4\.1-mini".*"max_tokens":1024/,
+        ),
+      }),
+    );
+  });
+
+  it('saves the raw transcript when bounded cleanup reaches its output limit', async () => {
+    const fetchImpl = createFetchMock(
+      jsonResponse({ text: 'Raw transcription remains complete.' }),
+      jsonResponse({
+        choices: [{ finish_reason: 'length', message: { content: 'Raw transcription' } }],
+      }),
+    );
+    const historyRepository = createHistoryRepository();
+    const provider = createProvider({ fetchImpl });
+
+    const result = await runTranscriptionFlow(
+      { provider, historyRepository },
+      {
+        audio: {
+          uri: 'file:///tmp/openrouter-bounded-cleanup.m4a',
+          base64Audio: 'BASE64_AUDIO_PAYLOAD',
+          format: 'm4a',
+        },
+        sourceLanguageId: 'english',
+        modelPresetId: 'best_quality',
+        cleanupEnabled: true,
+      },
+    );
+
+    expect(result).toMatchObject({
+      status: 'cleanup_failed',
+      transcript: 'Raw transcription remains complete.',
+      notice: {
+        code: 'cleanup_failed',
+        provider: 'openrouter',
+        reason: 'malformed_response',
+      },
+    });
+    expect(historyRepository.createHistoryItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        primaryText: 'Raw transcription remains complete.',
       }),
     );
   });
