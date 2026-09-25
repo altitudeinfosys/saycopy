@@ -1,4 +1,8 @@
-import { createAppDependencies } from '../appDependencies';
+import {
+  createAppDependencies,
+  createTranslateProcessors,
+  isStaleOpenRouterOperationError,
+} from '../appDependencies';
 import type { OpenRouterFetch } from '../../providers/openRouter/client';
 import {
   createDemoHistoryRepository,
@@ -85,7 +89,6 @@ describe('createAppDependencies', () => {
     });
 
     await dependencies.settingsRepository.saveSettings({
-      defaultMode: 'translate',
       sourceLanguageId: 'spanish',
       targetLanguageId: 'arabic',
       modelPresetId: 'fast',
@@ -99,7 +102,6 @@ describe('createAppDependencies', () => {
     });
 
     await expect(dependencies.settingsRepository.getSettings()).resolves.toMatchObject({
-      defaultMode: 'translate',
       sourceLanguageId: 'spanish',
       targetLanguageId: 'arabic',
       modelPresetId: 'fast',
@@ -127,5 +129,65 @@ describe('createAppDependencies', () => {
     });
 
     expect(createLocalDatabase).not.toHaveBeenCalled();
+  });
+
+  describe('translate processors', () => {
+    function createProvider() {
+      return {
+        cleanupTranscript: jest.fn(),
+        transcribeAudio: jest.fn(async () => ({ text: 'Hola', modelId: 'stt-model' })),
+        translateText: jest.fn(async () => ({ text: 'Hello', modelId: 'text-model' })),
+      };
+    }
+
+    it('translates text through the provider', async () => {
+      const provider = createProvider();
+      const processors = createTranslateProcessors({ provider });
+
+      await expect(
+        processors.translate({
+          text: 'Hola',
+          sourceLanguageId: 'spanish',
+          targetLanguageId: 'english',
+          modelPresetId: 'balanced',
+        }),
+      ).resolves.toEqual({ text: 'Hello', modelId: 'text-model' });
+    });
+
+    it('transcribes speech and always cleans up the temporary recording', async () => {
+      const provider = createProvider();
+      const temporaryAudio = { cleanup: jest.fn(async () => undefined) };
+      const processors = createTranslateProcessors({ provider, temporaryAudio });
+      const audio = { uri: 'file:///tmp/clip.m4a', base64Audio: 'AAA', format: 'm4a' as const };
+
+      await expect(
+        processors.transcribe({ audio, sourceLanguageId: 'spanish' }),
+      ).resolves.toEqual({ text: 'Hola', modelId: 'stt-model' });
+      expect(temporaryAudio.cleanup).toHaveBeenCalledWith({ uri: 'file:///tmp/clip.m4a' });
+
+      provider.transcribeAudio.mockRejectedValueOnce(new Error('network'));
+      await expect(processors.transcribe({ audio, sourceLanguageId: 'spanish' })).rejects.toThrow(
+        'network',
+      );
+      expect(temporaryAudio.cleanup).toHaveBeenCalledTimes(2);
+    });
+
+    it('rejects results for operations that are no longer current', async () => {
+      const processors = createTranslateProcessors({ provider: createProvider() });
+
+      const error = await processors
+        .translate(
+          {
+            text: 'Hola',
+            sourceLanguageId: 'spanish',
+            targetLanguageId: 'english',
+            modelPresetId: 'balanced',
+          },
+          { isCurrent: () => false },
+        )
+        .catch((caught: unknown) => caught);
+
+      expect(isStaleOpenRouterOperationError(error)).toBe(true);
+    });
   });
 });

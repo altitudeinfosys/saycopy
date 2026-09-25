@@ -14,9 +14,10 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import RecordScreen from './screens/RecordScreen';
 import HistoryScreen from './screens/HistoryScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import TranslateScreen from './screens/TranslateScreen';
 import { createAppDependencies, type AppDependencies } from './runtime/appDependencies';
 
-const tabs = ['Record', 'History', 'Settings'] as const;
+const tabs = ['Record', 'Translate', 'History', 'Settings'] as const;
 
 type AppTab = (typeof tabs)[number];
 
@@ -81,6 +82,16 @@ function renderActiveTab(activeTab: AppTab, dependencies: AppDependencies) {
         historyRepository={dependencies.historyRepository}
         recordFlowProcessors={dependencies.recordFlowProcessors}
         settingsRepository={dependencies.settingsRepository}
+      />
+    );
+  }
+
+  if (activeTab === 'Translate') {
+    return (
+      <TranslateScreen
+        historyRepository={dependencies.historyRepository}
+        settingsRepository={dependencies.settingsRepository}
+        translateProcessors={dependencies.translateProcessors}
       />
     );
   }

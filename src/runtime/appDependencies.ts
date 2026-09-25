@@ -14,12 +14,17 @@ import { createExpoSqliteLocalDatabase } from '../storage/sqlite/expoSqliteDatab
 import type { LocalSqliteDatabase } from '../storage/sqlite/schema';
 import { runTranscriptionFlow, type RunTranscriptionFlowInput } from '../flows/transcriptionFlow';
 import { runTranslationFlow, type RunTranslationFlowInput } from '../flows/translationFlow';
+import { cleanupTemporaryAudio } from '../flows/temporaryAudioCleanup';
 import type {
+  FlowAudioInput,
   FlowHistoryRepository,
+  FlowTextResult,
+  FlowTranslateTextInput,
   TemporaryAudioCleanup,
   TranscriptionProvider,
   TranslationProvider,
 } from '../flows/types';
+import type { LanguageId } from '../domain/languages';
 import { createOpenRouterClient, type OpenRouterFetch } from '../providers/openRouter/client';
 import { createOpenRouterProvider } from '../providers/openRouter/provider';
 
@@ -32,11 +37,30 @@ export type RecordFlowRunOptions = {
   readonly isCurrent?: () => boolean;
 };
 
+export type TranslateTranscribeInput = {
+  readonly audio: FlowAudioInput;
+  readonly sourceLanguageId: LanguageId;
+  readonly transcriptionModelId?: string;
+};
+
+/** Translate-tab operations. Unlike the Record flows, they never write history on their own. */
+export type TranslateProcessors = {
+  readonly transcribe: (
+    input: TranslateTranscribeInput,
+    options?: RecordFlowRunOptions,
+  ) => Promise<FlowTextResult>;
+  readonly translate: (
+    input: FlowTranslateTextInput,
+    options?: RecordFlowRunOptions,
+  ) => Promise<FlowTextResult>;
+};
+
 export type AppDependencies = {
   readonly historyRepository: HistoryRepository;
   readonly settingsRepository: SettingsRepository;
   readonly tokenStore: SecureTokenStore;
   readonly recordFlowProcessors: RecordFlowProcessors;
+  readonly translateProcessors: TranslateProcessors;
 };
 
 export type CreateAppDependenciesOptions = {
@@ -95,6 +119,40 @@ export function createAppDependencies({
       provider,
       temporaryAudio,
     }),
+    translateProcessors: createTranslateProcessors({ provider, temporaryAudio }),
+  };
+}
+
+export function createTranslateProcessors({
+  provider,
+  temporaryAudio,
+}: {
+  readonly provider: OpenRouterProviderDependencies;
+  readonly temporaryAudio?: TemporaryAudioCleanup;
+}): TranslateProcessors {
+  return {
+    async transcribe(input, options = {}) {
+      try {
+        const result = await provider.transcribeAudio({
+          audio: input.audio,
+          sourceLanguageId: input.sourceLanguageId,
+          // The preset only affects text models; speech-to-text uses the transcription model.
+          modelPresetId: 'balanced',
+          transcriptionModelId: input.transcriptionModelId,
+        });
+        assertCurrentOperation(options);
+
+        return result;
+      } finally {
+        await cleanupTemporaryAudio(temporaryAudio, input.audio);
+      }
+    },
+    async translate(input, options = {}) {
+      const result = await provider.translateText(input);
+      assertCurrentOperation(options);
+
+      return result;
+    },
   };
 }
 

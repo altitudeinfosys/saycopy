@@ -20,8 +20,8 @@ describe('settings repository', () => {
     const { repository } = await createRepository();
 
     await expect(repository.getSettings()).resolves.toEqual({
-      defaultMode: 'transcribe',
       sourceLanguageId: 'auto',
+      translateSourceLanguageId: 'auto',
       targetLanguageId: 'english',
       modelPresetId: DEFAULT_MODEL_PRESET_ID,
       customModelId: '',
@@ -37,9 +37,9 @@ describe('settings repository', () => {
     const { repository } = await createRepository();
 
     await repository.saveSettings({
-      defaultMode: 'translate',
       sourceLanguageId: 'spanish',
-      targetLanguageId: 'arabic',
+      translateSourceLanguageId: 'english',
+      targetLanguageId: 'japanese',
       modelPresetId: 'fast',
       customModelId: 'mistralai/mistral-small-3.2-24b-instruct',
       transcriptionModelId: 'openai/gpt-4o-transcribe',
@@ -47,9 +47,9 @@ describe('settings repository', () => {
     });
 
     await expect(repository.getSettings()).resolves.toEqual({
-      defaultMode: 'translate',
       sourceLanguageId: 'spanish',
-      targetLanguageId: 'arabic',
+      translateSourceLanguageId: 'english',
+      targetLanguageId: 'japanese',
       modelPresetId: 'fast',
       customModelId: 'mistralai/mistral-small-3.2-24b-instruct',
       transcriptionModelId: 'openai/gpt-4o-transcribe',
@@ -62,7 +62,7 @@ describe('settings repository', () => {
 
     await database.execute(
       'INSERT OR REPLACE INTO app_settings (key, value_json, updated_at) VALUES (?, ?, ?)',
-      ['defaultMode', JSON.stringify('record'), '2026-07-05T12:00:00.000Z'],
+      ['translateSourceLanguageId', JSON.stringify('klingon'), '2026-07-05T12:00:00.000Z'],
     );
     await database.execute(
       'INSERT OR REPLACE INTO app_settings (key, value_json, updated_at) VALUES (?, ?, ?)',
@@ -93,7 +93,7 @@ describe('settings repository', () => {
 
     await database.execute(
       'INSERT OR REPLACE INTO app_settings (key, value_json, updated_at) VALUES (?, ?, ?)',
-      ['defaultMode', '{bad json', '2026-07-05T12:00:00.000Z'],
+      ['translateSourceLanguageId', '{bad json', '2026-07-05T12:00:00.000Z'],
     );
 
     await expect(repository.getSettings()).resolves.toEqual(DEFAULT_APP_SETTINGS);

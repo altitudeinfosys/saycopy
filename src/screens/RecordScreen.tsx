@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
   type AudioRecordingController,
@@ -9,16 +9,13 @@ import {
   useExpoAudioRecordingController,
 } from '../audio/audioRecorder';
 import LanguageSelect from '../components/LanguageSelect';
-import ModeSegmentedControl, { type RecordMode } from '../components/ModeSegmentedControl';
 import RecordingPanel from '../components/RecordingPanel';
 import ResultCard from '../components/ResultCard';
 import { createResultActions, type ResultActions } from '../components/ActionBar';
-import type { AppError } from '../domain/errors';
 import type { HistoryItem, Tag } from '../domain/history';
-import { LANGUAGE_OPTIONS, type ConcreteLanguageId, type LanguageId } from '../domain/languages';
+import { LANGUAGE_OPTIONS, type LanguageId } from '../domain/languages';
 import { DEFAULT_TRANSCRIPTION_MODEL_ID, type ModelPresetId } from '../domain/modelPresets';
 import type { TranscriptionFlowResult } from '../flows/transcriptionFlow';
-import type { TranslationFlowResult } from '../flows/translationFlow';
 import {
   isStaleOpenRouterOperationError,
   type RecordFlowProcessors,
@@ -59,14 +56,6 @@ function getRecorderFailureMessage(error: unknown) {
   return 'Recording failed. Try again.';
 }
 
-function getFlowFailureMessage(error: unknown) {
-  if (isAppError(error) || isMessageBearingObject(error)) {
-    return error.message;
-  }
-
-  return 'OpenRouter request failed. Try again.';
-}
-
 function isRecordButtonBusy(state: AudioRecordingState) {
   return (
     state.status === 'requesting_permission' ||
@@ -85,14 +74,6 @@ function isMessageBearingObject(value: unknown): value is { readonly message: st
     value !== null &&
     'message' in value &&
     typeof value.message === 'string'
-  );
-}
-
-function isAppError(value: unknown): value is AppError {
-  return (
-    isMessageBearingObject(value) &&
-    'category' in value &&
-    typeof value.category === 'string'
   );
 }
 
@@ -119,12 +100,8 @@ function RecordScreenContent({
   resultActions,
   settingsRepository,
 }: RecordScreenContentProps) {
-  const [mode, setMode] = useState<RecordMode>(DEFAULT_APP_SETTINGS.defaultMode);
   const [sourceLanguageId, setSourceLanguageId] = useState<LanguageId>(
     DEFAULT_APP_SETTINGS.sourceLanguageId,
-  );
-  const [targetLanguageId, setTargetLanguageId] = useState<ConcreteLanguageId>(
-    DEFAULT_APP_SETTINGS.targetLanguageId,
   );
   const [modelPresetId, setModelPresetId] = useState<ModelPresetId>(
     DEFAULT_APP_SETTINGS.modelPresetId,
@@ -134,16 +111,9 @@ function RecordScreenContent({
     DEFAULT_APP_SETTINGS.transcriptionModelId,
   );
   const [cleanupEnabled, setCleanupEnabled] = useState(DEFAULT_APP_SETTINGS.cleanupEnabled);
-  const [manualText, setManualText] = useState('');
   const [areRecordingOptionsExpanded, setAreRecordingOptionsExpanded] = useState(false);
-  const [isManualTextExpanded, setIsManualTextExpanded] = useState(
-    DEFAULT_APP_SETTINGS.defaultMode === 'translate',
-  );
   const [recordingElapsedMs, setRecordingElapsedMs] = useState(0);
-  const [isManualTranslationPending, setIsManualTranslationPending] = useState(false);
-  const [resultMode, setResultMode] = useState<RecordMode>('transcribe');
   const [resultText, setResultText] = useState('');
-  const [originalText, setOriginalText] = useState('');
   const [currentHistoryItemId, setCurrentHistoryItemId] = useState<string | null>(null);
   const [currentResultTags, setCurrentResultTags] = useState<Tag[]>([]);
   const [flowErrorText, setFlowErrorText] = useState('');
@@ -168,22 +138,13 @@ function RecordScreenContent({
 
   const hasSavedResult = currentHistoryItemId !== null;
   const hasResult = resultText.length > 0 || hasSavedResult;
-  const trimmedManualText = manualText.trim();
-  const targetLanguageLabel = useMemo(
-    () => getLanguageLabel(targetLanguageId),
-    [targetLanguageId],
-  );
   const sourceLanguageLabel = useMemo(
     () => getLanguageLabel(sourceLanguageId),
     [sourceLanguageId],
   );
   const isAutoDetectActive = sourceLanguageId === 'auto';
-  const languageOptionsTitle =
-    mode === 'translate' ? 'Translation languages' : 'Recording language';
-  const languageOptionsSummary =
-    mode === 'translate'
-      ? `From ${sourceLanguageLabel} to ${targetLanguageLabel}`
-      : `Source: ${sourceLanguageLabel}`;
+  const languageOptionsTitle = 'Recording language';
+  const languageOptionsSummary = `Source: ${sourceLanguageLabel}`;
   const languageOptionsToggleLabel = areRecordingOptionsExpanded
     ? 'Hide language options'
     : 'Show language options';
@@ -215,13 +176,7 @@ function RecordScreenContent({
             : getRecorderFailureMessage(recordingState.error)
           : '';
   const processingMessage =
-    recordingState.status === 'processing'
-      ? mode === 'translate'
-        ? 'Transcribing and translating your recording'
-        : 'Transcribing your recording'
-      : isManualTranslationPending
-        ? 'Translating your text'
-        : '';
+    recordingState.status === 'processing' ? 'Transcribing your recording' : '';
   const visibleFlowErrorText = didSettingsLoadFail
     ? SETTINGS_LOAD_FAILURE_MESSAGE
     : flowErrorText;
@@ -246,15 +201,12 @@ function RecordScreenContent({
           return;
         }
 
-        setMode(loadedSettings.defaultMode);
         setSourceLanguageId(loadedSettings.sourceLanguageId);
-        setTargetLanguageId(loadedSettings.targetLanguageId);
         setModelPresetId(loadedSettings.modelPresetId);
         setCustomModelId(loadedSettings.customModelId);
         setTranscriptionModelId(loadedSettings.transcriptionModelId);
         setCleanupEnabled(loadedSettings.cleanupEnabled);
         setAreRecordingOptionsExpanded(false);
-        setIsManualTextExpanded(loadedSettings.defaultMode === 'translate');
         setSettingsLoadStatus('ready');
       } catch {
         if (isActive) {
@@ -301,53 +253,26 @@ function RecordScreenContent({
   }, [activeRecordingController, invalidateOpenRouterOperations]);
 
   const saveResult = useCallback(
-    (
-      nextMode: RecordMode,
-      nextResultText: string,
-      nextOriginalText = '',
-      historyItem?: HistoryItem,
-    ) => {
-      setResultMode(nextMode);
+    (nextResultText: string, historyItem?: HistoryItem) => {
       setResultText(nextResultText);
-      setOriginalText(nextOriginalText);
       setVisibleHistoryItemId(historyItem?.id ?? null);
       setCurrentResultTags([...(historyItem?.tags ?? [])]);
       setFlowErrorText('');
       setSavedHistoryCount((currentCount) => currentCount + 1);
       setAreRecordingOptionsExpanded(false);
-      setIsManualTextExpanded(false);
     },
     [setVisibleHistoryItemId],
   );
 
   const applyTranscriptionResult = useCallback(
     (result: TranscriptionFlowResult) => {
-      saveResult('transcribe', result.transcript, '', result.historyItem);
+      saveResult(result.transcript, result.historyItem);
 
       if (result.status === 'cleanup_failed') {
         setFlowErrorText(result.notice.message);
       }
     },
     [saveResult],
-  );
-
-  const applyTranslationResult = useCallback(
-    (result: TranslationFlowResult) => {
-      if (result.status === 'translation_failed') {
-        setResultMode('translate');
-        setResultText(result.primaryText);
-        setOriginalText(result.sourceText);
-        setVisibleHistoryItemId(null);
-        setCurrentResultTags([]);
-        setFlowErrorText(result.error.message);
-        setAreRecordingOptionsExpanded(false);
-        setIsManualTextExpanded(false);
-        return;
-      }
-
-      saveResult('translate', result.translatedText, result.sourceText, result.historyItem);
-    },
-    [saveResult, setVisibleHistoryItemId],
   );
 
   const handleAddResultTag = useCallback(
@@ -407,28 +332,6 @@ function RecordScreenContent({
           throw new Error('OpenRouter processing is not configured.');
         }
 
-        if (mode === 'translate') {
-          const result = await recordFlowProcessors.runTranslation(
-            {
-              sourceType: 'voice',
-              audio,
-              sourceLanguageId,
-              targetLanguageId,
-              modelPresetId,
-              customModelId,
-              ...(transcriptionModelId === DEFAULT_TRANSCRIPTION_MODEL_ID
-                ? {}
-                : { transcriptionModelId }),
-            },
-            { isCurrent },
-          );
-
-          if (isCurrent()) {
-            applyTranslationResult(result);
-          }
-          return;
-        }
-
         const result = await recordFlowProcessors.runTranscription(
           {
             audio,
@@ -457,17 +360,14 @@ function RecordScreenContent({
     activeRecordingController,
     areSettingsReady,
     applyTranscriptionResult,
-    applyTranslationResult,
     cleanupEnabled,
     customModelId,
     didSettingsLoadFail,
     isOpenRouterOperationCurrent,
-    mode,
     modelPresetId,
     recordFlowProcessors,
     sourceLanguageId,
     startOpenRouterOperation,
-    targetLanguageId,
     transcriptionModelId,
   ]);
 
@@ -511,84 +411,6 @@ function RecordScreenContent({
     void processStoppedRecording();
   }, [processStoppedRecording, recordingState]);
 
-  async function handleTranslateText() {
-    if (isManualTranslationPending) {
-      return;
-    }
-
-    if (!areSettingsReady) {
-      if (didSettingsLoadFail) {
-        setFlowErrorText(SETTINGS_LOAD_FAILURE_MESSAGE);
-      }
-      return;
-    }
-
-    setResultText('');
-    setOriginalText('');
-    setFlowErrorText('');
-    setVisibleHistoryItemId(null);
-    setCurrentResultTags([]);
-
-    if (!trimmedManualText) {
-      setFlowErrorText('Enter text to translate.');
-      return;
-    }
-
-    if (!recordFlowProcessors) {
-      setFlowErrorText('OpenRouter processing is not configured.');
-      return;
-    }
-
-    const operationGeneration = startOpenRouterOperation();
-    const isCurrent = () => isOpenRouterOperationCurrent(operationGeneration);
-
-    void activeRecordingController.cancel();
-    setIsManualTranslationPending(true);
-
-    try {
-      const result = await recordFlowProcessors.runTranslation(
-        {
-          sourceType: 'manual',
-          text: trimmedManualText,
-          sourceLanguageId,
-          targetLanguageId,
-          modelPresetId,
-          customModelId,
-        },
-        { isCurrent },
-      );
-
-      if (isCurrent()) {
-        applyTranslationResult(result);
-      }
-    } catch (error) {
-      if (isStaleOpenRouterOperationError(error) || !isCurrent()) {
-        return;
-      }
-
-      setFlowErrorText(getFlowFailureMessage(error));
-    } finally {
-      if (isCurrent()) {
-        setIsManualTranslationPending(false);
-      }
-    }
-  }
-
-  function handleModeChange(nextMode: RecordMode) {
-    invalidateOpenRouterOperations();
-    setMode(nextMode);
-    void activeRecordingController.cancel();
-    setResultText('');
-    setOriginalText('');
-    setFlowErrorText('');
-    setVisibleHistoryItemId(null);
-    setCurrentResultTags([]);
-    setIsManualTranslationPending(false);
-    setSavedHistoryCount(0);
-    setAreRecordingOptionsExpanded(false);
-    setIsManualTextExpanded(nextMode === 'translate');
-  }
-
   async function handleRecordPress() {
     if (!areSettingsReady) {
       if (didSettingsLoadFail) {
@@ -604,7 +426,6 @@ function RecordScreenContent({
     if (!isRecording) {
       try {
         invalidateOpenRouterOperations();
-        setIsManualTranslationPending(false);
         setRecordingElapsedMs(0);
         setFlowErrorText('');
         await activeRecordingController.start();
@@ -629,7 +450,6 @@ function RecordScreenContent({
 
     invalidateOpenRouterOperations();
     autoProcessedAudioUriRef.current = null;
-    setIsManualTranslationPending(false);
     setFlowErrorText('');
 
     try {
@@ -649,20 +469,9 @@ function RecordScreenContent({
         return;
       }
 
-      const updateInput =
-        resultMode === 'translate'
-          ? {
-              primaryText: nextText,
-              sourceText: originalText,
-              translatedText: nextText,
-            }
-          : {
-              primaryText: nextText,
-            };
-
       void (async () => {
         try {
-          await historyRepository.updateHistoryText(historyItemId, updateInput);
+          await historyRepository.updateHistoryText(historyItemId, { primaryText: nextText });
         } catch {
           if (currentHistoryItemIdRef.current === historyItemId) {
             setFlowErrorText('Could not update saved history.');
@@ -670,7 +479,7 @@ function RecordScreenContent({
         }
       })();
     },
-    [historyRepository, originalText, resultMode],
+    [historyRepository],
   );
 
   function handleSourceLanguageChange(languageId: LanguageId) {
@@ -696,12 +505,6 @@ function RecordScreenContent({
     });
   }
 
-  function handleTargetLanguageChange(languageId: LanguageId) {
-    if (languageId !== 'auto') {
-      setTargetLanguageId(languageId);
-    }
-  }
-
   return (
     <ScrollView
       automaticallyAdjustKeyboardInsets
@@ -713,7 +516,7 @@ function RecordScreenContent({
       <View style={styles.header}>
         <View style={styles.titleGroup}>
           <Text style={styles.screenTitle}>Record</Text>
-          <Text style={styles.screenStatus}>{mode === 'transcribe' ? 'Transcribe' : 'Translate'}</Text>
+          <Text style={styles.screenStatus}>Transcribe</Text>
         </View>
         <View style={styles.cleanupPill}>
           <Text style={styles.cleanupText}>
@@ -721,8 +524,6 @@ function RecordScreenContent({
           </Text>
         </View>
       </View>
-
-      <ModeSegmentedControl value={mode} onChange={handleModeChange} />
 
       <View style={styles.optionsCard}>
         <Pressable
@@ -745,7 +546,7 @@ function RecordScreenContent({
           <View style={styles.optionsBody}>
             <LanguageSelect
               includeAuto
-              label={mode === 'translate' ? 'From language' : 'Source language'}
+              label="Source language"
               onChange={handleSourceLanguageChange}
               value={sourceLanguageId}
             />
@@ -756,13 +557,6 @@ function RecordScreenContent({
               </Text>
             ) : null}
 
-            {mode === 'translate' ? (
-              <LanguageSelect
-                label="To language"
-                onChange={handleTargetLanguageChange}
-                value={targetLanguageId}
-              />
-            ) : null}
           </View>
         ) : null}
       </View>
@@ -795,61 +589,6 @@ function RecordScreenContent({
           onRecordPress={handleRecordPress}
         />
       )}
-
-      {mode === 'translate' ? (
-        <View style={styles.translatePanel}>
-          <Pressable
-            accessibilityLabel={isManualTextExpanded ? 'Hide text input' : 'Show text input'}
-            accessibilityRole="button"
-            accessibilityState={{ expanded: isManualTextExpanded }}
-            onPress={() => setIsManualTextExpanded((isExpanded) => !isExpanded)}
-            style={styles.manualInputToggle}
-          >
-            <View style={styles.optionsToggleText}>
-              <Text style={styles.optionsTitle}>Text to translate</Text>
-              <Text style={styles.optionsSummary}>
-                {trimmedManualText ? 'Typed text ready' : 'Optional typed translation'}
-              </Text>
-            </View>
-            <Text style={styles.optionsAction}>
-              {isManualTextExpanded ? 'Hide' : 'Show'}
-            </Text>
-          </Pressable>
-
-          {isManualTextExpanded ? (
-            <View style={styles.inputGroup}>
-              <TextInput
-                accessibilityLabel="Text to translate"
-                multiline
-                onChangeText={setManualText}
-                placeholder="Type or paste text to translate"
-                placeholderTextColor="#94A3B8"
-                style={styles.manualInput}
-                textAlignVertical="top"
-                value={manualText}
-              />
-            </View>
-          ) : null}
-
-          {isManualTextExpanded ? (
-            <Pressable
-              accessibilityLabel="Translate text"
-              accessibilityRole="button"
-              accessibilityState={{ disabled: isManualTranslationPending || !areSettingsReady }}
-              disabled={isManualTranslationPending || !areSettingsReady}
-              onPress={() => void handleTranslateText()}
-              style={[
-                styles.translateButton,
-                (isManualTranslationPending || !areSettingsReady) && styles.translateButtonDisabled,
-              ]}
-            >
-              <Text style={styles.translateButtonText}>
-                {isManualTranslationPending ? 'Translating' : 'Translate text'}
-              </Text>
-            </Pressable>
-          ) : null}
-        </View>
-      ) : null}
 
       {areSettingsLoading ? (
         <Text accessibilityLiveRegion="polite" style={styles.settingsLoadText}>
@@ -909,10 +648,9 @@ function RecordScreenContent({
           actions={activeResultActions}
           canAddTag={Boolean(historyRepository && currentHistoryItemId)}
           key={currentHistoryItemId ?? 'unsaved-result'}
-          mode={resultMode}
+          mode="transcribe"
           onAddTag={handleAddResultTag}
           onChangeText={handleResultTextChange}
-          originalText={originalText}
           tags={currentResultTags}
           value={resultText}
         />
@@ -1077,56 +815,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     marginTop: 2,
-  },
-  translatePanel: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E2E8F0',
-    borderRadius: 14,
-    borderWidth: 1,
-    gap: 16,
-    padding: 16,
-  },
-  manualInputToggle: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 12,
-    justifyContent: 'space-between',
-    minHeight: 44,
-  },
-  inputGroup: {
-    gap: 8,
-  },
-  inputLabel: {
-    color: '#334155',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  manualInput: {
-    backgroundColor: '#F8FAFC',
-    borderColor: '#CBD5E1',
-    borderRadius: 10,
-    borderWidth: 1,
-    color: '#0F172A',
-    fontSize: 16,
-    lineHeight: 22,
-    minHeight: 104,
-    padding: 12,
-    writingDirection: 'auto',
-  },
-  translateButton: {
-    alignItems: 'center',
-    backgroundColor: '#111827',
-    borderRadius: 10,
-    minHeight: 46,
-    justifyContent: 'center',
-  },
-  translateButtonDisabled: {
-    opacity: 0.55,
-  },
-  translateButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '800',
   },
   processingStatus: {
     alignItems: 'center',
