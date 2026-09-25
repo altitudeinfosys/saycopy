@@ -3,6 +3,7 @@ import {
   toOpenRouterLanguageCode,
   type ConcreteLanguageId,
   type LanguageId,
+  type OpenRouterLanguageCode,
 } from '../../domain/languages';
 import { DEFAULT_TRANSCRIPTION_MODEL_ID } from '../../domain/modelPresets';
 
@@ -20,7 +21,7 @@ export type OpenRouterTranscriptionRequestBody = {
     readonly data: string;
     readonly format: OpenRouterAudioFormat;
   };
-  readonly language?: 'en' | 'es' | 'ar';
+  readonly language?: OpenRouterLanguageCode;
   readonly provider: OpenRouterProviderPreferences;
 };
 

@@ -545,9 +545,57 @@ describe('SettingsScreen', () => {
     await screen.findByText('1. Speech-to-text model');
     fireEvent.press(screen.getByRole('button', { name: 'Browse OpenRouter transcription models' }));
 
-    expect(await screen.findByText('Arabic preview')).toBeTruthy();
-    expect(screen.getByText('Arabic support unverified')).toBeTruthy();
+    expect(await screen.findByText('Arabic preview · All 11 app languages')).toBeTruthy();
+    expect(
+      screen.getByText('Arabic support unverified · Language coverage unverified'),
+    ).toBeTruthy();
     expect(screen.queryByText('Parakeet V3')).toBeNull();
+  });
+
+  it('lists catalog models with the widest language coverage first', async () => {
+    const modelCatalog: OpenRouterModelCatalog = {
+      listTranscriptionModels: jest.fn(async () => [
+        { id: 'provider/future-model', name: 'Future Model' },
+        { id: 'nvidia/parakeet-tdt-0.6b-v3', name: 'Parakeet V3' },
+        { id: 'deepgram/nova-3', name: 'Nova 3' },
+      ]),
+      listTextModels: jest.fn(async () => []),
+    };
+    renderSettingsScreen({ modelCatalog });
+
+    await screen.findByText('1. Speech-to-text model');
+    fireEvent.press(screen.getByRole('button', { name: 'Browse OpenRouter transcription models' }));
+
+    await screen.findByText('Nova 3');
+    const names = screen
+      .getAllByText(/^(Future Model|Parakeet V3|Nova 3)$/u)
+      .map((element) => element.props.children);
+    expect(names).toEqual(['Nova 3', 'Parakeet V3', 'Future Model']);
+    expect(
+      screen.getByText(
+        'Preferred model for selected languages · 6 of 11 app languages · no Arabic, Chinese, Japanese, Korean, Hindi',
+      ),
+    ).toBeTruthy();
+  });
+
+  it('offers a one-tap switch when the preferred model does not support the language', async () => {
+    const settingsRepository = new MemorySettingsRepository({
+      ...DEFAULT_APP_SETTINGS,
+      sourceLanguageId: 'japanese',
+      transcriptionModelId: 'nvidia/parakeet-tdt-0.6b-v3',
+    });
+    renderSettingsScreen({ settingsRepository });
+
+    await screen.findByText('1. Speech-to-text model');
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Switch to openai/whisper-large-v3-turbo' }),
+    );
+
+    await waitFor(() => {
+      expect(settingsRepository.settings).toMatchObject({
+        transcriptionModelId: 'openai/whisper-large-v3-turbo',
+      });
+    });
   });
 
   it('keeps the preferred model saved when Auto-detect is selected', async () => {

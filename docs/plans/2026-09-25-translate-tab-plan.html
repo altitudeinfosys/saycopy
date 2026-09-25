@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Translate Tab Plan</title>
+  </head>
+  <body>
+    <h1>Translate Tab Plan</h1>
+    <p>Date: 2026-09-25</p>
+
+    <h2>Goal</h2>
+    <p>
+      Add a dedicated <strong>Translate</strong> tab that works like a small Google Translate for
+      language learning. You type or speak a phrase, choose From and To languages (with a swap
+      button between them), hear the result read aloud, and tap <strong>Save</strong> to keep it
+      in on-device history with tags for later review.
+    </p>
+
+    <h2>Decisions (confirmed 2026-09-25)</h2>
+    <ul>
+      <li><strong>Storage:</strong> on the phone only, using the existing SQLite history and tags. No accounts or cloud sync.</li>
+      <li><strong>Saving:</strong> the Translate tab saves only when you tap Save, where you can also add tags. The Record tab keeps saving every transcription automatically.</li>
+      <li><strong>Read aloud:</strong> on-device voices through <code>expo-speech</code>. Free, instant and works offline.</li>
+      <li><strong>Languages:</strong> the current three plus French, German, Italian, Portuguese, Chinese, Japanese, Korean and Hindi (11 total).</li>
+      <li><strong>Record screen:</strong> its Transcribe/Translate switch is removed, so Record becomes transcribe-only and all translation lives in the new tab.</li>
+      <li><strong>Navigation:</strong> bottom bar becomes Record · Translate · History · Settings.</li>
+      <li><strong>Model recommendations:</strong> Settings shows how many of the app's languages each speech-to-text model supports, and recommends the models with the widest coverage.</li>
+    </ul>
+
+    <h2>Screen layout</h2>
+    <ol>
+      <li><strong>Language bar:</strong> From picker, a ⇄ swap button, then the To picker. From includes Auto-detect; swap is disabled while From is Auto-detect. Swapping also moves the current result into the input box so you can translate back. The last-used pair is remembered.</li>
+      <li><strong>Input:</strong> a multi-line text box with a microphone button. Speaking records up to 3 minutes and puts the transcript into the box, so you can correct it before translating. Tapping <em>Translate</em> or the keyboard's Done key runs the translation. It doesn't translate while you type, which would add a paid request per keystroke.</li>
+      <li><strong>Result card:</strong> the translation with <em>Copy</em>, <em>Listen</em> (🔊, in the To language's voice) and <em>Save</em>. Save opens the tag editor the app already has and stores a translate history item with those tags.</li>
+      <li><strong>Saved list (below the result):</strong> the most recent saved translations, with tag chips to filter them. Tapping an entry loads it back into the screen; each entry also has a Listen button for quick review.</li>
+    </ol>
+
+    <h2>Implementation, in two pull requests</h2>
+    <h3>PR 1: More languages</h3>
+    <ol>
+      <li>Add the eight languages to <code>src/domain/languages.ts</code> with their OpenRouter speech codes (fr, de, it, pt, zh, ja, ko, hi) and speech-voice locales for read-aloud.</li>
+      <li>Record verified speech-to-text support for them in <code>src/domain/transcriptionModelLanguages.ts</code>. Models without verified support keep the existing “support unverified” warning.</li>
+      <li>Make the translation prompt label and the settings and history validation accept the new languages. Existing saved data needs no migration, since languages are stored as text.</li>
+      <li>Show language coverage in Settings:
+        <ul>
+          <li>A badge on every transcription model: “Supports 11 of 11 languages”, or “Supports 6 of 11 — no Arabic, Chinese, Japanese, Korean, Hindi”.</li>
+          <li>A <strong>Best language coverage</strong> group at the top of the recommended models, sorted by verified coverage. Ties go to the faster or cheaper model.</li>
+          <li>When the selected recording language isn't supported by the current model, a one-tap suggestion to switch to the best-coverage model for that language.</li>
+        </ul>
+      </li>
+    </ol>
+
+    <h3>Speech-to-text language coverage (research, 2026-09-25)</h3>
+    <p>For the 11 planned languages. Verified against provider docs while building PR 1. Models not in this table show “Language coverage unverified” in the app.</p>
+    <table border="1" cellpadding="4">
+      <tr><th>Model</th><th>Coverage</th><th>Notes</th></tr>
+      <tr><td>openai/whisper-large-v3-turbo (current default)</td><td>11 / 11</td><td>99+ languages. Fastest option with full coverage.</td></tr>
+      <tr><td>openai/whisper-large-v3 (High accuracy)</td><td>11 / 11</td><td>99+ languages.</td></tr>
+      <tr><td>openai/gpt-4o-transcribe (Auto-detect engine)</td><td>11 / 11</td><td>99+ languages.</td></tr>
+      <tr><td>google/chirp-3</td><td>11 / 11</td><td>Arabic stays labeled preview, as before.</td></tr>
+      <tr><td>microsoft/mai-transcribe-1.5</td><td>11 / 11</td><td>43 languages, all 11 listed.</td></tr>
+      <tr><td>deepgram/nova-3</td><td>11 / 11</td><td>Full Nova-3 language table lists Arabic, Chinese (zh) and Korean too.</td></tr>
+      <tr><td>nvidia/parakeet-tdt-0.6b-v3</td><td>6 / 11</td><td>25 European languages only: no Arabic, Chinese, Japanese, Korean or Hindi.</td></tr>
+    </table>
+    <p>
+      Translation and Light cleanup use general text models (the Fast, Balanced and Best
+      Quality presets), which handle all 11 languages, so coverage badges apply only to
+      speech-to-text.
+    </p>
+    <h3>PR 2: Translate tab</h3>
+    <ol>
+      <li>Split translation from saving. Add a translate-only processor that returns the result without writing history, plus a save action that calls <code>createHistoryItem</code> with the chosen tags. The Record screen's auto-save flow is left unchanged.</li>
+      <li>Add <code>src/screens/TranslateScreen.tsx</code> with small components: language bar with swap, input with microphone, result card and saved list. Reuse <code>LanguageSelect</code>, <code>TagEditor</code>, the audio recorder controller and the history repository. Show a Loading state, and let retries from the OpenRouter client happen quietly.</li>
+      <li>Add <code>expo-speech</code> (via <code>npx expo install</code>) behind a small <code>speech</code> adapter. It picks a voice for the To language, stops earlier playback before starting new, and shows a clear message when the phone has no voice for that language.</li>
+      <li>Store <code>translateSourceLanguageId</code> and <code>translateTargetLanguageId</code> in settings.</li>
+      <li>Remove Translate mode from <code>RecordScreen.tsx</code>, along with <code>ModeSegmentedControl</code>, its manual-text panel and the <code>defaultMode</code> setting. Old translate items stay visible in History.</li>
+      <li>Add the tab to <code>App.tsx</code>. The hardware back button still returns to Record.</li>
+    </ol>
+
+    <h2>Testing</h2>
+    <ul>
+      <li>Unit tests: coverage counts and ordering of the Best language coverage group, translate-only processor (no history write), save with tags, swap behavior (including Auto-detect disabled) and the speech adapter (voice choice, missing voice).</li>
+      <li>Screen tests: type → translate → save with tags → appears in the saved list; mic → transcript fills input; tag filter; tapping a saved item restores it; Record has no Translate switch.</li>
+      <li>Full suite, typecheck, lint and Expo Doctor on each PR.</li>
+      <li>Manual device check (you run locally): mic permission, read-aloud voices on iOS and Android for Spanish, and keyboard behavior on small screens.</li>
+    </ul>
+
+    <h2>Documentation</h2>
+    <ul>
+      <li><code>website/support/index.html</code>: a Translate tab section (save and tags, Listen, languages, why Auto-detect can't be swapped), and updated wording now that Record is transcribe-only.</li>
+      <li><code>website/setup/index.html</code>: mention the Translate tab and the new languages.</li>
+      <li>Use the same labels in the app and on the website: Translate, From, To, Swap languages, Listen, Save, Tags.</li>
+    </ul>
+
+    <h2>Preview builds</h2>
+    <p>
+      The cloud session has no Xcode or Android SDK and no Expo account credentials, so preview
+      builds run from your machine. From an up-to-date <code>main</code>:
+    </p>
+    <ul>
+      <li>iOS Simulator (fastest loop): <code>npm ci &amp;&amp; npx expo run:ios</code></li>
+      <li>Android emulator or device: <code>npx expo run:android</code></li>
+      <li>Installable internal build using the existing <code>preview</code> profile in <code>eas.json</code>: <code>eas build --profile preview --platform ios</code> (or <code>android</code> for an APK). Add <code>--local</code> to build on your Mac instead of EAS servers.</li>
+      <li>Adding <code>expo-speech</code> in PR 2 is a native module, so after that PR you need a fresh native build; Expo Go or an older dev build won't have it.</li>
+    </ul>
+
+    <h2>Out of scope for now</h2>
+    <ul>
+      <li>Cloud sync and accounts.</li>
+      <li>Flashcards and spaced-repetition review, a natural follow-up once saved phrases exist.</li>
+      <li>AI voices for read-aloud.</li>
+      <li>Live translate-as-you-type.</li>
+    </ul>
+  </body>
+</html>
