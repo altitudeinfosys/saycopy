@@ -2,13 +2,11 @@ import {
   DEFAULT_MODEL_PRESET_ID,
   DEFAULT_TRANSCRIPTION_MODEL_ID,
 } from '../../domain/modelPresets';
-import { InMemoryLocalSqliteDatabase } from '../test/InMemoryLocalSqliteDatabase';
+import { createSqlJsLocalDatabase } from '../test/sqlJsLocalDatabase';
 import { createSettingsRepository, DEFAULT_APP_SETTINGS } from '../settingsRepository';
-import { migrateSqliteSchema } from '../sqlite/schema';
 
 async function createRepository() {
-  const database = new InMemoryLocalSqliteDatabase();
-  await migrateSqliteSchema(database);
+  const database = await createSqlJsLocalDatabase();
 
   const repository = createSettingsRepository(database, {
     now: () => '2026-07-05T12:00:00.000Z',

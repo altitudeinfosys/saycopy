@@ -651,12 +651,12 @@ describe('SettingsScreen', () => {
 
     await waitFor(() => {
       expect(settingsRepository.saveSettings).toHaveBeenCalledWith({
-        transcriptionModelId: 'openai/whisper-large-v3',
+        transcriptionModelId: 'openai/whisper-large-v3-turbo',
         customModelId: '',
         modelPresetId: 'balanced',
       });
       expect(settingsRepository.settings).toMatchObject({
-        transcriptionModelId: 'openai/whisper-large-v3',
+        transcriptionModelId: 'openai/whisper-large-v3-turbo',
         customModelId: '',
         modelPresetId: 'balanced',
       });

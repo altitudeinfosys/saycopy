@@ -114,13 +114,13 @@ describe('OpenRouter live flow integration with mocked fetch', () => {
       sourceLanguageId: 'english',
       primaryText: 'Hello from raw audio.',
       modelPresetId: 'balanced',
-      sttModelId: 'openai/whisper-large-v3',
+      sttModelId: 'openai/whisper-large-v3-turbo',
     });
     expect(fetchImpl).toHaveBeenNthCalledWith(
       1,
       'https://openrouter.test/api/v1/audio/transcriptions',
       expect.objectContaining({
-        body: expect.stringContaining('"model":"openai/whisper-large-v3"'),
+        body: expect.stringContaining('"model":"openai/whisper-large-v3-turbo"'),
       }),
     );
     expect(fetchImpl).toHaveBeenNthCalledWith(

@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, 
 import {
   type AudioRecordingController,
   type AudioRecordingState,
+  MAX_RECORDING_DURATION_LABEL,
   MAX_RECORDING_DURATION_MS,
   useExpoAudioRecordingController,
 } from '../audio/audioRecorder';
@@ -770,7 +771,7 @@ function RecordScreenContent({
         <View style={styles.compactRecorder}>
           <View style={styles.compactRecorderText}>
             <Text style={styles.compactRecorderTitle}>Ready for another recording</Text>
-            <Text style={styles.compactRecorderMeta}>60 second max</Text>
+            <Text style={styles.compactRecorderMeta}>{MAX_RECORDING_DURATION_LABEL}</Text>
           </View>
           <Pressable
             accessibilityLabel="Tap to record"

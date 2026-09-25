@@ -50,7 +50,7 @@ describe('transcription model language support', () => {
       'openai/gpt-4o-transcribe',
     );
     expect(resolveTranscriptionModelId('deepgram/nova-3', 'arabic')).toBe('deepgram/nova-3');
-    expect(resolveTranscriptionModelId(undefined, 'english')).toBe('openai/whisper-large-v3');
+    expect(resolveTranscriptionModelId(undefined, 'english')).toBe('openai/whisper-large-v3-turbo');
     expect(resolveTranscriptionModelId('microsoft/mai-transcribe-1.5', 'auto')).toBe(
       'openai/gpt-4o-transcribe',
     );

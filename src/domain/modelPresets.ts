@@ -13,16 +13,16 @@ export type TranscriptionModelRecommendation = {
   readonly modelId: string;
 };
 
-export const DEFAULT_TRANSCRIPTION_MODEL_ID = 'openai/whisper-large-v3';
+export const DEFAULT_TRANSCRIPTION_MODEL_ID = 'openai/whisper-large-v3-turbo';
 
 export const TRANSCRIPTION_MODEL_RECOMMENDATIONS = [
   {
-    label: 'Fast',
-    modelId: 'openai/whisper-large-v3-turbo',
-  },
-  {
     label: 'Recommended',
     modelId: DEFAULT_TRANSCRIPTION_MODEL_ID,
+  },
+  {
+    label: 'High accuracy',
+    modelId: 'openai/whisper-large-v3',
   },
   {
     label: 'Alternative',

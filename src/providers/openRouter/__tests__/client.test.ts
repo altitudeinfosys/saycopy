@@ -143,6 +143,7 @@ describe('OpenRouter client', () => {
     const client = createOpenRouterClient({
       fetch: fetchImpl,
       getToken: async () => 'sk-test-token',
+      retryDelaysMs: [],
     });
 
     await expect(client.requestTranscription(transcriptionRequest)).rejects.toEqual(
@@ -170,6 +171,7 @@ describe('OpenRouter client', () => {
     const client = createOpenRouterClient({
       fetch: fetchImpl,
       getToken: async () => 'sk-test-token',
+      retryDelaysMs: [],
     });
 
     let caughtError: unknown;
@@ -196,6 +198,7 @@ describe('OpenRouter client', () => {
     const client = createOpenRouterClient({
       fetch: fetchImpl,
       getToken: async () => 'sk-test-token',
+      retryDelaysMs: [],
     });
 
     await expect(client.requestTranscription(transcriptionRequest)).rejects.toEqual(
@@ -247,7 +250,7 @@ describe('OpenRouter client', () => {
       const client = createOpenRouterClient({
         fetch: fetchImpl,
         getToken: async () => 'sk-test-token',
-        timeoutMs: 50,
+        transcriptionTimeoutMs: 50,
       });
 
       const result = client.requestTranscription(transcriptionRequest);
@@ -277,7 +280,7 @@ describe('OpenRouter client', () => {
       const client = createOpenRouterClient({
         fetch: fetchImpl,
         getToken: async () => 'sk-test-token',
-        timeoutMs: 50,
+        transcriptionTimeoutMs: 50,
       });
 
       const result = client.requestTranscription(transcriptionRequest);
@@ -312,7 +315,7 @@ describe('OpenRouter client', () => {
       const client = createOpenRouterClient({
         fetch: fetchImpl,
         getToken: async () => 'sk-test-token',
-        timeoutMs: 50,
+        transcriptionTimeoutMs: 50,
       });
 
       const result = client.requestTranscription(transcriptionRequest);
@@ -349,5 +352,116 @@ describe('OpenRouter client', () => {
       // @ts-expect-error Transcription calls require a transcription request descriptor.
       client.requestTranscription(wrongRequest);
     }
+  });
+
+  describe('transient failure retries', () => {
+    function createSequencedFetch(
+      ...steps: readonly (MockResponse | Error)[]
+    ): jest.MockedFunction<OpenRouterFetch> {
+      const queue = [...steps];
+
+      return jest.fn<ReturnType<OpenRouterFetch>, Parameters<OpenRouterFetch>>(async () => {
+        const step = queue.shift();
+        if (!step) {
+          throw new Error('Unexpected extra fetch');
+        }
+        if (step instanceof Error) {
+          throw step;
+        }
+
+        return step;
+      });
+    }
+
+    it('retries network, rate-limit, and server errors with backoff before succeeding', async () => {
+      const fetchImpl = createSequencedFetch(
+        new TypeError('Network request failed'),
+        jsonResponse({}, 503),
+        jsonResponse({ text: 'hello after retries' }),
+      );
+      const sleep = jest.fn(async () => undefined);
+      const client = createOpenRouterClient({
+        fetch: fetchImpl,
+        getToken: async () => 'sk-test-token',
+        sleep,
+      });
+
+      await expect(client.requestTranscription(transcriptionRequest)).resolves.toEqual({
+        text: 'hello after retries',
+      });
+      expect(fetchImpl).toHaveBeenCalledTimes(3);
+      expect(sleep.mock.calls).toEqual([[500], [1500]]);
+    });
+
+    it('gives up after two retries and reports the last transient error', async () => {
+      const fetchImpl = createSequencedFetch(
+        jsonResponse({}, 429),
+        jsonResponse({}, 429),
+        jsonResponse({}, 429),
+      );
+      const client = createOpenRouterClient({
+        fetch: fetchImpl,
+        getToken: async () => 'sk-test-token',
+        sleep: async () => undefined,
+      });
+
+      await expect(client.requestChatCompletion(chatRequest)).rejects.toEqual(
+        expect.objectContaining({ category: 'rate_limited' }),
+      );
+      expect(fetchImpl).toHaveBeenCalledTimes(3);
+    });
+
+    it.each([
+      [401, 'auth_error'],
+      [402, 'payment_required'],
+      [400, 'unknown'],
+    ] as const)('does not retry HTTP %i', async (status, category) => {
+      const fetchImpl = createSequencedFetch(jsonResponse({}, status));
+      const sleep = jest.fn(async () => undefined);
+      const client = createOpenRouterClient({
+        fetch: fetchImpl,
+        getToken: async () => 'sk-test-token',
+        sleep,
+      });
+
+      await expect(client.requestChatCompletion(chatRequest)).rejects.toEqual(
+        expect.objectContaining({ category }),
+      );
+      expect(fetchImpl).toHaveBeenCalledTimes(1);
+      expect(sleep).not.toHaveBeenCalled();
+    });
+
+    it('does not retry timeouts and uses the longer timeout for audio uploads', async () => {
+      jest.useFakeTimers();
+
+      try {
+        const fetchImpl: jest.MockedFunction<OpenRouterFetch> = jest.fn<
+          ReturnType<OpenRouterFetch>,
+          Parameters<OpenRouterFetch>
+        >(async () => new Promise(() => undefined));
+        const client = createOpenRouterClient({
+          fetch: fetchImpl,
+          getToken: async () => 'sk-test-token',
+          timeoutMs: 50,
+          transcriptionTimeoutMs: 200,
+        });
+
+        const result = client.requestTranscription(transcriptionRequest);
+        await flushMicrotasks();
+        jest.advanceTimersByTime(50);
+        await flushMicrotasks();
+        await expect(captureSettledState(result)).resolves.toEqual({ state: 'pending' });
+
+        jest.advanceTimersByTime(150);
+        await flushMicrotasks();
+        await expect(captureSettledState(result)).resolves.toEqual({
+          state: 'rejected',
+          reason: expect.objectContaining({ category: 'timeout' }),
+        });
+        expect(fetchImpl).toHaveBeenCalledTimes(1);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
   });
 });

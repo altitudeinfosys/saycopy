@@ -98,6 +98,17 @@ ${MIGRATION_1_TABLES_SQL}
 INSERT OR IGNORE INTO schema_migrations (version) VALUES (1);
 `;
 
+// Keeps newest-first history listing and tag filtering fast as history grows.
+const MIGRATION_2_SQL = `
+CREATE INDEX IF NOT EXISTS idx_history_items_created_at
+  ON history_items (created_at DESC, id DESC);
+
+CREATE INDEX IF NOT EXISTS idx_history_item_tags_tag_id
+  ON history_item_tags (tag_id);
+
+INSERT OR IGNORE INTO schema_migrations (version) VALUES (2);
+`;
+
 const MIGRATION_TABLE_SQL = `
 CREATE TABLE IF NOT EXISTS schema_migrations (
   version INTEGER PRIMARY KEY NOT NULL,
@@ -202,4 +213,8 @@ export async function migrateSqliteSchema(database: LocalSqliteDatabase): Promis
   }
 
   await repairMissingColumns(database, tableNames, REQUIRED_TABLE_NAMES);
+
+  if (!appliedVersions.has(2)) {
+    await database.execute(MIGRATION_2_SQL);
+  }
 }

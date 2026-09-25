@@ -89,7 +89,10 @@
               <dt>Preferred transcription model</dt>
               <dd>
                 Converts speech into text when you explicitly select English, Spanish, or Arabic.
-                You can choose it from the OpenRouter transcription-model list.
+                You can choose it from the OpenRouter transcription-model list. The recommended
+                default is <strong>openai/whisper-large-v3-turbo</strong> for faster results; pick
+                <strong>High accuracy</strong> (openai/whisper-large-v3) if you prefer accuracy
+                over speed.
               </dd>
             </div>
             <div>
@@ -186,6 +189,22 @@
               <p>
                 No. It skips cleanup only in Transcribe mode. Translate mode still uses the active
                 text-processing model because translation is the requested result.
+              </p>
+            </details>
+            <details>
+              <summary>How long can a recording be?</summary>
+              <p>
+                Up to 3 minutes. SayCopy stops recording automatically at the limit and processes
+                what you recorded. Audio is captured in a compact speech format so uploads finish
+                quickly.
+              </p>
+            </details>
+            <details>
+              <summary>What happens if my connection drops while processing?</summary>
+              <p>
+                SayCopy automatically retries brief network drops, OpenRouter rate limits, and
+                temporary server errors up to two more times. It does not retry an invalid key,
+                missing credits, or a request that timed out, so you see those errors right away.
               </p>
             </details>
             <details>

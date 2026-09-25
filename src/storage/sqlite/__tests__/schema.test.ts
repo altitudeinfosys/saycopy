@@ -5,6 +5,7 @@ import {
   migrateSqliteSchema,
   type LocalSqliteDatabase,
 } from '../schema';
+import { createSqlJsLocalDatabase } from '../../test/sqlJsLocalDatabase';
 
 class SchemaTestDatabase implements LocalSqliteDatabase {
   readonly createdTables = new Set<string>();
@@ -97,7 +98,7 @@ describe('SQLite schema migrations', () => {
     await migrateSqliteSchema(database);
     await migrateSqliteSchema(database);
 
-    expect([...database.appliedMigrations]).toEqual([1]);
+    expect([...database.appliedMigrations]).toEqual([1, 2]);
   });
 
   it('repairs missing v1 tables when migration 1 has already been recorded', async () => {
@@ -111,7 +112,7 @@ describe('SQLite schema migrations', () => {
 
     expect([...database.createdTables].sort()).toEqual([...REQUIRED_TABLE_NAMES].sort());
     expectRequiredColumns(database);
-    expect([...database.appliedMigrations]).toEqual([1]);
+    expect([...database.appliedMigrations]).toEqual([1, 2]);
   });
 
   it('repairs missing v1 columns when all required tables already exist', async () => {
@@ -126,7 +127,7 @@ describe('SQLite schema migrations', () => {
 
     expect([...database.createdTables].sort()).toEqual([...REQUIRED_TABLE_NAMES].sort());
     expectRequiredColumns(database);
-    expect([...database.appliedMigrations]).toEqual([1]);
+    expect([...database.appliedMigrations]).toEqual([1, 2]);
   });
 
   it('repairs the migration table before reading applied versions', async () => {
@@ -139,5 +140,23 @@ describe('SQLite schema migrations', () => {
     expect([...database.createdTables].sort()).toEqual([...REQUIRED_TABLE_NAMES].sort());
     expectRequiredColumns(database);
     expect(database.appliedMigrations.has(1)).toBe(true);
+  });
+
+  it('adds history indexes on a real SQLite database and stays idempotent', async () => {
+    const database = await createSqlJsLocalDatabase();
+
+    await migrateSqliteSchema(database);
+
+    const indexNames = database
+      .rows<{ name: string }>("SELECT name FROM sqlite_master WHERE type = 'index'")
+      .map((row) => row.name);
+    expect(indexNames).toEqual(
+      expect.arrayContaining(['idx_history_items_created_at', 'idx_history_item_tags_tag_id']),
+    );
+    expect(
+      database
+        .rows<{ version: number }>('SELECT version FROM schema_migrations ORDER BY version')
+        .map((row) => row.version),
+    ).toEqual([1, 2]);
   });
 });
