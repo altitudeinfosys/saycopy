@@ -13,6 +13,7 @@ import {
   type AudioRecorderNativeAdapter,
   type AudioRecordingControllerTimer,
   type NativeAudioRecordingSession,
+  SPEECH_RECORDING_OPTIONS,
   useExpoAudioRecordingController,
 } from '../audioRecorder';
 
@@ -211,8 +212,8 @@ describe('createAudioRecordingController', () => {
     await controller.cancel();
   });
 
-  it('auto-stops recording at the 60 second cap', async () => {
-    const session = createSession({ durationMs: 60000 });
+  it('auto-stops recording at the 3 minute cap', async () => {
+    const session = createSession({ durationMs: 180000 });
     const nativeRecorder = createNativeAdapter(session);
     const timer = createManualTimer();
     const controller = createAudioRecordingController({
@@ -225,11 +226,11 @@ describe('createAudioRecordingController', () => {
     await controller.start();
     await timer.fireNext();
 
-    expect(timer.setTimeout).toHaveBeenCalledWith(expect.any(Function), 60000);
+    expect(timer.setTimeout).toHaveBeenCalledWith(expect.any(Function), 180000);
     expect(session.stop).toHaveBeenCalledTimes(1);
     expect(controller.getState()).toMatchObject({
       audio: {
-        durationMs: 60000,
+        durationMs: 180000,
         uri: 'file:///tmp/recording.m4a',
       },
       stopReason: 'max_duration',
@@ -373,7 +374,7 @@ describe('createAudioRecordingController', () => {
     });
   });
 
-  it('creates the default recording controller from the public Expo audio hook and preset', () => {
+  it('creates the default recording controller with speech-sized mono audio', () => {
     const mockedUseAudioRecorder = useAudioRecorder as jest.MockedFunction<
       typeof useAudioRecorder
     >;
@@ -381,7 +382,15 @@ describe('createAudioRecordingController', () => {
 
     const { result } = renderHook(() => useExpoAudioRecordingController());
 
-    expect(mockedUseAudioRecorder).toHaveBeenCalledWith(RecordingPresets.HIGH_QUALITY);
+    expect(mockedUseAudioRecorder).toHaveBeenCalledWith(SPEECH_RECORDING_OPTIONS);
+    expect(SPEECH_RECORDING_OPTIONS).toEqual(
+      expect.objectContaining({
+        ...RecordingPresets.HIGH_QUALITY,
+        bitRate: 32000,
+        numberOfChannels: 1,
+        sampleRate: 16000,
+      }),
+    );
     expect(requestRecordingPermissionsAsync).toBeDefined();
     expect(setAudioModeAsync).toBeDefined();
     expect(result.current?.getState()).toEqual({ status: 'idle' });

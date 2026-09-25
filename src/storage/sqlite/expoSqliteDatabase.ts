@@ -8,6 +8,9 @@ import {
 
 export const DEFAULT_EXPO_SQLITE_DATABASE_NAME = 'tarek-wisper.db';
 
+// WAL keeps reads fast during writes; foreign keys are off per connection unless enabled.
+export const CONNECTION_PRAGMAS_SQL = 'PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;';
+
 export type ExpoSqliteDatabaseLike = {
   execAsync(source: string): Promise<void>;
   getAllAsync<T>(source: string): Promise<T[]>;
@@ -54,7 +57,10 @@ export function createExpoSqliteLocalDatabase({
   const unmigratedDatabase = createUnmigratedExpoSqliteLocalDatabase(
     openDatabase(databaseName),
   );
-  const migrationPromise = migrateSqliteSchema(unmigratedDatabase);
+  const migrationPromise = (async () => {
+    await unmigratedDatabase.execute(CONNECTION_PRAGMAS_SQL);
+    await migrateSqliteSchema(unmigratedDatabase);
+  })();
 
   async function ensureMigrated() {
     await migrationPromise;

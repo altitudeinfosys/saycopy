@@ -355,7 +355,7 @@ describe('RecordScreen', () => {
     expect(screen.getByRole('button', { name: 'Translate' })).toBeTruthy();
     expect(screen.getByText('Light cleanup on')).toBeTruthy();
     expect(screen.getByText('Tap to record')).toBeTruthy();
-    expect(screen.getByText('60 second max')).toBeTruthy();
+    expect(screen.getByText('3 min max')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Show language options' })).toBeTruthy();
     expect(screen.getByText('Recording language')).toBeTruthy();
     expect(screen.getByText('Source: Auto-detect')).toBeTruthy();
@@ -872,7 +872,7 @@ describe('RecordScreen', () => {
     });
 
     expect(screen.getByText('Recording in progress')).toBeTruthy();
-    expect(screen.getByText('00:00 / 60s max')).toBeTruthy();
+    expect(screen.getByText('00:00 / 3 min max')).toBeTruthy();
     expect(screen.getByLabelText('Mock audio waveform')).toBeTruthy();
     expect(StyleSheet.flatten(screen.getByTestId('recording-panel').props.style)).toMatchObject({
       backgroundColor: '#FFF7ED',
@@ -998,7 +998,7 @@ describe('RecordScreen', () => {
         expect(recordingController.start).toHaveBeenCalledTimes(1);
       });
 
-      expect(screen.getByText('00:00 / 60s max')).toBeTruthy();
+      expect(screen.getByText('00:00 / 3 min max')).toBeTruthy();
       const initialBarHeight = StyleSheet.flatten(screen.getByTestId('waveform-bar-0').props.style)
         ?.height;
 
@@ -1006,7 +1006,7 @@ describe('RecordScreen', () => {
         jest.advanceTimersByTime(1000);
       });
 
-      expect(screen.getByText('00:01 / 60s max')).toBeTruthy();
+      expect(screen.getByText('00:01 / 3 min max')).toBeTruthy();
       expect(
         StyleSheet.flatten(screen.getByTestId('waveform-bar-0').props.style)?.height,
       ).not.toBe(initialBarHeight);

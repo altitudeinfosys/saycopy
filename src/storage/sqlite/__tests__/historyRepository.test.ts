@@ -1,11 +1,9 @@
 import { getHistoryPrimaryText } from '../../../domain/history';
-import { InMemoryLocalSqliteDatabase } from '../../test/InMemoryLocalSqliteDatabase';
+import { createSqlJsLocalDatabase } from '../../test/sqlJsLocalDatabase';
 import { createHistoryRepository } from '../historyRepository';
-import { migrateSqliteSchema } from '../schema';
 
 async function createRepositoryWithDatabase() {
-  const database = new InMemoryLocalSqliteDatabase();
-  await migrateSqliteSchema(database);
+  const database = await createSqlJsLocalDatabase();
 
   let historyIdCount = 0;
   let tagIdCount = 0;
@@ -128,7 +126,7 @@ describe('history repository', () => {
     });
 
     expect(getHistoryPrimaryText(item)).toBe('Hello Tarek');
-    expect(database.historyItems.get(item.id)).toMatchObject({
+    expect(database.rows('SELECT * FROM history_items WHERE id = ?', [item.id])[0]).toMatchObject({
       primary_text: 'Hello Tarek',
       source_text: 'Hola Tarek',
       translated_text: 'Hello Tarek',
@@ -154,7 +152,7 @@ describe('history repository', () => {
       } as Parameters<typeof repository.createHistoryItem>[0],
     );
 
-    expect(database.historyItems.get(item.id)).toMatchObject({
+    expect(database.rows('SELECT * FROM history_items WHERE id = ?', [item.id])[0]).toMatchObject({
       primary_text: 'Visible transcript',
       source_text: null,
       translated_text: null,
@@ -187,7 +185,7 @@ describe('history repository', () => {
       mode: 'transcribe',
       transcript: 'Updated transcript',
     });
-    expect(database.historyItems.get(item.id)).toMatchObject({
+    expect(database.rows('SELECT * FROM history_items WHERE id = ?', [item.id])[0]).toMatchObject({
       primary_text: 'Updated transcript',
       source_text: null,
       translated_text: null,
@@ -247,7 +245,7 @@ describe('history repository', () => {
 
     await repository.deleteHistoryItem(first.id);
 
-    expect(database.historyItemTags).toEqual([
+    expect(database.rows('SELECT history_item_id, tag_id FROM history_item_tags ORDER BY rowid')).toEqual([
       {
         history_item_id: second.id,
         tag_id: 'tag-2',
@@ -262,7 +260,7 @@ describe('history repository', () => {
 
     await repository.deleteAllHistoryItems();
 
-    expect(database.historyItemTags).toEqual([]);
+    expect(database.rows('SELECT history_item_id, tag_id FROM history_item_tags ORDER BY rowid')).toEqual([]);
   });
 
   it('creates, finds, assigns, and removes normalized tags', async () => {
@@ -294,7 +292,7 @@ describe('history repository', () => {
     await repository.assignTag(item.id, 'Work');
     await repository.assignTag(item.id, 'work');
 
-    expect(database.historyItemTags).toEqual([{ history_item_id: item.id, tag_id: 'tag-1' }]);
+    expect(database.rows('SELECT history_item_id, tag_id FROM history_item_tags ORDER BY rowid')).toEqual([{ history_item_id: item.id, tag_id: 'tag-1' }]);
     await expect(repository.getHistoryItem(item.id)).resolves.toMatchObject({
       tags: [{ id: 'tag-1', label: 'Work' }],
     });
@@ -308,7 +306,7 @@ describe('history repository', () => {
       tags: ['Work', 'work'],
     });
 
-    expect(database.historyItemTags).toEqual([{ history_item_id: item.id, tag_id: 'tag-1' }]);
+    expect(database.rows('SELECT history_item_id, tag_id FROM history_item_tags ORDER BY rowid')).toEqual([{ history_item_id: item.id, tag_id: 'tag-1' }]);
     await expect(repository.getHistoryItem(item.id)).resolves.toMatchObject({
       tags: [{ id: 'tag-1', label: 'Work' }],
     });
@@ -346,5 +344,38 @@ describe('history repository', () => {
     await expect(repository.searchHistory({ query: 'arabic' })).resolves.toHaveLength(1);
     await expect(repository.searchHistory({ query: 'TRAVEL' })).resolves.toHaveLength(1);
     await expect(repository.searchHistory({ tag: 'travel' })).resolves.toHaveLength(1);
+  });
+
+  it('keeps each item paired with only its own tags when filtering by tag', async () => {
+    const repository = await createRepository();
+    await repository.createHistoryItem({ primaryText: 'First', tags: ['work', 'urgent'] });
+    const second = await repository.createHistoryItem({ primaryText: 'Second', tags: ['work'] });
+    await repository.createHistoryItem({ primaryText: 'Third', tags: ['travel'] });
+
+    const workItems = await repository.listHistoryItems({ tag: 'WORK' });
+
+    expect(workItems.map((item) => getHistoryPrimaryText(item))).toEqual(['Second', 'First']);
+    expect(workItems[0].tags).toEqual([{ id: 'tag-1', label: 'work' }]);
+    expect(workItems[1].tags).toEqual([
+      { id: 'tag-1', label: 'work' },
+      { id: 'tag-2', label: 'urgent' },
+    ]);
+    await expect(repository.getHistoryItem(second.id)).resolves.toEqual(second);
+    await expect(repository.getHistoryItem('missing')).resolves.toBeNull();
+  });
+
+  it('matches accented and non-Latin text regardless of case', async () => {
+    const repository = await createRepository();
+    await repository.createHistoryItem({ primaryText: 'ÁRBOL grande' });
+    await repository.createHistoryItem({ primaryText: 'مرحبا بالعالم' });
+
+    await expect(repository.searchHistory({ query: 'árbol' })).resolves.toHaveLength(1);
+    await expect(repository.searchHistory({ query: 'مرحبا' })).resolves.toHaveLength(1);
+  });
+
+  it('rejects tag links to history items that do not exist', async () => {
+    const repository = await createRepository();
+
+    await expect(repository.assignTag('missing-item', 'work')).rejects.toThrow(/FOREIGN KEY/u);
   });
 });

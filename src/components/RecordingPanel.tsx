@@ -1,5 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { MAX_RECORDING_DURATION_LABEL, MAX_RECORDING_DURATION_MS } from '../audio/audioRecorder';
+
 type RecordingPanelProps = {
   readonly busyLabel?: string;
   readonly elapsedMs?: number;
@@ -12,7 +14,7 @@ type RecordingPanelProps = {
 const WAVEFORM_BARS = [20, 34, 26, 44, 30, 52, 24, 40, 28, 46, 22] as const;
 
 function formatElapsedTime(elapsedMs: number) {
-  const elapsedSeconds = Math.min(60, Math.floor(elapsedMs / 1000));
+  const elapsedSeconds = Math.floor(Math.min(elapsedMs, MAX_RECORDING_DURATION_MS) / 1000);
   const minutes = Math.floor(elapsedSeconds / 60);
   const seconds = elapsedSeconds % 60;
 
@@ -29,7 +31,7 @@ export default function RecordingPanel({
 }: RecordingPanelProps) {
   const buttonLabel = busyLabel ?? (isRecording ? 'Stop recording' : 'Tap to record');
   const waveformPhase = isRecording ? Math.floor(elapsedMs / 1000) : 0;
-  const elapsedLabel = `${formatElapsedTime(elapsedMs)} / 60s max`;
+  const elapsedLabel = `${formatElapsedTime(elapsedMs)} / ${MAX_RECORDING_DURATION_LABEL}`;
 
   return (
     <View
@@ -41,7 +43,7 @@ export default function RecordingPanel({
         <Text style={[styles.statusText, isRecording && styles.statusTextActive]}>
           {isRecording ? 'Recording in progress' : 'Ready to record'}
         </Text>
-        <Text style={styles.maxCue}>{isRecording ? elapsedLabel : '60 second max'}</Text>
+        <Text style={styles.maxCue}>{isRecording ? elapsedLabel : MAX_RECORDING_DURATION_LABEL}</Text>
       </View>
 
       <View accessible accessibilityLabel="Mock audio waveform" style={styles.waveform}>

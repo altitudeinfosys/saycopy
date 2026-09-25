@@ -1,4 +1,5 @@
 import {
+  CONNECTION_PRAGMAS_SQL,
   createExpoSqliteLocalDatabase,
   type ExpoSqliteDatabaseLike,
 } from '../expoSqliteDatabase';
@@ -87,27 +88,29 @@ describe('createExpoSqliteLocalDatabase', () => {
     await database.execute('INSERT INTO history_items (id) VALUES (?)', ['history-1']);
 
     expect(openDatabaseSync).toHaveBeenCalledWith('test-tarek-wisper.db');
-    expect(rawDatabase.calls[0]).toContain(
+    expect(rawDatabase.calls[0]).toBe(`exec:${CONNECTION_PRAGMAS_SQL}`);
+    expect(rawDatabase.calls[1]).toContain(
       'exec:CREATE TABLE IF NOT EXISTS schema_migrations',
     );
-    expect(rawDatabase.calls[1]).toBe(
+    expect(rawDatabase.calls[2]).toBe(
       "query:SELECT name FROM sqlite_master WHERE type = 'table':[]",
     );
-    expect(rawDatabase.calls[2]).toBe('query:PRAGMA table_info(schema_migrations):[]');
-    expect(rawDatabase.calls[3]).toBe(
+    expect(rawDatabase.calls[3]).toBe('query:PRAGMA table_info(schema_migrations):[]');
+    expect(rawDatabase.calls[4]).toBe(
       'query:SELECT version FROM schema_migrations ORDER BY version ASC:[]',
     );
-    expect(rawDatabase.calls[4]).toContain('exec:CREATE TABLE IF NOT EXISTS history_items');
-    expect(rawDatabase.calls[5]).toBe(
+    expect(rawDatabase.calls[5]).toContain('exec:CREATE TABLE IF NOT EXISTS history_items');
+    expect(rawDatabase.calls[6]).toBe(
       "query:SELECT name FROM sqlite_master WHERE type = 'table':[]",
     );
-    expect(rawDatabase.calls[6]).toBe('query:PRAGMA table_info(app_settings):[]');
-    expect(rawDatabase.calls[7]).toBe('query:PRAGMA table_info(history_item_tags):[]');
-    expect(rawDatabase.calls[8]).toBe('query:PRAGMA table_info(history_items):[]');
-    expect(rawDatabase.calls[9]).toBe('query:PRAGMA table_info(schema_migrations):[]');
-    expect(rawDatabase.calls[10]).toBe('query:PRAGMA table_info(tags):[]');
-    expect(rawDatabase.calls[11]).toBe('query:SELECT * FROM history_items:[]');
-    expect(rawDatabase.calls[12]).toBe(
+    expect(rawDatabase.calls[7]).toBe('query:PRAGMA table_info(app_settings):[]');
+    expect(rawDatabase.calls[8]).toBe('query:PRAGMA table_info(history_item_tags):[]');
+    expect(rawDatabase.calls[9]).toBe('query:PRAGMA table_info(history_items):[]');
+    expect(rawDatabase.calls[10]).toBe('query:PRAGMA table_info(schema_migrations):[]');
+    expect(rawDatabase.calls[11]).toBe('query:PRAGMA table_info(tags):[]');
+    expect(rawDatabase.calls[12]).toContain('exec:CREATE INDEX IF NOT EXISTS idx_history_items_created_at');
+    expect(rawDatabase.calls[13]).toBe('query:SELECT * FROM history_items:[]');
+    expect(rawDatabase.calls[14]).toBe(
       'run:INSERT INTO history_items (id) VALUES (?):["history-1"]',
     );
   });

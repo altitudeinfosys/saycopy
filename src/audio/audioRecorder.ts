@@ -4,6 +4,7 @@ import {
   setAudioModeAsync as setExpoAudioModeAsync,
   useAudioRecorder,
   type AudioRecorder as ExpoAudioRecorder,
+  type RecordingOptions,
 } from 'expo-audio';
 import { File } from 'expo-file-system';
 import { useMemo } from 'react';
@@ -15,7 +16,21 @@ import {
   type TemporaryAudioFileReference,
 } from './fileCleanup';
 
-export const MAX_RECORDING_DURATION_MS = 60_000;
+export const MAX_RECORDING_DURATION_MS = 180_000;
+
+export const MAX_RECORDING_DURATION_LABEL = '3 min max';
+
+// Speech models resample to 16 kHz mono, so recording at music quality only inflates the upload.
+export const SPEECH_RECORDING_OPTIONS: RecordingOptions = {
+  ...RecordingPresets.HIGH_QUALITY,
+  sampleRate: 16_000,
+  numberOfChannels: 1,
+  bitRate: 32_000,
+  web: {
+    ...RecordingPresets.HIGH_QUALITY.web,
+    bitsPerSecond: 32_000,
+  },
+};
 
 export type AudioRecordingStatus =
   | 'idle'
@@ -509,7 +524,7 @@ export function createExpoAudioRecorderAdapter({
 }
 
 export function useExpoAudioRecordingController(): AudioRecordingController {
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorder = useAudioRecorder(SPEECH_RECORDING_OPTIONS);
 
   return useMemo(
     () =>

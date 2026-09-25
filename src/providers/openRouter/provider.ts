@@ -84,10 +84,26 @@ export function createOpenRouterProvider({
     const result = await client.requestChatCompletion(
       buildTranslationChatRequest({
         text: input.text,
+        sourceLanguageId: input.sourceLanguageId,
         targetLanguageId: input.targetLanguageId,
         modelId,
       }),
     );
+
+    if (result.finishReason === 'length') {
+      throw createAppError('malformed_response', 'OpenRouter cut the translation short.', {
+        provider: 'openrouter',
+        retryable: false,
+        cause: { finishReason: result.finishReason },
+      });
+    }
+
+    if (!result.content.trim()) {
+      throw createAppError('malformed_response', 'OpenRouter returned an empty translation.', {
+        provider: 'openrouter',
+        retryable: true,
+      });
+    }
 
     return {
       text: result.content,
