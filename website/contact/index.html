@@ -6,28 +6,36 @@
     <title>Contact — SayCopy</title>
     <meta name="description" content="Contact the SayCopy team for product help and feedback." />
     <meta name="theme-color" content="#050b1a" />
-    <link rel="icon" href="/assets/saycopy-icon.png" />
+    <link rel="icon" href="/assets/saycopy-icon-96.png" />
+    <link rel="apple-touch-icon" href="/assets/saycopy-icon.png" />
     <link rel="canonical" href="https://saycopy.app/contact" />
     <link rel="stylesheet" href="/styles.css" />
     <script src="/contact.js" defer></script>
   </head>
   <body>
+    <a class="skip-link" href="#main">Skip to content</a>
     <header class="site-header">
       <nav class="nav shell" aria-label="Primary navigation">
         <a class="brand" href="/">
-          <img src="/assets/saycopy-icon.png" alt="" />
+          <img src="/assets/saycopy-icon-96.png" alt="" width="38" height="38" />
           <span>SayCopy</span>
         </a>
         <div class="nav-links">
+          <a href="/#features">Features</a>
           <a href="/setup">Setup</a>
-          <a href="/privacy">Privacy</a>
           <a href="/support">Support</a>
-          <a class="nav-setup button button-secondary" href="/">Home</a>
+          <a href="/privacy">Privacy</a>
+          <a
+            class="nav-cta button button-primary"
+            href="https://apps.apple.com/app/id6790925849"
+            rel="noreferrer"
+            >Download</a
+          >
         </div>
       </nav>
     </header>
 
-    <main class="page-main shell">
+    <main class="page-main shell" id="main">
       <header class="page-header">
         <p class="eyebrow">Contact SayCopy</p>
         <h1>How can we help?</h1>
@@ -109,12 +117,19 @@
 
     <footer class="site-footer">
       <div class="footer-inner shell">
-        <span>© 2026 Altitude Information Systems LLC</span>
+        <div class="footer-brand">
+          <a class="brand" href="/">
+            <img src="/assets/saycopy-icon-96.png" alt="" width="32" height="32" />
+            <span>SayCopy</span>
+          </a>
+          <span>© 2026 Altitude Information Systems LLC</span>
+        </div>
         <div class="footer-links">
-          <a href="/">Home</a>
+          <a href="https://apps.apple.com/app/id6790925849" rel="noreferrer">App Store</a>
           <a href="/setup">Setup</a>
-          <a href="/privacy">Privacy</a>
           <a href="/support">Support</a>
+          <a href="/privacy">Privacy</a>
+          <a href="/contact">Contact</a>
           <a href="https://github.com/altitudeinfosys/saycopy">Source</a>
         </div>
       </div>
