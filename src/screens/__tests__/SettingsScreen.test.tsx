@@ -153,13 +153,11 @@ describe('SettingsScreen', () => {
     expectMinimumTouchTarget(screen.getByRole('button', { name: 'Clear token' }));
 
     await screen.findByText('Recording defaults');
-    expectMinimumTouchTarget(screen.getByRole('button', { name: 'Default mode Translate' }));
     expectMinimumTouchTarget(
       screen.getByRole('button', { name: 'Default source language Arabic' }),
     );
-    expectMinimumTouchTarget(
-      screen.getByRole('button', { name: 'Default target language Arabic' }),
-    );
+    expect(screen.queryByRole('button', { name: 'Default mode Translate' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Default target language Arabic' })).toBeNull();
     expectMinimumTouchTarget(screen.getByRole('button', { name: 'Recommended model Best Quality' }));
   });
 
@@ -270,24 +268,18 @@ describe('SettingsScreen', () => {
 
     await screen.findByText('Recording defaults');
 
-    fireEvent.press(screen.getByRole('button', { name: 'Default mode Translate' }));
     fireEvent.press(screen.getByRole('button', { name: 'Default source language Spanish' }));
-    fireEvent.press(screen.getByRole('button', { name: 'Default target language Arabic' }));
     fireEvent.press(screen.getByRole('button', { name: 'Recommended model Fast' }));
     fireEvent.press(screen.getByRole('button', { name: 'Default cleanup Off' }));
 
     await waitFor(() => {
       expect(settingsRepository.settings).toMatchObject({
-        defaultMode: 'translate',
         sourceLanguageId: 'spanish',
-        targetLanguageId: 'arabic',
         modelPresetId: 'fast',
         cleanupEnabled: false,
       });
     });
-    expect(settingsRepository.saveSettings).toHaveBeenCalledWith({ defaultMode: 'translate' });
     expect(settingsRepository.saveSettings).toHaveBeenCalledWith({ sourceLanguageId: 'spanish' });
-    expect(settingsRepository.saveSettings).toHaveBeenCalledWith({ targetLanguageId: 'arabic' });
     expect(settingsRepository.saveSettings).toHaveBeenCalledWith({
       customModelId: '',
       modelPresetId: 'fast',
@@ -719,15 +711,15 @@ describe('SettingsScreen', () => {
     await screen.findByText('Recording defaults');
 
     await act(async () => {
-      fireEvent.press(screen.getByRole('button', { name: 'Default mode Translate' }));
+      fireEvent.press(screen.getByRole('button', { name: 'Default cleanup Off' }));
       fireEvent.press(screen.getByRole('button', { name: 'Default source language Spanish' }));
     });
 
     await waitFor(() => {
       expect(screen.getByText('Could not save settings.')).toBeTruthy();
-      expect(settingsRepository.settings.defaultMode).toBe('translate');
+      expect(settingsRepository.settings.cleanupEnabled).toBe(false);
       expect(
-        screen.getByRole('button', { name: 'Default mode Translate' }).props.accessibilityState,
+        screen.getByRole('button', { name: 'Default cleanup Off' }).props.accessibilityState,
       ).toMatchObject({ selected: true });
       expect(
         screen.getByRole('button', { name: 'Default source language Auto-detect' }).props

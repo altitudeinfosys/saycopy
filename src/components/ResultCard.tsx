@@ -1,15 +1,14 @@
 import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
-import type { Tag } from '../domain/history';
+import type { HistoryMode, Tag } from '../domain/history';
 import ActionBar, { type ResultActions } from './ActionBar';
-import type { RecordMode } from './ModeSegmentedControl';
 import TagEditor from './TagEditor';
 
 type ResultCardProps = {
   readonly actions: ResultActions;
   readonly canAddTag?: boolean;
-  readonly mode: RecordMode;
+  readonly mode: HistoryMode;
   readonly onAddTag?: (tagName: string) => Promise<Tag | null>;
   readonly value: string;
   readonly onChangeText: (value: string) => void;

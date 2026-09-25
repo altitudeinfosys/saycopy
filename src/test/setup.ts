@@ -35,6 +35,12 @@ jest.mock('expo-audio', () => ({
   useAudioRecorder: jest.fn(() => mockExpoAudioRecorder),
 }));
 
+jest.mock('expo-speech', () => ({
+  getAvailableVoicesAsync: jest.fn().mockResolvedValue([]),
+  speak: jest.fn(),
+  stop: jest.fn().mockResolvedValue(undefined),
+}));
+
 jest.mock('react-native-safe-area-context', () => {
   const React = jest.requireActual<typeof import('react')>('react');
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');

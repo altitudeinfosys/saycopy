@@ -14,13 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { HISTORY_MODES, type HistoryMode } from '../domain/history';
-import {
-  LANGUAGE_OPTIONS,
-  type ConcreteLanguageId,
-  type LanguageId,
-  type LanguageOption,
-} from '../domain/languages';
+import { LANGUAGE_OPTIONS, type LanguageId } from '../domain/languages';
 import {
   DEFAULT_MODEL_PRESET_ID,
   DEFAULT_TRANSCRIPTION_MODEL_ID,
@@ -88,15 +82,7 @@ function OptionButton<TValue extends string>({
   );
 }
 
-function getModeLabel(mode: HistoryMode): string {
-  return mode === 'translate' ? 'Translate' : 'Transcribe';
-}
 
-function isConcreteLanguageOption(
-  language: LanguageOption,
-): language is LanguageOption & { readonly id: ConcreteLanguageId } {
-  return language.id !== 'auto';
-}
 
 function pickSettings(
   settings: AppSettings,
@@ -716,7 +702,7 @@ export default function SettingsScreen({
           </View>
         </View>
         <Text style={styles.modelHelp}>
-          Converts voice recordings into raw text in both Transcribe and Translate modes. This
+          Converts speech into text on the Record and Translate tabs. This
           choice is independent from the text-processing preset below.
         </Text>
         <Text style={styles.modelHelp}>
@@ -995,22 +981,6 @@ export default function SettingsScreen({
         <Text style={styles.sectionTitle}>Recording defaults</Text>
 
         <View style={styles.controlGroup}>
-          <Text style={styles.controlLabel}>Default mode</Text>
-          <View style={styles.optionRow}>
-            {HISTORY_MODES.map((mode) => (
-              <OptionButton
-                key={mode}
-                accessibilityLabel={`Default mode ${getModeLabel(mode)}`}
-                label={getModeLabel(mode)}
-                onSelect={(nextMode) => void saveSetting({ defaultMode: nextMode })}
-                selected={settings.defaultMode === mode}
-                value={mode}
-              />
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.controlGroup}>
           <Text style={styles.controlLabel}>Default source language</Text>
           <View style={styles.optionRow}>
             {LANGUAGE_OPTIONS.map((language) => (
@@ -1028,23 +998,6 @@ export default function SettingsScreen({
           </View>
         </View>
 
-        <View style={styles.controlGroup}>
-          <Text style={styles.controlLabel}>Default target language</Text>
-          <View style={styles.optionRow}>
-            {LANGUAGE_OPTIONS.filter(isConcreteLanguageOption).map((language) => (
-              <OptionButton
-                key={language.id}
-                accessibilityLabel={`Default target language ${language.label}`}
-                label={language.label}
-                onSelect={(targetLanguageId: ConcreteLanguageId) =>
-                  void saveSetting({ targetLanguageId })
-                }
-                selected={settings.targetLanguageId === language.id}
-                value={language.id}
-              />
-            ))}
-          </View>
-        </View>
 
       </View>
 

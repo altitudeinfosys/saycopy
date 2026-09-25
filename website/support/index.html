@@ -53,6 +53,7 @@
           <a href="#language">Recording language</a>
           <a href="#models">Model choices</a>
           <a href="#cleanup">Cleanup and translation</a>
+          <a href="#translate">Translate tab</a>
           <a href="#faq">Common questions</a>
           <a href="#troubleshooting">Troubleshooting</a>
         </div>
@@ -142,9 +143,40 @@
             </article>
           </div>
           <p>
-            SayCopy changes languages only in <strong>Translate</strong> mode. In that mode, speech
-            is transcribed first and then the text-processing model translates it into the target
-            language you selected.
+            The <strong>Record</strong> tab only transcribes: it keeps the language you spoke.
+            To change languages, use the <strong>Translate</strong> tab.
+          </p>
+        </section>
+
+        <section class="content-card" id="translate">
+          <p class="section-kicker">Learn and translate</p>
+          <h2>The Translate tab</h2>
+          <ol>
+            <li>
+              Choose the <strong>From</strong> and <strong>To</strong> languages. Tap
+              <strong>Swap languages</strong> (⇄) to reverse them; the last translation moves into
+              the text box so you can translate it back. Swap is unavailable while From is
+              Auto-detect, because SayCopy does not yet know which language to swap to.
+            </li>
+            <li>
+              Type a phrase, or tap <strong>Speak</strong> and talk. Your speech appears in the text
+              box first so you can correct it, then tap <strong>Translate</strong>.
+            </li>
+            <li>
+              Tap <strong>Listen</strong> to hear the translation read aloud with your phone's
+              built-in voice for that language. If no voice is installed, SayCopy tells you; you
+              can add voices in your phone's accessibility or speech settings.
+            </li>
+            <li>
+              Tap <strong>Save</strong> to keep the translation. Nothing on the Translate tab is
+              saved until you do. After saving, add <strong>Tags</strong> such as “greetings” or
+              “travel”.
+            </li>
+          </ol>
+          <p>
+            <strong>Saved translations</strong> appear below the result. Tap a tag to filter them,
+            tap an entry to reopen it, or tap 🔊 to hear it again. Saved translations are stored
+            only on this device and also appear in History.
           </p>
         </section>
 
@@ -195,7 +227,7 @@
             <details>
               <summary>Does turning Light cleanup off disable translation?</summary>
               <p>
-                No. It skips cleanup only in Transcribe mode. Translate mode still uses the active
+                No. It skips cleanup only on the Record tab. The Translate tab still uses the active
                 text-processing model because translation is the requested result.
               </p>
             </details>

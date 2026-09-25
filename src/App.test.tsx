@@ -2,22 +2,28 @@ import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { BackHandler } from 'react-native';
 
 import { AppShell } from './App';
-import { createRecordFlowProcessors, type AppDependencies } from './runtime/appDependencies';
+import {
+  createRecordFlowProcessors,
+  createTranslateProcessors,
+  type AppDependencies,
+} from './runtime/appDependencies';
 import { createDemoAppDependencies } from './storage/demoAppRepositories';
 
 function createTestAppDependencies(): AppDependencies {
   const demoDependencies = createDemoAppDependencies();
+  const provider = {
+    cleanupTranscript: jest.fn(),
+    transcribeAudio: jest.fn(),
+    translateText: jest.fn(),
+  };
 
   return {
     ...demoDependencies,
     recordFlowProcessors: createRecordFlowProcessors({
       historyRepository: demoDependencies.historyRepository,
-      provider: {
-        cleanupTranscript: jest.fn(),
-        transcribeAudio: jest.fn(),
-        translateText: jest.fn(),
-      },
+      provider,
     }),
+    translateProcessors: createTranslateProcessors({ provider }),
   };
 }
 
@@ -28,6 +34,7 @@ describe('App shell', () => {
     expect(screen.getByTestId('app-top-safe-area').props.edges).toContain('top');
     expect(screen.getByTestId('app-top-safe-area').props.edges).toContain('bottom');
     expect(screen.getByRole('tab', { name: 'Record' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Translate' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'History' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Settings' })).toBeTruthy();
     expect(await screen.findByText('Tap to record')).toBeTruthy();
@@ -43,26 +50,31 @@ describe('App shell', () => {
   it('passes shared saved settings into the Record tab', async () => {
     const dependencies = createTestAppDependencies();
     await dependencies.settingsRepository.saveSettings({
-      defaultMode: 'translate',
       sourceLanguageId: 'english',
-      targetLanguageId: 'arabic',
       modelPresetId: 'fast',
       cleanupEnabled: false,
     });
 
     render(<AppShell dependencies={dependencies} />);
 
-    expect(await screen.findByPlaceholderText('Type or paste text to translate')).toBeTruthy();
-    expect(screen.getByText('From English to Arabic')).toBeTruthy();
-    fireEvent.press(screen.getByRole('button', { name: 'Show language options' }));
-
-    expect(
-      screen.getByRole('button', { name: 'From language English' }).props.accessibilityState,
-    ).toMatchObject({ selected: true });
-    expect(
-      screen.getByRole('button', { name: 'To language Arabic' }).props.accessibilityState,
-    ).toMatchObject({ selected: true });
+    expect(await screen.findByText('Source: English')).toBeTruthy();
     expect(screen.getByText('Light cleanup off')).toBeTruthy();
+    expect(screen.queryByPlaceholderText('Type or paste text to translate')).toBeNull();
+  });
+
+  it('opens the Translate tab with the saved language pair', async () => {
+    const dependencies = createTestAppDependencies();
+    await dependencies.settingsRepository.saveSettings({
+      translateSourceLanguageId: 'english',
+      targetLanguageId: 'arabic',
+    });
+
+    render(<AppShell dependencies={dependencies} />);
+    fireEvent.press(screen.getByRole('tab', { name: 'Translate' }));
+
+    expect(await screen.findByRole('button', { name: 'From language: English' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'To language: Arabic' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Swap languages' })).toBeTruthy();
   });
 
   it('renders the history screen from the History tab', async () => {

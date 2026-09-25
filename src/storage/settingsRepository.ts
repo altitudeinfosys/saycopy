@@ -1,4 +1,3 @@
-import { HISTORY_MODES, type HistoryMode } from '../domain/history';
 import { LANGUAGE_OPTIONS, type ConcreteLanguageId, type LanguageId } from '../domain/languages';
 import {
   DEFAULT_MODEL_PRESET_ID,
@@ -9,8 +8,11 @@ import {
 import type { LocalSqliteDatabase } from './sqlite/schema';
 
 export type AppSettings = {
-  readonly defaultMode: HistoryMode;
+  /** Recording language for the Record tab. */
   readonly sourceLanguageId: LanguageId;
+  /** Translate tab "From" language. */
+  readonly translateSourceLanguageId: LanguageId;
+  /** Translate tab "To" language. */
   readonly targetLanguageId: ConcreteLanguageId;
   readonly modelPresetId: ModelPresetId;
   readonly customModelId: string;
@@ -34,8 +36,8 @@ type AppSettingRow = {
 };
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
-  defaultMode: 'transcribe',
   sourceLanguageId: 'auto',
+  translateSourceLanguageId: 'auto',
   targetLanguageId: 'english',
   modelPresetId: DEFAULT_MODEL_PRESET_ID,
   customModelId: '',
@@ -58,10 +60,6 @@ function parseSettingValue(valueJson: string): unknown {
   } catch {
     return undefined;
   }
-}
-
-function isHistoryMode(value: unknown): value is HistoryMode {
-  return typeof value === 'string' && HISTORY_MODES.includes(value as HistoryMode);
 }
 
 function isLanguageId(value: unknown): value is LanguageId {
@@ -90,12 +88,12 @@ export function createSettingsRepository(
     const transcriptionModelValue = persistedValues.transcriptionModelId;
 
     return {
-      defaultMode: isHistoryMode(persistedValues.defaultMode)
-        ? persistedValues.defaultMode
-        : DEFAULT_APP_SETTINGS.defaultMode,
       sourceLanguageId: isLanguageId(persistedValues.sourceLanguageId)
         ? persistedValues.sourceLanguageId
         : DEFAULT_APP_SETTINGS.sourceLanguageId,
+      translateSourceLanguageId: isLanguageId(persistedValues.translateSourceLanguageId)
+        ? persistedValues.translateSourceLanguageId
+        : DEFAULT_APP_SETTINGS.translateSourceLanguageId,
       targetLanguageId: isConcreteLanguageId(persistedValues.targetLanguageId)
         ? persistedValues.targetLanguageId
         : DEFAULT_APP_SETTINGS.targetLanguageId,
