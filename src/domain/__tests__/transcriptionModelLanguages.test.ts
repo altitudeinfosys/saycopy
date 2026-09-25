@@ -1,5 +1,9 @@
 import {
+  getRecommendedTranscriptionModelForLanguage,
   getTranscriptionLanguageBadge,
+  getTranscriptionLanguageCoverage,
+  getTranscriptionLanguageCoverageLabel,
+  sortByTranscriptionLanguageCoverage,
   getTranscriptionLanguageSupport,
   isKnownCompatibleTranscriptionModel,
   resolveTranscriptionModelId,
@@ -53,6 +57,59 @@ describe('transcription model language support', () => {
     expect(resolveTranscriptionModelId(undefined, 'english')).toBe('openai/whisper-large-v3-turbo');
     expect(resolveTranscriptionModelId('microsoft/mai-transcribe-1.5', 'auto')).toBe(
       'openai/gpt-4o-transcribe',
+    );
+  });
+
+  it('summarizes coverage across all app languages', () => {
+    expect(getTranscriptionLanguageCoverageLabel('openai/whisper-large-v3-turbo')).toBe(
+      'All 11 app languages',
+    );
+    expect(getTranscriptionLanguageCoverageLabel('google/chirp-3')).toBe('All 11 app languages');
+    expect(getTranscriptionLanguageCoverageLabel('nvidia/parakeet-tdt-0.6b-v3')).toBe(
+      '6 of 11 app languages · no Arabic, Chinese, Japanese, Korean, Hindi',
+    );
+    expect(getTranscriptionLanguageCoverageLabel('provider/future-model')).toBe(
+      'Language coverage unverified',
+    );
+    expect(getTranscriptionLanguageCoverage('nvidia/parakeet-tdt-0.6b-v3')).toMatchObject({
+      supportedCount: 6,
+      totalCount: 11,
+      unverified: [],
+    });
+  });
+
+  it('badges the new languages per model', () => {
+    expect(getTranscriptionLanguageBadge('deepgram/nova-3', 'korean')).toBe('Korean supported');
+    expect(getTranscriptionLanguageBadge('nvidia/parakeet-tdt-0.6b-v3', 'hindi')).toBe(
+      'Hindi not supported',
+    );
+    expect(getTranscriptionLanguageBadge('provider/future-model', 'french')).toBe(
+      'French support unverified',
+    );
+  });
+
+  it('orders models by widest coverage and keeps ties in place', () => {
+    const models = [
+      { id: 'provider/future-model' },
+      { id: 'nvidia/parakeet-tdt-0.6b-v3' },
+      { id: 'openai/whisper-large-v3' },
+      { id: 'deepgram/nova-3' },
+    ];
+
+    expect(sortByTranscriptionLanguageCoverage(models).map((model) => model.id)).toEqual([
+      'openai/whisper-large-v3',
+      'deepgram/nova-3',
+      'nvidia/parakeet-tdt-0.6b-v3',
+      'provider/future-model',
+    ]);
+  });
+
+  it('recommends a fully supported model for any language', () => {
+    expect(getRecommendedTranscriptionModelForLanguage('japanese')).toBe(
+      'openai/whisper-large-v3-turbo',
+    );
+    expect(getRecommendedTranscriptionModelForLanguage('auto')).toBe(
+      'openai/whisper-large-v3-turbo',
     );
   });
 });

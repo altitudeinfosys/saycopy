@@ -51,15 +51,15 @@
     </ol>
 
     <h3>Speech-to-text language coverage (research, 2026-09-25)</h3>
-    <p>For the 11 planned languages. Each cell is re-checked against provider docs during PR 1; anything not confirmed is marked “unverified” in the app instead of guessed.</p>
+    <p>For the 11 planned languages. Verified against provider docs while building PR 1. Models not in this table show “Language coverage unverified” in the app.</p>
     <table border="1" cellpadding="4">
       <tr><th>Model</th><th>Coverage</th><th>Notes</th></tr>
       <tr><td>openai/whisper-large-v3-turbo (current default)</td><td>11 / 11</td><td>99+ languages. Fastest option with full coverage.</td></tr>
       <tr><td>openai/whisper-large-v3 (High accuracy)</td><td>11 / 11</td><td>99+ languages.</td></tr>
-      <tr><td>openai/gpt-4o-transcribe (Auto-detect engine)</td><td>11 / 11 (to confirm)</td><td>Same language set as Whisper per OpenAI; confirm per language.</td></tr>
-      <tr><td>google/chirp-3</td><td>11 / 11, some in preview</td><td>24 GA and 77+ preview languages; Arabic is already marked preview.</td></tr>
-      <tr><td>microsoft/mai-transcribe</td><td>Likely 11 / 11 (unverified)</td><td>About 60 languages advertised; confirm each.</td></tr>
-      <tr><td>deepgram/nova-3</td><td>8 / 11 confirmed</td><td>en, es, fr, de, it, pt, ja, hi confirmed. Arabic, Chinese and Korean unclear in docs; the app currently marks Arabic supported and will be re-checked.</td></tr>
+      <tr><td>openai/gpt-4o-transcribe (Auto-detect engine)</td><td>11 / 11</td><td>99+ languages.</td></tr>
+      <tr><td>google/chirp-3</td><td>11 / 11</td><td>Arabic stays labeled preview, as before.</td></tr>
+      <tr><td>microsoft/mai-transcribe-1.5</td><td>11 / 11</td><td>43 languages, all 11 listed.</td></tr>
+      <tr><td>deepgram/nova-3</td><td>11 / 11</td><td>Full Nova-3 language table lists Arabic, Chinese (zh) and Korean too.</td></tr>
       <tr><td>nvidia/parakeet-tdt-0.6b-v3</td><td>6 / 11</td><td>25 European languages only: no Arabic, Chinese, Japanese, Korean or Hindi.</td></tr>
     </table>
     <p>

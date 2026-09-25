@@ -29,9 +29,12 @@ import {
   type ModelPresetId,
 } from '../domain/modelPresets';
 import {
+  getRecommendedTranscriptionModelForLanguage,
   getTranscriptionLanguageBadge,
+  getTranscriptionLanguageCoverageLabel,
   getTranscriptionLanguageSupport,
   isKnownCompatibleTranscriptionModel,
+  sortByTranscriptionLanguageCoverage,
   resolveTranscriptionModelId,
 } from '../domain/transcriptionModelLanguages';
 import {
@@ -406,7 +409,7 @@ export default function SettingsScreen({
     if (!isKnownCompatibleTranscriptionModel(transcriptionModelId, sourceLanguageId)) {
       const message =
         sourceLanguageId === 'auto'
-          ? `${transcriptionModelId} is not verified for automatic English, Spanish, and Arabic detection. Choose a language or an Auto-compatible model.`
+          ? `${transcriptionModelId} is not verified for automatic language detection. Choose a language or an Auto-compatible model.`
           : `${transcriptionModelId} does not support ${getLanguageLabel(sourceLanguageId)}. Choose another transcription model.`;
       setErrorText(
         message,
@@ -568,11 +571,13 @@ export default function SettingsScreen({
 
   const selectedSourceLanguageId = settings?.sourceLanguageId ?? 'auto';
   const visibleTranscriptionCatalogModels = useMemo(() => {
-    return filterCatalogModels(
-      transcriptionCatalogModels.filter((model) =>
-        isKnownCompatibleTranscriptionModel(model.id, selectedSourceLanguageId),
+    return sortByTranscriptionLanguageCoverage(
+      filterCatalogModels(
+        transcriptionCatalogModels.filter((model) =>
+          isKnownCompatibleTranscriptionModel(model.id, selectedSourceLanguageId),
+        ),
+        transcriptionModelQuery,
       ),
-      transcriptionModelQuery,
     );
   }, [selectedSourceLanguageId, transcriptionCatalogModels, transcriptionModelQuery]);
 
@@ -591,6 +596,9 @@ export default function SettingsScreen({
   );
   const selectedTranscriptionSupport = getTranscriptionLanguageSupport(
     effectiveTranscriptionModelId,
+    settings.sourceLanguageId,
+  );
+  const suggestedTranscriptionModelId = getRecommendedTranscriptionModelForLanguage(
     settings.sourceLanguageId,
   );
   const selectedTextModelId =
@@ -722,10 +730,22 @@ export default function SettingsScreen({
           </Text>
         ) : null}
         {selectedTranscriptionSupport === 'unsupported' ? (
-          <Text accessibilityRole="alert" style={styles.warningText}>
-            The active model does not support {getLanguageLabel(settings.sourceLanguageId)}.
-            Choose another transcription model before recording.
-          </Text>
+          <View style={styles.controlGroup}>
+            <Text accessibilityRole="alert" style={styles.warningText}>
+              The active model does not support {getLanguageLabel(settings.sourceLanguageId)}.
+              Choose another transcription model before recording.
+            </Text>
+            <Pressable
+              accessibilityLabel={`Switch to ${suggestedTranscriptionModelId}`}
+              accessibilityRole="button"
+              onPress={() => void handleSelectTranscriptionModel(suggestedTranscriptionModelId)}
+              style={[styles.secondaryButton, styles.fullWidthButton]}
+            >
+              <Text style={styles.secondaryButtonText}>
+                Switch to {suggestedTranscriptionModelId}
+              </Text>
+            </Pressable>
+          </View>
         ) : selectedTranscriptionSupport === 'unverified' && settings.sourceLanguageId !== 'auto' ? (
           <Text style={styles.warningText}>
             Language support for this model is unverified. Confirm it supports{' '}
@@ -760,6 +780,9 @@ export default function SettingsScreen({
                       recommendation.modelId,
                       settings.sourceLanguageId,
                     )}
+                  </Text>
+                  <Text style={styles.modelHelp}>
+                    {getTranscriptionLanguageCoverageLabel(recommendation.modelId)}
                   </Text>
                 </Pressable>
               );
@@ -1071,7 +1094,7 @@ export default function SettingsScreen({
         onSelectModel={(modelId) => void handleSelectTranscriptionCatalogModel(modelId)}
         query={transcriptionModelQuery}
         renderBadge={(modelId) =>
-          getTranscriptionLanguageBadge(modelId, settings.sourceLanguageId)
+          `${getTranscriptionLanguageBadge(modelId, settings.sourceLanguageId)} · ${getTranscriptionLanguageCoverageLabel(modelId)}`
         }
         searchAccessibilityLabel="Search OpenRouter transcription models"
         selectedModelId={settings.transcriptionModelId}

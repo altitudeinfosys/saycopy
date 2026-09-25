@@ -73,7 +73,7 @@
               </p>
             </article>
             <article class="choice-card">
-              <span class="choice-label">English, Spanish, or Arabic</span>
+              <span class="choice-label">A specific language</span>
               <h3>Your preferred transcription model is used.</h3>
               <p>
                 Choose a language when you want SayCopy to send a language hint to your preferred
@@ -96,7 +96,7 @@
             <div>
               <dt>Preferred transcription model</dt>
               <dd>
-                Converts speech into text when you explicitly select English, Spanish, or Arabic.
+                Converts speech into text when you explicitly select a language.
                 You can choose it from the OpenRouter transcription-model list. The recommended
                 default is <strong>openai/whisper-large-v3-turbo</strong> for faster results; pick
                 <strong>High accuracy</strong> (openai/whisper-large-v3) if you prefer accuracy
@@ -155,8 +155,8 @@
             <details>
               <summary>I selected Deepgram. Why does Auto-detect show GPT-4o Transcribe?</summary>
               <p>
-                Deepgram remains your preferred model and is used when you select English, Spanish,
-                or Arabic. Auto-detect uses a dedicated engine because providers expose different
+                Deepgram remains your preferred model and is used when you select a specific
+                language. Auto-detect uses a dedicated engine because providers expose different
                 language-detection controls, and omitting a language does not behave consistently
                 across all of them.
               </p>
@@ -197,6 +197,19 @@
               <p>
                 No. It skips cleanup only in Transcribe mode. Translate mode still uses the active
                 text-processing model because translation is the requested result.
+              </p>
+            </details>
+            <details>
+              <summary>Which languages does SayCopy support?</summary>
+              <p>
+                English, Spanish, Arabic, French, German, Italian, Portuguese, Chinese, Japanese,
+                Korean, and Hindi, plus Auto-detect. In Settings, each transcription model shows
+                how many of these languages it supports, for example
+                <strong>All 11 app languages</strong> or
+                <strong>6 of 11 app languages · no Arabic, Chinese, Japanese, Korean, Hindi</strong>.
+                Models with the widest coverage are listed first. If your preferred model does not
+                support the recording language you choose, Settings offers a one-tap
+                <strong>Switch to</strong> button for a model that does.
               </p>
             </details>
             <details>
