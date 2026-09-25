@@ -1,4 +1,4 @@
-import { createAppError } from '../../domain/errors';
+import { createAppError, isAppError, type AppErrorCategory } from '../../domain/errors';
 import {
   mapOpenRouterHttpError,
   mapOpenRouterMalformedResponseError,
@@ -33,7 +33,13 @@ export type OpenRouterClientOptions = {
   readonly fetch: OpenRouterFetch;
   readonly getToken: () => Promise<string | null | undefined>;
   readonly baseUrl?: string;
+  /** Timeout for text requests such as cleanup and translation. */
   readonly timeoutMs?: number;
+  /** Timeout for audio uploads, which carry up to several minutes of speech. */
+  readonly transcriptionTimeoutMs?: number;
+  /** Delay before each retry of a transient failure; its length is the retry count. */
+  readonly retryDelaysMs?: readonly number[];
+  readonly sleep?: (delayMs: number) => Promise<void>;
 };
 
 export type OpenRouterTranscriptionResult = {
@@ -56,6 +62,14 @@ export type OpenRouterClient = {
 
 const DEFAULT_BASE_URL = 'https://openrouter.ai';
 const DEFAULT_TIMEOUT_MS = 30_000;
+const DEFAULT_TRANSCRIPTION_TIMEOUT_MS = 90_000;
+const DEFAULT_RETRY_DELAYS_MS = [500, 1_500] as const;
+// Timeouts are not retried: repeating a slow upload would double the user's wait.
+const RETRYABLE_CATEGORIES: ReadonlySet<AppErrorCategory> = new Set([
+  'network_unavailable',
+  'rate_limited',
+  'provider_unavailable',
+]);
 const PROVIDER = 'openrouter';
 
 export function createOpenRouterClient({
@@ -63,31 +77,51 @@ export function createOpenRouterClient({
   getToken,
   baseUrl = DEFAULT_BASE_URL,
   timeoutMs = DEFAULT_TIMEOUT_MS,
+  transcriptionTimeoutMs = DEFAULT_TRANSCRIPTION_TIMEOUT_MS,
+  retryDelaysMs = DEFAULT_RETRY_DELAYS_MS,
+  sleep = defaultSleep,
 }: OpenRouterClientOptions): OpenRouterClient {
+  async function executeWithRetries(
+    request: OpenRouterRequestDescriptor<unknown>,
+    requestTimeoutMs: number,
+  ): Promise<unknown> {
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        return await executeJsonRequest({
+          request,
+          fetch,
+          getToken,
+          baseUrl,
+          timeoutMs: requestTimeoutMs,
+        });
+      } catch (error) {
+        const retryDelayMs = retryDelaysMs[attempt];
+
+        if (retryDelayMs === undefined || !isRetryableError(error)) {
+          throw error;
+        }
+
+        await sleep(retryDelayMs);
+      }
+    }
+  }
+
   return {
-    requestTranscription: async (request) => {
-      const payload = await executeJsonRequest({
-        request,
-        fetch,
-        getToken,
-        baseUrl,
-        timeoutMs,
-      });
-
-      return parseTranscriptionResponse(payload);
-    },
-    requestChatCompletion: async (request) => {
-      const payload = await executeJsonRequest({
-        request,
-        fetch,
-        getToken,
-        baseUrl,
-        timeoutMs,
-      });
-
-      return parseChatResponse(payload);
-    },
+    requestTranscription: async (request) =>
+      parseTranscriptionResponse(await executeWithRetries(request, transcriptionTimeoutMs)),
+    requestChatCompletion: async (request) =>
+      parseChatResponse(await executeWithRetries(request, timeoutMs)),
   };
+}
+
+function isRetryableError(error: unknown): boolean {
+  return isAppError(error) && RETRYABLE_CATEGORIES.has(error.category);
+}
+
+function defaultSleep(delayMs: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, delayMs);
+  });
 }
 
 async function executeJsonRequest({

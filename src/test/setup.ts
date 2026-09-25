@@ -25,6 +25,9 @@ jest.mock('expo-audio', () => ({
     HIGH_QUALITY: {
       extension: '.m4a',
       sampleRate: 44100,
+      numberOfChannels: 2,
+      bitRate: 128000,
+      web: { mimeType: 'audio/webm', bitsPerSecond: 128000 },
     },
   },
   requestRecordingPermissionsAsync: jest.fn().mockResolvedValue({ granted: true }),

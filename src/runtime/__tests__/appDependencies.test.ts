@@ -7,7 +7,7 @@ import {
 import type { SecureStoreLike } from '../../storage/secureTokenStore';
 import { createSettingsRepository } from '../../storage/settingsRepository';
 import { createHistoryRepository } from '../../storage/sqlite/historyRepository';
-import { InMemoryLocalSqliteDatabase } from '../../storage/test/InMemoryLocalSqliteDatabase';
+import { createSqlJsLocalDatabase } from '../../storage/test/sqlJsLocalDatabase';
 
 function createSecureStore(initialToken: string | null = null): SecureStoreLike {
   let token = initialToken;
@@ -75,7 +75,7 @@ describe('createAppDependencies', () => {
   });
 
   it('wires default history and settings repositories from the local SQLite database factory', async () => {
-    const database = new InMemoryLocalSqliteDatabase();
+    const database = await createSqlJsLocalDatabase();
     const createLocalDatabase = jest.fn(() => database);
 
     const dependencies = createAppDependencies({
@@ -114,15 +114,16 @@ describe('createAppDependencies', () => {
     expect(createLocalDatabase).toHaveBeenCalledTimes(1);
   });
 
-  it('does not open production SQLite when both repositories are injected', () => {
-    const createLocalDatabase = jest.fn(() => new InMemoryLocalSqliteDatabase());
+  it('does not open production SQLite when both repositories are injected', async () => {
+    const database = await createSqlJsLocalDatabase();
+    const createLocalDatabase = jest.fn(() => database);
 
     createAppDependencies({
       createLocalDatabase,
       fetch: jest.fn(),
-      historyRepository: createHistoryRepository(new InMemoryLocalSqliteDatabase()),
+      historyRepository: createHistoryRepository(database),
       secureStore: createSecureStore(),
-      settingsRepository: createSettingsRepository(new InMemoryLocalSqliteDatabase()),
+      settingsRepository: createSettingsRepository(database),
     });
 
     expect(createLocalDatabase).not.toHaveBeenCalled();

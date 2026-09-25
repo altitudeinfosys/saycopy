@@ -8,7 +8,7 @@ import {
 } from '../../domain/history';
 import { LANGUAGE_OPTIONS, type ConcreteLanguageId, type LanguageId } from '../../domain/languages';
 import { DEFAULT_MODEL_PRESET_ID, type ModelPresetId } from '../../domain/modelPresets';
-import type { LocalSqliteDatabase } from './schema';
+import type { LocalSqliteDatabase, SqliteValue } from './schema';
 
 type HistoryItemRow = {
   readonly id: string;
@@ -31,11 +31,6 @@ type TagRow = {
   readonly name: string;
   readonly normalized_name: string;
   readonly created_at: string;
-};
-
-type HistoryItemTagRow = {
-  readonly history_item_id: string;
-  readonly tag_id: string;
 };
 
 type BaseCreateHistoryItemInput = {
@@ -150,49 +145,25 @@ function toDomainTag(row: TagRow): Tag {
   };
 }
 
-function getTagsForHistoryItem(
-  historyItemId: string,
-  tags: readonly TagRow[],
-  joins: readonly HistoryItemTagRow[],
-): Tag[] {
-  return getTagRowsForHistoryItem(historyItemId, tags, joins)
-    .sort((left, right) => left.created_at.localeCompare(right.created_at))
-    .map(toDomainTag);
+type ItemTagRow = TagRow & {
+  readonly history_item_id: string;
+};
+
+function groupTagsByHistoryItem(rows: readonly ItemTagRow[]): Map<string, Tag[]> {
+  const tagsByItem = new Map<string, Tag[]>();
+
+  for (const row of rows) {
+    const itemTags = tagsByItem.get(row.history_item_id) ?? [];
+    itemTags.push(toDomainTag(row));
+    tagsByItem.set(row.history_item_id, itemTags);
+  }
+
+  return tagsByItem;
 }
 
-function getTagRowsForHistoryItem(
-  historyItemId: string,
-  tags: readonly TagRow[],
-  joins: readonly HistoryItemTagRow[],
-): TagRow[] {
-  const tagIds = new Set(
-    joins.filter((join) => join.history_item_id === historyItemId).map((join) => join.tag_id),
-  );
-
-  return tags.filter((tag) => tagIds.has(tag.id));
-}
-
-function rowHasTag(
-  row: HistoryItemRow,
-  normalizedTag: string,
-  tags: readonly TagRow[],
-  joins: readonly HistoryItemTagRow[],
-): boolean {
-  const rowTagIds = joins
-    .filter((join) => join.history_item_id === row.id)
-    .map((join) => join.tag_id);
-
-  return tags.some((tag) => rowTagIds.includes(tag.id) && tag.normalized_name === normalizedTag);
-}
-
-function toHistoryItem(
-  row: HistoryItemRow,
-  tags: readonly TagRow[],
-  joins: readonly HistoryItemTagRow[],
-): HistoryItem {
+function toHistoryItem(row: HistoryItemRow, itemTags: readonly Tag[] = []): HistoryItem {
   const sourceLanguageId = isLanguageId(row.source_language) ? row.source_language : 'auto';
   const sourceType = isHistorySourceType(row.source_type) ? row.source_type : 'manual';
-  const itemTags = getTagsForHistoryItem(row.id, tags, joins);
 
   if (isHistoryMode(row.mode) && row.mode === 'translate') {
     return {
@@ -205,7 +176,7 @@ function toHistoryItem(
       translatedText: row.translated_text ?? row.primary_text,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
-      tags: itemTags,
+      tags: [...itemTags],
     };
   }
 
@@ -217,16 +188,40 @@ function toHistoryItem(
     transcript: row.primary_text,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    tags: itemTags,
+    tags: [...itemTags],
   };
 }
 
-function sortNewestFirst(left: HistoryItemRow, right: HistoryItemRow): number {
-  return right.created_at.localeCompare(left.created_at) || right.id.localeCompare(left.id);
+type HistoryFilter = {
+  readonly whereSql: string;
+  readonly params: readonly SqliteValue[];
+};
+
+const NO_FILTER: HistoryFilter = { whereSql: '1 = 1', params: [] };
+
+function tagFilter(normalizedTag: string): HistoryFilter {
+  return {
+    whereSql: `EXISTS (
+      SELECT 1 FROM history_item_tags filter_join
+      JOIN tags filter_tag ON filter_tag.id = filter_join.tag_id
+      WHERE filter_join.history_item_id = history_items.id
+        AND filter_tag.normalized_name = ?
+    )`,
+    params: [normalizedTag],
+  };
 }
 
-function sortRowsNewestFirst(rows: readonly HistoryItemRow[]): HistoryItemRow[] {
-  return [...rows].sort(sortNewestFirst);
+function searchableText(item: HistoryItem, row: HistoryItemRow): string {
+  return normalizeSearchValue(
+    [
+      row.primary_text,
+      row.source_text ?? '',
+      row.translated_text ?? '',
+      row.source_language,
+      row.target_language ?? '',
+      (item.tags ?? []).map((tag) => tag.label).join(' '),
+    ].join(' '),
+  );
 }
 
 export function createHistoryRepository(
@@ -236,41 +231,56 @@ export function createHistoryRepository(
   const createId = options.createId ?? defaultCreateId;
   const now = options.now ?? defaultNow;
 
-  async function loadRows(): Promise<{
-    historyRows: HistoryItemRow[];
-    tagRows: TagRow[];
-    joinRows: HistoryItemTagRow[];
-  }> {
-    const [historyRows, tagRows, joinRows] = await Promise.all([
-      database.query<HistoryItemRow>('SELECT * FROM history_items'),
-      database.query<TagRow>('SELECT * FROM tags'),
-      database.query<HistoryItemTagRow>('SELECT * FROM history_item_tags'),
+  async function loadRows(
+    filter: HistoryFilter,
+  ): Promise<{ historyRows: HistoryItemRow[]; tagsByItem: Map<string, Tag[]> }> {
+    const [historyRows, tagRows] = await Promise.all([
+      database.query<HistoryItemRow>(
+        `SELECT * FROM history_items
+         WHERE ${filter.whereSql}
+         ORDER BY created_at DESC, id DESC`,
+        filter.params,
+      ),
+      database.query<ItemTagRow>(
+        `SELECT history_item_tags.history_item_id, tags.*
+         FROM history_item_tags
+         JOIN tags ON tags.id = history_item_tags.tag_id
+         WHERE history_item_tags.history_item_id IN (
+           SELECT id FROM history_items WHERE ${filter.whereSql}
+         )
+         ORDER BY tags.created_at ASC, tags.rowid ASC`,
+        filter.params,
+      ),
     ]);
 
-    return { historyRows, tagRows, joinRows };
+    return { historyRows, tagsByItem: groupTagsByHistoryItem(tagRows) };
   }
 
   async function listHistoryItems(options?: HistoryListOptions): Promise<HistoryItem[]> {
-    const { historyRows, tagRows, joinRows } = await loadRows();
     const normalizedTag = options?.tag ? normalizeTagName(options.tag) : undefined;
-    const filteredRows = normalizedTag
-      ? historyRows.filter((row) => rowHasTag(row, normalizedTag, tagRows, joinRows))
-      : historyRows;
+    const { historyRows, tagsByItem } = await loadRows(
+      normalizedTag ? tagFilter(normalizedTag) : NO_FILTER,
+    );
 
-    return sortRowsNewestFirst(filteredRows).map((row) => toHistoryItem(row, tagRows, joinRows));
+    return historyRows.map((row) => toHistoryItem(row, tagsByItem.get(row.id)));
   }
 
   async function getHistoryItem(id: string): Promise<HistoryItem | null> {
-    const { historyRows, tagRows, joinRows } = await loadRows();
-    const row = historyRows.find((historyRow) => historyRow.id === id);
+    const { historyRows, tagsByItem } = await loadRows({
+      whereSql: 'history_items.id = ?',
+      params: [id],
+    });
+    const row = historyRows[0];
 
-    return row ? toHistoryItem(row, tagRows, joinRows) : null;
+    return row ? toHistoryItem(row, tagsByItem.get(row.id)) : null;
   }
 
   async function findTag(name: string): Promise<Tag | null> {
     const normalizedName = normalizeTagName(name);
-    const tagRows = await database.query<TagRow>('SELECT * FROM tags');
-    const row = tagRows.find((tag) => tag.normalized_name === normalizedName);
+    const [row] = await database.query<TagRow>(
+      'SELECT * FROM tags WHERE normalized_name = ? LIMIT 1',
+      [normalizedName],
+    );
 
     return row ? toDomainTag(row) : null;
   }
@@ -387,8 +397,10 @@ export function createHistoryRepository(
     id: string,
     input: UpdateHistoryTextInput,
   ): Promise<HistoryItem | null> {
-    const existingRows = await database.query<HistoryItemRow>('SELECT * FROM history_items');
-    const existing = existingRows.find((row) => row.id === id);
+    const [existing] = await database.query<HistoryItemRow>(
+      'SELECT * FROM history_items WHERE id = ? LIMIT 1',
+      [id],
+    );
     if (!existing) {
       return null;
     }
@@ -423,36 +435,23 @@ export function createHistoryRepository(
   }
 
   async function searchHistory(options: HistorySearchOptions): Promise<HistoryItem[]> {
-    const { historyRows, tagRows, joinRows } = await loadRows();
     const normalizedQuery = options.query ? normalizeSearchValue(options.query) : '';
     const normalizedTag = options.tag ? normalizeTagName(options.tag) : undefined;
-    const filteredRows = normalizedTag
-      ? historyRows.filter((row) => rowHasTag(row, normalizedTag, tagRows, joinRows))
-      : historyRows;
+    const { historyRows, tagsByItem } = await loadRows(
+      normalizedTag ? tagFilter(normalizedTag) : NO_FILTER,
+    );
+    const items = historyRows.map((row) => ({
+      row,
+      item: toHistoryItem(row, tagsByItem.get(row.id)),
+    }));
 
-    if (!normalizedQuery) {
-      return sortRowsNewestFirst(filteredRows).map((row) =>
-        toHistoryItem(row, tagRows, joinRows),
-      );
-    }
-
-    return sortRowsNewestFirst(
-      filteredRows.filter((row) => {
-        const tagText = getTagRowsForHistoryItem(row.id, tagRows, joinRows)
-          .map((tag) => tag.name)
-          .join(' ');
-        const searchableText = [
-          row.primary_text,
-          row.source_text ?? '',
-          row.translated_text ?? '',
-          row.source_language,
-          row.target_language ?? '',
-          tagText,
-        ].join(' ');
-
-        return normalizeSearchValue(searchableText).includes(normalizedQuery);
-      }),
-    ).map((row) => toHistoryItem(row, tagRows, joinRows));
+    // Text matching stays in JavaScript because SQLite LOWER() only folds ASCII letters.
+    return items
+      .filter(
+        ({ item, row }) =>
+          !normalizedQuery || searchableText(item, row).includes(normalizedQuery),
+      )
+      .map(({ item }) => item);
   }
 
   return {
