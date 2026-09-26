@@ -172,7 +172,7 @@ describe('HistoryScreen', () => {
     render(<HistoryScreen repository={repository} />);
 
     expect(await screen.findByText('No saved history yet')).toBeTruthy();
-    expect(screen.getByText('Record or translate something to see it here.')).toBeTruthy();
+    expect(screen.getByText('Transcribe or translate something to see it here.')).toBeTruthy();
     expect(repository.listHistoryItems).toHaveBeenCalled();
   });
 

@@ -78,7 +78,7 @@ export default function HistoryScreen({ repository, onOpenItem }: HistoryScreenP
   const emptyCopy =
     allItems.length > 0 && hasActiveFilter
       ? 'Try a different search or tag filter.'
-      : 'Record or translate something to see it here.';
+      : 'Transcribe or translate something to see it here.';
 
   const loadHistoryItems = useCallback(async () => {
     setErrorText('');

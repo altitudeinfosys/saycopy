@@ -702,7 +702,7 @@ export default function SettingsScreen({
           </View>
         </View>
         <Text style={styles.modelHelp}>
-          Converts speech into text on the Record and Translate tabs. This
+          Converts speech into text on the Transcribe and Translate tabs. This
           choice is independent from the text-processing preset below.
         </Text>
         <Text style={styles.modelHelp}>

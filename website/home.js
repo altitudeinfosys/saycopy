@@ -13,7 +13,7 @@
   const scenarios = [
     {
       mode: "record",
-      title: "Record",
+      title: "Transcribe",
       working: "Cleaning up…",
       label: "Result",
       text: "Running ten minutes late. Start without me and I'll catch up on the notes.",

@@ -1,3 +1,4 @@
+import * as Clipboard from 'expo-clipboard';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 
 import type { AudioRecordingController, AudioRecordingState } from '../../audio/audioRecorder';
@@ -101,6 +102,10 @@ async function translate(text: string) {
 }
 
 describe('TranslateScreen', () => {
+  beforeEach(() => {
+    jest.mocked(Clipboard.getStringAsync).mockResolvedValue('');
+  });
+
   it('translates typed text without saving it until Save is tapped', async () => {
     const { historyRepository, processors } = await renderTranslateScreen();
 
@@ -130,9 +135,8 @@ describe('TranslateScreen', () => {
         translatedText: 'Buenos días',
       },
     ]);
-    expect(
-      await screen.findByRole('button', { name: 'Open saved translation Good morning' }),
-    ).toBeTruthy();
+    fireEvent.press(screen.getByRole('button', { name: 'Saved translations, 1 item' }));
+    expect(await screen.findByRole('button', { name: 'Open saved translation Good morning' })).toBeTruthy();
   });
 
   it('tags a saved translation and filters the saved list by tag', async () => {
@@ -144,9 +148,9 @@ describe('TranslateScreen', () => {
     fireEvent.changeText(screen.getByLabelText('Tag name'), 'greetings');
     fireEvent.press(screen.getByRole('button', { name: 'Add tag' }));
 
-    expect(
-      await screen.findByRole('button', { name: 'Filter saved translations by greetings' }),
-    ).toBeTruthy();
+    fireEvent.press(screen.getByRole('button', { name: 'Saved translations, 1 item' }));
+    expect(await screen.findByRole('button', { name: 'Filter saved translations by greetings' })).toBeTruthy();
+    fireEvent.press(screen.getByRole('button', { name: 'Close saved translations' }));
     const [item] = await historyRepository.listHistoryItems({ tag: 'greetings' });
     expect(item).toMatchObject({ transcript: 'Good morning' });
 
@@ -160,6 +164,8 @@ describe('TranslateScreen', () => {
     });
     await translate('Where is it?');
     fireEvent.press(screen.getByRole('button', { name: 'Save translation' }));
+    await screen.findByRole('button', { name: 'Saved' });
+    fireEvent.press(screen.getByRole('button', { name: 'Saved translations, 3 items' }));
     await screen.findByRole('button', { name: 'Open saved translation Where is it?' });
 
     fireEvent.press(
@@ -259,11 +265,34 @@ describe('TranslateScreen', () => {
 
     await translate('Good morning');
     fireEvent.press(screen.getByRole('button', { name: 'Save translation' }));
+    await screen.findByRole('button', { name: 'Saved' });
+    fireEvent.press(screen.getByRole('button', { name: 'Saved translations, 2 items' }));
     fireEvent.press(await screen.findByRole('button', { name: 'Open saved translation Bonsoir' }));
 
     expect(screen.getByRole('button', { name: 'From language: French' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'To language: English' })).toBeTruthy();
     expect(screen.getByLabelText('Text to translate').props.value).toBe('Bonsoir');
     expect(screen.getByRole('button', { name: 'Saved' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Saved translations, 2 items' }).props.accessibilityState)
+      .toMatchObject({ expanded: false });
+  });
+
+  it('pastes clipboard text into the current input and clears the old result', async () => {
+    await renderTranslateScreen();
+    await translate('Good morning');
+    jest.mocked(Clipboard.getStringAsync).mockResolvedValueOnce('  Text from another app  ');
+
+    fireEvent.press(screen.getByRole('button', { name: 'Paste text from clipboard' }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Text to translate').props.value).toBe('Text from another app');
+    });
+    expect(screen.queryByTestId('translation-result')).toBeNull();
+  });
+
+  it('shows a clear message when the clipboard has no text', async () => {
+    await renderTranslateScreen();
+    fireEvent.press(screen.getByRole('button', { name: 'Paste text from clipboard' }));
+    expect(await screen.findByText('Clipboard has no text to paste.')).toBeTruthy();
   });
 });

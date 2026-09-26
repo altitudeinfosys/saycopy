@@ -17,7 +17,7 @@ import SettingsScreen from './screens/SettingsScreen';
 import TranslateScreen from './screens/TranslateScreen';
 import { createAppDependencies, type AppDependencies } from './runtime/appDependencies';
 
-const tabs = ['Record', 'Translate', 'History', 'Settings'] as const;
+const tabs = ['Transcribe', 'Translate', 'History', 'Settings'] as const;
 
 type AppTab = (typeof tabs)[number];
 
@@ -30,16 +30,16 @@ export default function App() {
 }
 
 export function AppShell({ dependencies: injectedDependencies }: AppProps = {}) {
-  const [activeTab, setActiveTab] = useState<AppTab>('Record');
+  const [activeTab, setActiveTab] = useState<AppTab>('Transcribe');
   const [dependencies] = useState(() => injectedDependencies ?? createAppDependencies());
 
   useEffect(() => {
-    if (activeTab === 'Record') {
+    if (activeTab === 'Transcribe') {
       return undefined;
     }
 
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      setActiveTab('Record');
+      setActiveTab('Transcribe');
       return true;
     });
 
@@ -76,7 +76,7 @@ export function AppShell({ dependencies: injectedDependencies }: AppProps = {}) 
 }
 
 function renderActiveTab(activeTab: AppTab, dependencies: AppDependencies) {
-  if (activeTab === 'Record') {
+  if (activeTab === 'Transcribe') {
     return (
       <RecordScreen
         historyRepository={dependencies.historyRepository}
