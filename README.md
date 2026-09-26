@@ -8,10 +8,10 @@ SayCopy is a privacy-conscious mobile app for recording, transcribing, translati
 
 ## What it does
 
-- Records audio with explicit start, pause, resume, cancel, and finish controls.
-- Transcribes recordings through OpenRouter-compatible models.
-- Translates transcripts into a selected target language.
-- Stores history, tags, and preferences locally with SQLite.
+- Records up to three minutes of audio with explicit start, stop, and cancel controls.
+- Transcribes recordings through OpenRouter-compatible models, with optional Light cleanup.
+- Translates typed or spoken text between 11 languages on the Translate tab, with on-device read-aloud.
+- Stores history, saved translations, tags, and preferences locally with SQLite.
 - Stores the user's OpenRouter token with Expo SecureStore.
 - Copies results to the system clipboard without embedding a shared service credential.
 
