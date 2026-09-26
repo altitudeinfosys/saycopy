@@ -3,8 +3,8 @@
   if (!demo) return;
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-  const sub = document.querySelector("#demo-sub");
-  const chip = document.querySelector("#demo-chip");
+  const title = document.querySelector("#demo-title");
+  const input = document.querySelector("#demo-input");
   const statusText = document.querySelector("#demo-status-text");
   const label = document.querySelector("#demo-label");
   const text = document.querySelector("#demo-text");
@@ -12,18 +12,18 @@
 
   const scenarios = [
     {
-      mode: "transcribe",
-      sub: "Transcribe",
-      chip: "Light cleanup on",
+      mode: "record",
+      title: "Record",
       working: "Cleaning up…",
       label: "Result",
       text: "Running ten minutes late. Start without me and I'll catch up on the notes.",
     },
     {
       mode: "translate",
-      sub: "English → Spanish",
-      chip: "Translate",
+      title: "Translate",
+      listening: "Listening…",
       working: "Translating…",
+      input: "I'm running ten minutes late. Start without me and I'll catch up on the notes.",
       label: "Spanish",
       text: "Llego diez minutos tarde. Empiecen sin mí y me pongo al día con las notas.",
     },
@@ -42,8 +42,8 @@
 
   async function play(scenario) {
     demo.dataset.mode = scenario.mode;
-    sub.textContent = scenario.sub;
-    chip.textContent = scenario.chip;
+    title.textContent = scenario.title;
+    input.textContent = "";
     label.textContent = scenario.label;
     copy.textContent = "Copy";
     text.textContent = "";
@@ -54,10 +54,12 @@
 
     demo.dataset.state = "recording";
     for (let second = 0; second <= 4; second += 1) {
-      statusText.textContent = `Recording 0:0${second}`;
+      statusText.textContent =
+        scenario.mode === "record" ? `Recording 0:0${second}` : scenario.listening;
       await wait(620);
     }
 
+    if (scenario.input) input.textContent = scenario.input;
     demo.dataset.state = "processing";
     statusText.textContent = scenario.working;
     await wait(1300);
