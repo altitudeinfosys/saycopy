@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SayCopy preview review and Google Play plan</title>
+  <style>
+    :root { color-scheme: light; font: 16px/1.55 system-ui, sans-serif; background: #f4f7fb; color: #172235; }
+    body { margin: 0; }
+    main { box-sizing: border-box; max-width: 920px; margin: 2rem auto; padding: 2rem; background: white; border-radius: 1rem; box-shadow: 0 8px 30px #14233d12; }
+    h1, h2 { line-height: 1.2; }
+    h1 { margin-top: 0; }
+    h2 { margin-top: 2rem; border-top: 1px solid #dce4ef; padding-top: 1.5rem; }
+    a { color: #174ea6; }
+    a:focus-visible { outline: 3px solid #ff9f1c; outline-offset: 3px; }
+    .meta { color: #54627a; }
+    .callout { border-left: 4px solid #2563eb; padding: .7rem 1rem; background: #eef5ff; }
+    li { margin: .55rem 0; }
+    code { overflow-wrap: anywhere; }
+    @media (max-width: 620px) { main { margin: 0; padding: 1.25rem; border-radius: 0; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>SayCopy preview review and Google Play plan</h1>
+  <p class="meta">Prepared September 25, 2026 · app baseline <code>6d35a14</code> · version 1.1.1</p>
+  <p class="callout">The iOS internal preview was requested from EAS using the <code>preview</code> profile and this exact clean commit. Installation and device checks remain to be done after the build completes. No store submission is part of this preview.</p>
+
+  <h2>Review of the recent changes</h2>
+  <ul>
+    <li>The history repository now filters and sorts in SQLite instead of loading every table and filtering in JavaScript. This should help as history grows.</li>
+    <li>Audio uses 16 kHz mono at 32 kbps, reducing upload size; the new three-minute limit and 90-second transcription timeout need a real-device test with a long recording and weak network.</li>
+    <li>Transient OpenRouter errors retry after short delays. A dropped connection after the provider accepts a request may cause a second request and possible duplicate model charges. Consider showing retry progress and checking whether request identifiers or provider behavior can make repeats safer.</li>
+    <li>The new Translate tab adds speech input, read-aloud, saved translations, and language selection. Its saved-items loader currently fetches the entire history before showing the latest 20 translations; a database-level filtered, limited query would scale better.</li>
+    <li>Typecheck, lint, Expo Doctor, and the app's 263 tests passed. The default Jest command also scanned a nested Claude worktree; this review branch excludes nested worktrees.</li>
+  </ul>
+
+  <h2>iOS preview acceptance</h2>
+  <ol>
+    <li>Confirm the EAS build succeeds, note its build ID and install link, and verify the archive records commit <code>6d35a14</code> and internal distribution.</li>
+    <li>Install on the provisioned iPhone. Test microphone permission, a short and a three-minute recording, transcription and Light cleanup, typed and spoken translation, read-aloud, history and tags, relaunch persistence, and clipboard/share.</li>
+    <li>Test missing API key, invalid key, offline use, and interrupted uploads. Record any user-visible wording or timing issues before choosing a release candidate.</li>
+  </ol>
+
+  <h2>Google Play path</h2>
+  <ol>
+    <li>After iOS feedback is addressed, build an Android internal preview APK from the chosen release candidate and test on an Android phone, including microphone behavior, back navigation, keyboard, clipboard/share, and upgrade from the installed Play version if one exists.</li>
+    <li>Check the current Play Console app and track state, listing assets, policy forms, Data safety, content rating, target audience, app access, and reviewer credentials. The <a href="../google-play/saycopy-google-play-release.html">July release record</a> is a starting point but its version and open items must be refreshed against the Console.</li>
+    <li>Build a signed production Android App Bundle with a new version code. Verify package <code>com.altitudeinfosys.saycopy</code>, version, permissions, signing, and target API level. Google currently requires API level 36 for new phone apps and updates submitted after August 31, 2026.</li>
+    <li>Upload the AAB to an internal testing release, install the Play-delivered build, repeat the acceptance tests, and resolve Console warnings.</li>
+    <li>Prepare the production release and rollout choice, then review the exact AAB, listing, declarations, and release notes before sending it for review.</li>
+  </ol>
+  <p>References: <a href="https://support.google.com/googleplay/android-developer/answer/11926878?hl=en-gb">Google Play target API requirements</a> and <a href="https://support.google.com/googleplay/android-developer/answer/9859348?hl=en">release and testing tracks</a>.</p>
+</main>
+</body>
+</html>
