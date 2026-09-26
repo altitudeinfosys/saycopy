@@ -42,17 +42,74 @@
     <main>
       <header>
         <h1>SayCopy Google Play release record</h1>
-        <p class="lede">Version 1.1.0 · Altitude Information Systems LLC · updated July 18, 2026</p>
+        <p class="lede">Version 1.2.0 · Altitude Information Systems LLC · updated September 26, 2026</p>
         <p class="note warning">
-          This record separates verified app behavior from account-side decisions. Do not create the
-          Play app, build the production Android artifact, or upload anything until the permanent
-          Android application ID is explicitly confirmed. Do not send the production release for
-          review without a separate final confirmation.
+          This record separates verified app behavior from account-side decisions. The Play app and
+          package ID already exist. Do not send the production release for review without a
+          separate final confirmation from the owner.
         </p>
       </header>
 
       <section>
+        <h2>1.2.0 submission checklist</h2>
+        <p>
+          Version 1.2.0 supersedes the 1.1.0 plan below. It adds the Translate tab (typed or spoken
+          input, From/To swap, Copy, Listen, Save with tags), 11 languages plus Auto-detect,
+          3-minute recordings, and network retries. Work the steps in order. <strong>Owner</strong>
+          steps need Play Console, Expo, a device, or credentials; <strong>Claude</strong> steps can
+          be done from the repository.
+        </p>
+        <table>
+          <thead><tr><th>#</th><th>Step</th><th>Owner</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Bump <code>app.json</code>, <code>package.json</code>, and the lockfile to <code>1.2.0</code>; refresh this record, the Play listing copy, and the README.</td><td>Claude</td><td><span class="status pass">This PR</span></td></tr>
+            <tr><td>2</td><td>Build an internal preview APK from the latest <code>main</code>: <code>npx eas-cli build --platform android --profile preview</code>. Install it on a physical arm64 phone.</td><td>Owner</td><td><span class="status pending">To do</span></td></tr>
+            <tr><td>3</td><td>Run the <a href="#test-matrix">production test matrix</a> on that phone, including the new 1.2.0 rows. Report any failure so it can be fixed before the production build (step 6).</td><td>Owner (Claude fixes)</td><td><span class="status pending">To do</span></td></tr>
+            <tr><td>4</td><td>Capture four 1080×1920 phone screenshots from the preview build: Record with a result, Translate with a result, Saved translations or History, and Settings (no key visible). Reuse them for the website and the App Store 1.2.0 update.</td><td>Owner</td><td><span class="status pending">To do</span></td></tr>
+            <tr><td>5</td><td>Decide the <a href="#tablets">tablet question</a> before uploading screenshots.</td><td>Owner</td><td><span class="status blocked">Decision needed</span></td></tr>
+            <tr><td>6</td><td>Build the production AAB: <code>npx eas-cli build --platform android --profile production</code>. Record the version code EAS assigns and the artifact checksum here.</td><td>Owner</td><td><span class="status pending">To do</span></td></tr>
+            <tr><td>7</td><td>In Play Console, enroll in Play App Signing and upload the AAB to <strong>Internal testing</strong>. Install the Play-delivered build and repeat a short smoke test.</td><td>Owner</td><td><span class="status pending">To do</span></td></tr>
+            <tr><td>8</td><td>Update the store listing with the <a href="#listing">1.2.0 copy</a>, icon, feature graphic, and screenshots.</td><td>Owner</td><td><span class="status pending">To do</span></td></tr>
+            <tr><td>9</td><td>Finish App content: authorize IARC and complete Content rating, Target audience, App access (reviewer key), and finalize Data safety using the <a href="#policy">working answers</a>.</td><td>Owner</td><td><span class="status pending">To do</span></td></tr>
+            <tr><td>10</td><td>Create a fresh, low-limit OpenRouter key for Google's reviewer and paste it only into the App access form. Never share it in chat or in the repository.</td><td>Owner</td><td><span class="status pending">To do</span></td></tr>
+            <tr><td>11</td><td>Set pricing (free) and countries, resolve every Console error and warning, and select the AAB in a production release.</td><td>Owner</td><td><span class="status pending">To do</span></td></tr>
+            <tr><td>12</td><td>Final preflight, then <strong>Send for review</strong>. Only after explicit owner confirmation.</td><td>Owner</td><td><span class="status blocked">Confirmation required</span></td></tr>
+            <tr><td>13</td><td>After approval: swap the website's "Android · Coming soon" pill for the Play link and replace the website app screenshots with the new captures.</td><td>Claude</td><td><span class="status pending">After approval</span></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="tablets">
+        <h2>Tablet decision</h2>
+        <p>
+          SayCopy's UI is a portrait phone layout and has never been tested on a tablet. Earlier Console
+          checks showed 7-inch and 10-inch tablet screenshot groups as required. Pick one option before
+          step 8.
+        </p>
+        <div class="grid">
+          <div class="card">
+            <h3>Option A: phones only for 1.2.0 (recommended)</h3>
+            <p>
+              Exclude tablets in Play Console's <strong>Device catalog</strong>, upload phone
+              screenshots only, and keep "tablets are not supported" in the listing distribution notes.
+              Fastest path; no unverified tablet claims. Revisit tablets in a later release.
+            </p>
+            <p class="small">Check first: confirm in Console that excluding tablets removes the tablet screenshot requirement.</p>
+          </div>
+          <div class="card">
+            <h3>Option B: support tablets now</h3>
+            <p>
+              Test the preview build on 7-inch and 10-inch emulators or devices (layout, keyboard,
+              rotation lock, tab bar), fix anything that stretches badly, then capture real tablet
+              screenshots. Adds a test-and-fix round before submission.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section>
         <h2>Release gate</h2>
+        <p class="small">Recorded for 1.1.0 in July 2026. Rows marked superseded are replaced by the 1.2.0 checklist above.</p>
         <table>
           <thead><tr><th>Gate</th><th>Status</th><th>Evidence or next action</th></tr></thead>
           <tbody>
@@ -60,8 +117,8 @@
             <tr><td>Permanent Android application ID</td><td><span class="status pass">Confirmed</span></td><td><code>com.altitudeinfosys.saycopy</code> was explicitly confirmed on July 16, 2026 before the first Play app or artifact upload. The iOS bundle ID remains unchanged.</td></tr>
             <tr><td>Play Console organization access</td><td><span class="status pass">Verified</span></td><td>Authenticated account is the existing Altitude Information Systems LLC organization account. Organization details, D-U-N-S-backed identity data, and a verified organization website are present. The Console exposes Android package registration and already shows two registered packages.</td></tr>
             <tr><td>Play Console app</td><td><span class="status pass">Created</span></td><td>SayCopy was created in the Altitude Information Systems LLC Play Console account on July 16, 2026 with package <code>com.altitudeinfosys.saycopy</code>, type App, and free pricing. Google confirmed the package name was available before creation.</td></tr>
-            <tr><td>Production Android App Bundle</td><td><span class="status pending">Build required</span></td><td>The earlier version <code>1.0.0</code> artifact is superseded and must not be uploaded. Build and verify a new EAS production AAB for release <code>1.1.0</code> with the confirmed package ID and current SDK 57 patch level.</td></tr>
-            <tr><td>Physical Android device</td><td><span class="status pending">Unavailable</span></td><td>No physical device was connected during the audit. Complete a release smoke test on at least one real arm64 phone before production submission if one becomes available.</td></tr>
+            <tr><td>Production Android App Bundle</td><td><span class="status pending">Build required</span></td><td>Superseded: the <code>1.0.0</code> and planned <code>1.1.0</code> artifacts must not be uploaded. Build the <code>1.2.0</code> AAB (checklist step 6).</td></tr>
+            <tr><td>Physical Android device</td><td><span class="status pending">To do</span></td><td>No physical device was connected during the July audit. Test the 1.2.0 preview APK on a real arm64 phone (checklist steps 2–3).</td></tr>
             <tr><td>Final production submission</td><td><span class="status blocked">Action confirmation required</span></td><td>Present a final preflight after every Play form and the selected AAB are complete, then obtain explicit confirmation immediately before sending for Google review.</td></tr>
           </tbody>
         </table>
@@ -72,33 +129,39 @@
         <table>
           <thead><tr><th>Area</th><th>Verified result</th><th>Status</th></tr></thead>
           <tbody>
-            <tr><td>Product/version</td><td>Expo name <strong>SayCopy</strong>, release version <code>1.1.0</code>. EAS manages Android version code and iOS build number remotely with production auto-increment enabled.</td><td><span class="status pass">Ready</span></td></tr>
+            <tr><td>Product/version</td><td>Expo name <strong>SayCopy</strong>, release version <code>1.2.0</code>. EAS manages Android version code and iOS build number remotely with production auto-increment enabled.</td><td><span class="status pass">Ready</span></td></tr>
             <tr><td>SDK levels</td><td>Expo SDK 57 / React Native 0.86 generate Android min SDK 24, target SDK 36, and compile SDK 36. This meets the Google Play requirement for new apps effective August 31, 2026.</td><td><span class="status pass">Ready</span></td></tr>
             <tr><td>64-bit/device compatibility</td><td>The branch's local release APK contains <code>arm64-v8a</code>, <code>armeabi-v7a</code>, <code>x86</code>, and <code>x86_64</code>. The production AAB will let Play deliver ABI-specific splits. Portrait phone UI is supported; tablets are not being claimed for launch.</td><td><span class="status pass">Ready</span></td></tr>
             <tr><td>Signing</td><td>EAS created and securely stores the Android upload keystore for the production build. At first Play upload, enroll in Play App Signing so Google holds the app-signing key while the EAS key remains the upload key. Preserve both credential records.</td><td><span class="status pending">AAB upload step</span></td></tr>
             <tr><td>Permissions</td><td>Required production permissions are <code>INTERNET</code>, <code>RECORD_AUDIO</code>, and <code>MODIFY_AUDIO_SETTINGS</code>. Background service, storage, overlay, vibration, wake-lock, network-state, and biometric permissions are explicitly blocked because the app does not use those capabilities.</td><td><span class="status pass">Hardened</span></td></tr>
+            <tr><td>Text-to-speech (1.2.0)</td><td>Listen uses <code>expo-speech</code> with the phone's own text-to-speech engine; the app sends no audio or text anywhere for it. The library's manifest adds only a <code>&lt;queries&gt;</code> entry for <code>android.intent.action.TTS_SERVICE</code> (required on API 30+) and no permissions. When no voice exists for the target language the app shows a clear message.</td><td><span class="status pending">Verify on device</span></td></tr>
             <tr><td>Microphone disclosure</td><td>The Android runtime prompt names SayCopy and explains transcription/translation. Recording starts only after user action. Denial produces the in-app error “Microphone permission is required to record.”</td><td><span class="status pass">Verified</span></td></tr>
             <tr><td>Network security</td><td>Production requests use <code>https://openrouter.ai</code>. No cleartext endpoint or custom trust override was found. The app sends only user-requested processing traffic and does not contain a shared provider key.</td><td><span class="status pass">Ready</span></td></tr>
-            <tr><td>Local data</td><td>Settings and history use SQLite; the user API key uses Expo SecureStore. Android app-data backup is disabled. Temporary recordings are deleted after processing on a best-effort basis.</td><td><span class="status pass">Aligned</span></td></tr>
+            <tr><td>Local data</td><td>Settings, history, and saved translations (1.2.0) use SQLite; translations are stored only when the user taps Save; the user API key uses Expo SecureStore. Android app-data backup is disabled. Temporary recordings are deleted after processing on a best-effort basis.</td><td><span class="status pass">Aligned</span></td></tr>
             <tr><td>OpenRouter routing</td><td>Requests set zero-data-retention routing. The app and policy do not promise that OpenRouter or every model provider retains nothing; handling remains subject to the user's OpenRouter settings and provider policies.</td><td><span class="status pass">Aligned</span></td></tr>
-            <tr><td>Android navigation</td><td>Hardware back now returns History detail to History and returns History/Settings tabs to Record before exiting from the root screen.</td><td><span class="status pass">Fixed/tested</span></td></tr>
-            <tr><td>Release-mode build</td><td>A local release APK built successfully with Node 20.19.4. Its manifest reports label <strong>SayCopy</strong>, version <code>1.0.0</code> / code <code>1</code>, min SDK 24, target/compile SDK 36, backup disabled, no service, and only Internet, microphone, audio-settings, plus the Android dynamic-receiver signature permission. SHA-256: <code>0a4282b5ce1194ef0981b3679085fdb6c781970529639329d9e3767a2354ff8d</code>. It is debug-signed for local testing and must never be uploaded.</td><td><span class="status pass">Verified</span></td></tr>
-            <tr><td>Automated validation</td><td>Current branch: 30 suites / 233 tests passed, TypeScript passed, lint passed, and Expo Doctor reported 20/20 checks after updating the required Expo SDK 57 patches.</td><td><span class="status pass">Ready</span></td></tr>
+            <tr><td>Android navigation</td><td>Hardware back returns History detail to History and returns other tabs to Record before exiting from the root screen. 1.2.0 adds a fourth tab (Translate); re-verify back behavior from it.</td><td><span class="status pass">Fixed/tested</span></td></tr>
+            <tr><td>Release-mode build</td><td>Historical (July): a local release APK built successfully with Node 20.19.4. Its manifest reports label <strong>SayCopy</strong>, version <code>1.0.0</code> / code <code>1</code>, min SDK 24, target/compile SDK 36, backup disabled, no service, and only Internet, microphone, audio-settings, plus the Android dynamic-receiver signature permission. SHA-256: <code>0a4282b5ce1194ef0981b3679085fdb6c781970529639329d9e3767a2354ff8d</code>. It is debug-signed for local testing and must never be uploaded.</td><td><span class="status pass">Verified</span></td></tr>
+            <tr><td>Automated validation</td><td>1.2.0: GitHub CI (<code>quality</code>: tests, typecheck, lint, Expo Doctor) passes on <code>main</code>. July 1.1.0 audit: 30 suites / 233 tests passed, TypeScript passed, lint passed, and Expo Doctor reported 20/20 checks after updating the required Expo SDK 57 patches.</td><td><span class="status pass">Ready</span></td></tr>
             <tr><td>Toolchain parity</td><td>Final local release checks ran with Node 24.14.0, which satisfies the repository and React Native engine requirements. EAS production builds use a compatible managed build image.</td><td><span class="status pass">Ready</span></td></tr>
           </tbody>
         </table>
       </section>
 
-      <section>
+      <section id="test-matrix">
         <h2>Production test matrix</h2>
         <table>
           <thead><tr><th>Scenario</th><th>Result</th><th>Remaining</th></tr></thead>
           <tbody>
+            <tr><td>Translate tab (1.2.0)</td><td>Not yet tested on Android.</td><td>Type and speak input in several pairs (for example English→Spanish, Arabic→English, Japanese→English), From/To swap (disabled on Auto-detect), Clear, Cancel while listening, microphone permission from this tab.</td></tr>
+            <tr><td>Listen (1.2.0)</td><td>Not yet tested on Android.</td><td>Play a translation with a voice installed; try a language with no installed voice (for example Hindi or Korean on a phone without it) and confirm the clear message; stop playback by leaving the tab.</td></tr>
+            <tr><td>Save and tags (1.2.0)</td><td>Not yet tested on Android.</td><td>Nothing is stored until Save; saved items can be tagged, filtered by tag, reopened, and replayed; items survive force-stop and relaunch.</td></tr>
+            <tr><td>3-minute recording (1.2.0)</td><td>Not yet tested on Android.</td><td>Recording stops automatically at 3:00 and the audio is processed; a long recording uploads and returns within the timeout on mobile data.</td></tr>
+            <tr><td>Network retries (1.2.0)</td><td>Covered by automated tests.</td><td>Toggle airplane mode mid-request: brief drops retry; an invalid key or no credit fails immediately with a clear error.</td></tr>
             <tr><td>API 36.1 emulator launch</td><td>Installed and launched on a 1080×2400 Play-enabled ARM64 emulator.</td><td>Repeat with the new package and final signed release build.</td></tr>
             <tr><td>Microphone permission</td><td>Denial and grant paths verified; recording elapsed state and stop controls appeared.</td><td>Repeat after permission hardening.</td></tr>
             <tr><td>Missing provider key</td><td>Stopping a recording without a saved key produced “OpenRouter API token is required.”</td><td>None.</td></tr>
             <tr><td>Secure settings input</td><td>Token field is masked, saved through Expo SecureStore, and remains saved after force-stop/relaunch. Keyboard opens and Android back hides it without losing the bottom navigation.</td><td>Repeat on the final package because a package-ID change creates separate app storage.</td></tr>
-            <tr><td>Transcription and translation</td><td>A live manual translation request completed through OpenRouter and returned a result.</td><td>Test short microphone audio, model/provider error, timeout, and retry.</td></tr>
+            <tr><td>Transcription (Record)</td><td>A live manual translation request completed through OpenRouter and returned a result.</td><td>Test short microphone audio, model/provider error, timeout, and retry.</td></tr>
             <tr><td>History, edit, copy, share</td><td>The live translation saved to local history; History list/detail, Copy, and the Android system share chooser opened successfully. Automated repository/UI tests also pass.</td><td>Verify an edited item and clipboard contents in the final package.</td></tr>
             <tr><td>Offline/network handling</td><td>Missing-key failure verified.</td><td>Disable emulator networking during a request and verify a clear, recoverable error.</td></tr>
             <tr><td>Back navigation</td><td>Covered by new automated tests.</td><td>Verify in the final build using gesture navigation and three-button navigation.</td></tr>
@@ -108,28 +171,31 @@
         </table>
       </section>
 
-      <section>
-        <h2>Google Play listing copy</h2>
+      <section id="listing">
+        <h2>Google Play listing copy (1.2.0)</h2>
         <h3>App name (7/30)</h3>
         <div class="copy">SayCopy</div>
-        <h3>Short description (70/80)</h3>
-        <div class="copy">Transcribe and translate voice notes with your own OpenRouter API key.</div>
+        <h3>Short description (78/80)</h3>
+        <div class="copy">Speak or type, then transcribe or translate in 11 languages with your own key.</div>
         <h3>Full description</h3>
-        <div class="copy">SayCopy turns short voice recordings into text you can edit, copy, share, and keep in a local history.
+        <div class="copy">SayCopy turns your voice into clean text you can copy, share, and keep — or into a translation you can read aloud.
 
-Record naturally, transcribe speech, or translate text into your chosen language. Optional light cleanup makes the result easier to reuse while preserving what you meant.
+Record up to three minutes and get a transcript back in seconds. Optional Light cleanup fixes punctuation, capitalization, and filler without changing what you meant or the language you spoke.
+
+On the Translate tab, type or speak in one language and get the text in another. Choose from English, Spanish, Arabic, French, German, Italian, Portuguese, Chinese, Japanese, Korean, and Hindi, or let Auto-detect figure out what you spoke. Listen to the result with your phone's own voices, and save the translations you want to keep.
 
 You bring your own OpenRouter API key and choose from the models available in SayCopy. The app is free, but selected models may charge usage to your OpenRouter account.
 
 Designed for a clear, focused workflow:
-• Record, pause, resume, cancel, or finish when you are ready
-• Transcribe speech or translate recorded and typed text
+• Record, stop, or cancel whenever you are ready
+• Transcribe speech with optional Light cleanup
+• Translate typed or spoken text between 11 languages
+• Listen to translations with on-device voices
 • Copy results or open the Android share sheet
-• Save, search, edit, tag, and delete history on your device
-• Keep preferences and history in local app storage
+• Keep transcripts and saved translations in History on your device, where you can search, edit, tag, and delete them
 • Store your OpenRouter key in secure device storage
 
-SayCopy has no SayCopy account, subscription, advertising, cross-app tracking, or analytics SDK. Audio and text leave your device only when you request processing. Those requests are sent to OpenRouter and eligible model providers under their policies and your OpenRouter account settings.</div>
+SayCopy has no SayCopy account, subscription, advertising, cross-app tracking, or analytics SDK. Audio and text leave your device only when you request processing. Those requests are sent to OpenRouter and eligible model providers under their policies and your OpenRouter account settings. Read-aloud runs on your phone.</div>
         <div class="grid">
           <div class="card"><h3>Classification</h3><p>Category: <strong>Productivity</strong></p><p>Candidate tags: voice recorder, speech to text, transcription, translation, notes. Select only tags offered by Play Console.</p></div>
           <div class="card"><h3>URLs and contact</h3><p>Website: <a href="https://saycopy.app/">saycopy.app</a><br />Support: <a href="https://saycopy.app/support">saycopy.app/support</a><br />Privacy: <a href="https://saycopy.app/privacy">saycopy.app/privacy</a><br />Setup: <a href="https://saycopy.app/setup">saycopy.app/setup</a><br />Email: <code>tarek@altitudeinfosys.com</code></p></div>
@@ -137,8 +203,9 @@ SayCopy has no SayCopy account, subscription, advertising, cross-app tracking, o
         </div>
       </section>
 
-      <section>
+      <section id="policy">
         <h2>Policy and declaration working answers</h2>
+        <p class="small">1.2.0 adds no new data types, destinations, or permissions: Translate uses the same OpenRouter processing, saved translations stay in the local database, and Listen runs on the device's text-to-speech engine. The answers below still apply.</p>
         <table>
           <thead><tr><th>Play form</th><th>Working answer</th><th>Rationale / evidence</th></tr></thead>
           <tbody>
@@ -152,7 +219,7 @@ SayCopy has no SayCopy account, subscription, advertising, cross-app tracking, o
             <tr><td>Health features</td><td>No</td><td>No medical, health, fitness, research, or clinical functionality.</td></tr>
             <tr><td>Account creation</td><td>No</td><td>SayCopy has no account system. OpenRouter is a separate service chosen by the user.</td></tr>
             <tr><td>Data encryption</td><td>Yes, in transit</td><td>Processing endpoints are HTTPS. Local API-key storage is platform secure storage.</td></tr>
-            <tr><td>Data deletion</td><td>No SayCopy account; local controls are provided</td><td>Users can delete individual history, clear the saved key, or remove the app. External request/account data is managed in the user's OpenRouter account. Follow the exact Console branch for apps without accounts.</td></tr>
+            <tr><td>Data deletion</td><td>No SayCopy account; local controls are provided</td><td>Users can delete individual history items and saved translations, clear the saved key, or remove the app. External request/account data is managed in the user's OpenRouter account. Follow the exact Console branch for apps without accounts.</td></tr>
             <tr><td>Generative AI</td><td>Limited-scope productivity processing</td><td>Transcription, cleanup, and translation support a private user workflow; the app does not publish an open-ended social AI feed. Reconfirm the policy prompt wording in Console.</td></tr>
           </tbody>
         </table>
@@ -163,7 +230,7 @@ SayCopy has no SayCopy account, subscription, advertising, cross-app tracking, o
           <tbody>
             <tr><td>User IDs (OpenRouter API credential)</td><td>Yes</td><td>No, under user-initiated processing/service-provider exceptions</td><td>Required for remote processing</td><td>App functionality and provider authentication</td><td>Encrypted in transit; stored locally in secure device storage; sent only to OpenRouter.</td></tr>
             <tr><td>Audio files / voice recordings</td><td>Yes</td><td>No, under user-initiated processing/service-provider exceptions</td><td>Optional</td><td>App functionality</td><td>Sent only after the user requests transcription/translation. Local temporary file deletion is best-effort. Do not claim ephemeral handling because external retention depends on OpenRouter settings and provider eligibility.</td></tr>
-            <tr><td>Other user-generated content (typed or transcribed text)</td><td>Yes</td><td>No, under user-initiated processing/service-provider exceptions</td><td>Optional</td><td>App functionality</td><td>Sent when the user requests cleanup/translation. Saved results remain local unless deleted.</td></tr>
+            <tr><td>Other user-generated content (typed or transcribed text)</td><td>Yes</td><td>No, under user-initiated processing/service-provider exceptions</td><td>Optional</td><td>App functionality</td><td>Sent when the user requests cleanup/translation. Saved results remain local unless deleted. Read-aloud text goes to the on-device text-to-speech engine, not to a network service.</td></tr>
             <tr><td>App preferences and local history</td><td>No</td><td>No</td><td>Not applicable</td><td>Stored only in the local database</td><td>Android app-data backup disabled; no SayCopy sync or backend.</td></tr>
           </tbody>
         </table>
@@ -178,9 +245,10 @@ SayCopy has no SayCopy account, subscription, advertising, cross-app tracking, o
 2. Paste the temporary review key in “OpenRouter token.”
 3. Tap “Save token.”
 4. Return to Record.
-5. Tap the microphone, allow microphone permission, speak a short phrase, and stop.
+5. Tap Rec, allow microphone permission, speak a short phrase, and tap Stop.
 6. The transcription appears and can be copied, shared, or opened from History.
-7. To test translation, choose Translate, select source/target languages, and record or type a short phrase.
+7. To test translation, open the Translate tab, choose From and To languages, type or tap Speak to say a short phrase, then tap Translate.
+8. The translation can be copied, played with Listen, or saved to Saved translations.
 
 The review key is limited and may be revoked after review. If it does not work, contact tarek@altitudeinfosys.com. Do not publish this key in the store listing.</div>
       </section>
@@ -192,14 +260,15 @@ The review key is limited and may be revoked after review. If it does not work, 
           <tbody>
             <tr><td>Play icon</td><td>512×512, 32-bit PNG, alpha permitted, at most 1 MB. The approved SayCopy icon is preserved exactly at <code>assets/saycopy-play-icon-512.png</code>.</td><td><span class="status pass">Ready</span></td></tr>
             <tr><td>Feature graphic</td><td>1024×500, 8-bit RGB PNG without alpha at <code>assets/saycopy-feature-graphic-1024x500.png</code>. It uses the approved mark, brand colors, and edge-safe copy.</td><td><span class="status pass">Ready</span></td></tr>
-            <tr><td>Phone screenshots</td><td>At least two; target four polished 1080×1920 portrait PNG/JPEG screenshots: Record, processed result, History, and Settings/translation. No secret key may be visible.</td><td><span class="status pending">Final build needed</span></td></tr>
-            <tr><td>Tablet screenshots</td><td>Play Console currently marks 7-inch and 10-inch tablet screenshot groups as required. Upload only after the final package is tested on representative tablet sizes; do not reuse stretched phone screenshots.</td><td><span class="status pending">Final build and tablet test needed</span></td></tr>
+            <tr><td>Phone screenshots</td><td>At least two; target four 1080×1920 portrait PNG/JPEG screenshots from the 1.2.0 build: Record with a result, Translate with a result, Saved translations or History, and Settings. No secret key may be visible.</td><td><span class="status pending">1.2.0 build needed</span></td></tr>
+            <tr><td>Tablet screenshots</td><td>Depends on the <a href="#tablets">tablet decision</a>. Option A: none. Option B: real 7-inch and 10-inch captures after tablet testing; never stretched phone screenshots.</td><td><span class="status blocked">Decision needed</span></td></tr>
           </tbody>
         </table>
       </section>
 
       <section>
-        <h2>Account and rollout checklist</h2>
+        <h2>Account and rollout checklist (July, 1.1.0)</h2>
+        <p class="small">Items marked complete are still valid in Play Console. Remaining items are carried into the 1.2.0 checklist above.</p>
         <ol>
           <li><strong>Complete:</strong> permanent Android application ID confirmed as <code>com.altitudeinfosys.saycopy</code>.</li>
           <li><strong>Complete:</strong> Play Console login confirms an existing organization account with D-U-N-S-backed identity details, a verified organization website, and Android package-name registration enabled.</li>
@@ -207,7 +276,7 @@ The review key is limited and may be revoked after review. If it does not work, 
           <li><strong>Complete:</strong> privacy URL, no-ads, non-government, no-financial-features, no-health-features, and no-advertising-ID declarations saved.</li>
           <li><strong>Complete:</strong> Productivity category, Audio recorder / Notebook / Productivity tags, public support email and website, and listing descriptions saved. Icon, feature graphic, and final screenshots remain to upload.</li>
           <li><strong>Draft complete:</strong> Data safety declares encrypted-in-transit collection of User IDs, voice or sound recordings, and other user-generated content for app functionality; no data sharing and no SayCopy account. The form cannot be finalized until Target audience is complete.</li>
-          <li><strong>In progress:</strong> build the superseding EAS production AAB for version <code>1.1.0</code>; verify package/version/SDK/signature/permissions and archive its checksum when complete.</li>
+          <li><strong>Superseded:</strong> the planned <code>1.1.0</code> AAB was never uploaded. Build <code>1.2.0</code> instead (checklist step 6).</li>
           <li><strong>Owner action required:</strong> authorize the IARC Terms of Service before starting the content-rating questionnaire.</li>
           <li><strong>Credential required:</strong> create a fresh, low-limit OpenRouter reviewer key, copy it locally, and explicitly authorize transmitting it to Google Play. Never reuse a key exposed in chat.</li>
           <li>Enroll in Play App Signing and upload the AAB to internal testing first.</li>
