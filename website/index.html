@@ -88,18 +88,19 @@
         </div>
 
         <div class="hero-visual">
-          <div class="phone" role="img" aria-label="SayCopy turning a short voice recording into clean text, then copying it">
-            <div class="phone-screen demo" id="demo" data-state="result" data-mode="transcribe" aria-hidden="true">
+          <div class="phone" role="img" aria-label="SayCopy turning a short voice recording into clean text, then translating a spoken phrase from English to Spanish">
+            <div class="phone-screen demo" id="demo" data-state="result" data-mode="record" aria-hidden="true">
               <div class="demo-top">
                 <div>
-                  <strong>Record</strong>
-                  <span class="demo-sub" id="demo-sub">Transcribe</span>
+                  <strong id="demo-title">Record</strong>
+                  <span class="demo-sub">Transcribe</span>
                 </div>
-                <span class="demo-chip" id="demo-chip">Light cleanup on</span>
+                <span class="demo-chip">Light cleanup on</span>
               </div>
-              <div class="demo-tabs">
-                <span class="demo-tab" data-tab="transcribe">Transcribe</span>
-                <span class="demo-tab" data-tab="translate">Translate</span>
+              <div class="demo-langbar">
+                <span><small>From</small>English</span>
+                <b>⇄</b>
+                <span><small>To</small>Spanish</span>
               </div>
               <div class="demo-panel">
                 <div class="demo-status">
@@ -110,6 +111,7 @@
                   <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
                 </div>
                 <div class="demo-rec"><span>Rec</span></div>
+                <p class="demo-input" id="demo-input"></p>
               </div>
               <div class="demo-result">
                 <p class="demo-label" id="demo-label">Result</p>
@@ -118,8 +120,16 @@
                 </p>
                 <div class="demo-actions">
                   <span class="demo-copy" id="demo-copy">Copy</span>
-                  <span class="demo-share">Share</span>
+                  <span class="demo-only-record">Share</span>
+                  <span class="demo-only-translate">🔊 Listen</span>
+                  <span class="demo-only-translate">Save</span>
                 </div>
+              </div>
+              <div class="demo-tabbar">
+                <span data-tab="record">Record</span>
+                <span data-tab="translate">Translate</span>
+                <span>History</span>
+                <span>Settings</span>
               </div>
             </div>
           </div>
@@ -256,7 +266,7 @@
         </div>
         <div class="screens">
           <figure class="screen">
-            <img src="/assets/screen-record.webp" alt="SayCopy Record screen with Transcribe and Translate tabs, the recording language, and a large record button" width="600" height="1304" loading="lazy" />
+            <img src="/assets/screen-record.webp" alt="SayCopy Record screen with the recording language and a large record button" width="600" height="1304" loading="lazy" />
             <figcaption>Record</figcaption>
           </figure>
           <figure class="screen screen-center">
