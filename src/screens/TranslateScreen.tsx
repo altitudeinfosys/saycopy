@@ -1,6 +1,9 @@
+import * as Clipboard from 'expo-clipboard';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   ActivityIndicator,
+  Keyboard,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -129,6 +132,7 @@ function TranslateScreenContent({
   const [savedTags, setSavedTags] = useState<Tag[]>([]);
   const [savedItems, setSavedItems] = useState<TranslateHistoryItem[]>([]);
   const [selectedTag, setSelectedTag] = useState<string | undefined>();
+  const [isSavedSheetOpen, setIsSavedSheetOpen] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -466,6 +470,30 @@ function TranslateScreenContent({
     }
   }
 
+  async function handlePaste() {
+    if (isBusy || isRecording || !areSettingsReady) {
+      return;
+    }
+
+    setErrorText('');
+
+    try {
+      const clipboardText = await Clipboard.getStringAsync();
+      if (!clipboardText.trim()) {
+        setErrorText('Clipboard has no text to paste.');
+        return;
+      }
+
+      operationGenerationRef.current += 1;
+      setInputText(clipboardText.trim());
+      setInputSourceType('manual');
+      setInputSttModelId(undefined);
+      clearResult();
+    } catch {
+      setErrorText('Could not paste text from the clipboard.');
+    }
+  }
+
   async function handleSave() {
     if (!translation || savedItem || isSaving) {
       return;
@@ -534,6 +562,7 @@ function TranslateScreenContent({
   }
 
   function handleOpenSavedItem(item: TranslateHistoryItem) {
+    setIsSavedSheetOpen(false);
     operationGenerationRef.current += 1;
     setIsTranslating(false);
     setSourceLanguageId(item.sourceLanguageId);
@@ -568,6 +597,7 @@ function TranslateScreenContent({
       : '';
 
   return (
+    <>
     <ScrollView
       automaticallyAdjustKeyboardInsets
       contentContainerStyle={styles.content}
@@ -575,7 +605,21 @@ function TranslateScreenContent({
       keyboardShouldPersistTaps="handled"
       style={styles.screen}
     >
-      <Text style={styles.screenTitle}>Translate</Text>
+      <View style={styles.titleRow}>
+        <Text style={styles.screenTitle}>Translate</Text>
+        <Pressable
+          accessibilityLabel={`Saved translations, ${savedItems.length} ${savedItems.length === 1 ? 'item' : 'items'}`}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: isSavedSheetOpen }}
+          onPress={() => {
+            Keyboard.dismiss();
+            setIsSavedSheetOpen(true);
+          }}
+          style={styles.savedListButton}
+        >
+          <Text style={styles.savedListButtonText}>Saved ({savedItems.length})</Text>
+        </Pressable>
+      </View>
 
       <View style={styles.languageBar}>
         <LanguagePickerButton
@@ -605,6 +649,19 @@ function TranslateScreenContent({
       </View>
 
       <View style={styles.card}>
+        <View style={styles.inputHeader}>
+          <Text style={styles.inputLabel}>Text to translate</Text>
+          <Pressable
+            accessibilityLabel="Paste text from clipboard"
+            accessibilityRole="button"
+            accessibilityState={{ disabled: isBusy || isRecording || !areSettingsReady }}
+            disabled={isBusy || isRecording || !areSettingsReady}
+            onPress={() => void handlePaste()}
+            style={[styles.pasteButton, (isBusy || isRecording || !areSettingsReady) && styles.disabled]}
+          >
+            <Text style={styles.pasteButtonText}>Paste</Text>
+          </Pressable>
+        </View>
         <TextInput
           accessibilityLabel="Text to translate"
           blurOnSubmit
@@ -760,8 +817,33 @@ function TranslateScreenContent({
         </View>
       ) : null}
 
-      <View style={styles.savedSection}>
-        <Text style={styles.sectionTitle}>Saved translations</Text>
+    </ScrollView>
+    <Modal
+      animationType="slide"
+      onRequestClose={() => setIsSavedSheetOpen(false)}
+      transparent
+      visible={isSavedSheetOpen}
+    >
+      <View style={styles.sheetOverlay}>
+        <Pressable
+          accessible={false}
+          onPress={() => setIsSavedSheetOpen(false)}
+          style={styles.sheetBackdrop}
+        />
+        <View accessibilityViewIsModal style={styles.sheet}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sectionTitle}>Saved translations</Text>
+            <Pressable
+              accessibilityLabel="Close saved translations"
+              accessibilityRole="button"
+              onPress={() => setIsSavedSheetOpen(false)}
+              style={styles.sheetCloseButton}
+            >
+              <Text style={styles.sheetCloseText}>Done</Text>
+            </Pressable>
+          </View>
+          <ScrollView contentContainerStyle={styles.savedSection} keyboardShouldPersistTaps="handled">
         {allTags.length > 0 ? (
           <ScrollView contentContainerStyle={styles.tagRow} horizontal showsHorizontalScrollIndicator={false}>
             <Pressable
@@ -837,8 +919,11 @@ function TranslateScreenContent({
             </View>
           ))
         )}
+          </ScrollView>
+        </View>
       </View>
-    </ScrollView>
+    </Modal>
+    </>
   );
 }
 
@@ -856,6 +941,23 @@ const styles = StyleSheet.create({
     color: '#111827',
     fontSize: 32,
     fontWeight: '800',
+  },
+  titleRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  savedListButton: {
+    backgroundColor: '#E0E7FF',
+    borderRadius: 999,
+    justifyContent: 'center',
+    minHeight: 44,
+    paddingHorizontal: 14,
+  },
+  savedListButtonText: {
+    color: '#1E40AF',
+    fontSize: 14,
+    fontWeight: '700',
   },
   languageBar: {
     alignItems: 'center',
@@ -889,7 +991,27 @@ const styles = StyleSheet.create({
   input: {
     color: '#0F172A',
     fontSize: 18,
-    minHeight: 110,
+    minHeight: 88,
+  },
+  inputHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  inputLabel: {
+    color: '#64748B',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  pasteButton: {
+    justifyContent: 'center',
+    minHeight: 44,
+    paddingHorizontal: 10,
+  },
+  pasteButtonText: {
+    color: '#2563EB',
+    fontSize: 15,
+    fontWeight: '700',
   },
   recordingText: {
     color: '#B91C1C',
@@ -971,6 +1093,51 @@ const styles = StyleSheet.create({
   },
   savedSection: {
     gap: 10,
+    paddingBottom: 32,
+  },
+  sheetOverlay: {
+    backgroundColor: 'rgba(15, 23, 42, 0.38)',
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  sheetBackdrop: {
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  sheet: {
+    backgroundColor: '#F8FAFC',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    gap: 16,
+    maxHeight: '78%',
+    minHeight: 260,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+  },
+  sheetHandle: {
+    alignSelf: 'center',
+    backgroundColor: '#CBD5E1',
+    borderRadius: 3,
+    height: 5,
+    width: 44,
+  },
+  sheetHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  sheetCloseButton: {
+    justifyContent: 'center',
+    minHeight: 44,
+    paddingHorizontal: 8,
+  },
+  sheetCloseText: {
+    color: '#2563EB',
+    fontSize: 16,
+    fontWeight: '700',
   },
   sectionTitle: {
     color: '#111827',

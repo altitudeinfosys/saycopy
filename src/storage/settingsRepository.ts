@@ -8,7 +8,7 @@ import {
 import type { LocalSqliteDatabase } from './sqlite/schema';
 
 export type AppSettings = {
-  /** Recording language for the Record tab. */
+  /** Recording language for the Transcribe tab. */
   readonly sourceLanguageId: LanguageId;
   /** Translate tab "From" language. */
   readonly translateSourceLanguageId: LanguageId;

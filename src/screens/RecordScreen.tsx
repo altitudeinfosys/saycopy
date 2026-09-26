@@ -515,8 +515,8 @@ function RecordScreenContent({
     >
       <View style={styles.header}>
         <View style={styles.titleGroup}>
-          <Text style={styles.screenTitle}>Record</Text>
-          <Text style={styles.screenStatus}>Transcribe</Text>
+          <Text style={styles.screenTitle}>Transcribe</Text>
+          <Text style={styles.screenStatus}>Speak to capture text</Text>
         </View>
         <View style={styles.cleanupPill}>
           <Text style={styles.cleanupText}>

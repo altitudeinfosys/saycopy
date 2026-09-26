@@ -33,7 +33,7 @@ describe('App shell', () => {
 
     expect(screen.getByTestId('app-top-safe-area').props.edges).toContain('top');
     expect(screen.getByTestId('app-top-safe-area').props.edges).toContain('bottom');
-    expect(screen.getByRole('tab', { name: 'Record' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Transcribe' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Translate' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'History' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Settings' })).toBeTruthy();
@@ -47,7 +47,7 @@ describe('App shell', () => {
     expect(screen.getByText('Light cleanup on')).toBeTruthy();
   });
 
-  it('passes shared saved settings into the Record tab', async () => {
+  it('passes shared saved settings into the Transcribe tab', async () => {
     const dependencies = createTestAppDependencies();
     await dependencies.settingsRepository.saveSettings({
       sourceLanguageId: 'english',
@@ -95,7 +95,7 @@ describe('App shell', () => {
     expect(screen.getByText('Recording defaults')).toBeTruthy();
   });
 
-  it('returns to Record from another tab when Android back is pressed', async () => {
+  it('returns to Transcribe from another tab when Android back is pressed', async () => {
     let hardwareBackHandler: Parameters<typeof BackHandler.addEventListener>[1] | undefined;
     const remove = jest.fn();
     const backHandlerSpy = jest
