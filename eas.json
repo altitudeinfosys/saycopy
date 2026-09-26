@@ -10,10 +10,12 @@
     },
     "preview": {
       "distribution": "internal",
+      "autoIncrement": true,
       "android": {
         "buildType": "apk"
       },
       "ios": {
+        "simulator": false,
         "resourceClass": "m-medium"
       }
     },
