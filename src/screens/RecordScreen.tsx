@@ -552,7 +552,7 @@ function RecordScreenContent({
             />
             {isAutoDetectActive ? (
               <Text style={styles.autoDetectNote}>
-                Auto-detect uses GPT-4o Transcribe to preserve the detected language. Select a
+                Auto-detect uses MAI-Transcribe 1.5 to preserve the detected language. Select a
                 language to use {transcriptionModelId} instead.
               </Text>
             ) : null}

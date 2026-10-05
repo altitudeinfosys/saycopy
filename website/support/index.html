@@ -68,7 +68,7 @@
               <span class="choice-label">Auto-detect</span>
               <h3>SayCopy identifies the spoken language for you.</h3>
               <p>
-                Auto-detect uses <strong>GPT-4o Transcribe</strong> as a dedicated engine. It is
+                Auto-detect uses <strong>MAI-Transcribe 1.5</strong> as a dedicated engine. It is
                 designed to return the transcript in the language you spoke instead of translating
                 it into English.
               </p>
@@ -86,7 +86,7 @@
             Your source recording language is saved and restored the next time you open SayCopy.
             Selecting Auto-detect does not erase or replace your preferred model. In Settings you
             may see both <strong>Preferred: deepgram/nova-3</strong> and
-            <strong>Auto engine: openai/gpt-4o-transcribe</strong>. That is expected.
+            <strong>Auto engine: microsoft/mai-transcribe-1.5</strong>. That is expected.
           </p>
         </section>
 
@@ -108,7 +108,7 @@
               <dt>Auto-detect engine</dt>
               <dd>
                 Detects and transcribes the spoken language when Recording language is set to
-                Auto-detect. This is currently GPT-4o Transcribe and is independent of the preferred
+                Auto-detect. This is currently MAI-Transcribe 1.5 and is independent of the preferred
                 model.
               </dd>
             </div>
@@ -187,7 +187,7 @@
           <h2>Frequently asked questions</h2>
           <div class="faq-list">
             <details>
-              <summary>I selected Deepgram. Why does Auto-detect show GPT-4o Transcribe?</summary>
+              <summary>I selected Deepgram. Why does Auto-detect show MAI-Transcribe 1.5?</summary>
               <p>
                 Deepgram remains your preferred model and is used when you select a specific
                 language. Auto-detect uses a dedicated engine because providers expose different
@@ -302,6 +302,23 @@
             Confirm your OpenRouter key is active, your account has available credit, and its
             spending limit has not been reached. Model availability and account restrictions can
             also affect routing.
+          </p>
+
+          <h3>No eligible OpenRouter endpoint was found (HTTP 404)</h3>
+          <p>
+            The model may be unavailable or incompatible with zero-data-retention routing.
+            Select another model in Settings. For Auto-detect, first choose a specific recording
+            language so your preferred model is used. Auto-detect uses MAI-Transcribe 1.5 with
+            zero-data-retention routing; older app versions use GPT-4o Transcribe, which may have
+            no eligible endpoint. Update the app when a new version is available, or select a
+            specific language as a workaround.
+          </p>
+          <h3>Other OpenRouter rejection messages</h3>
+          <p>
+            HTTP 400 or 422 means the request was rejected: check the selected model and try a
+            shorter recording. HTTP 403 means access was denied: check API key permissions and
+            account restrictions. HTTP 413 means the recording is too large: try a shorter one.
+            Include the HTTP status when contacting support; never include your API key.
           </p>
 
           <h3>The microphone does not start</h3>

@@ -26,6 +26,9 @@ describe('OpenRouter error mapper', () => {
     [400, 'unknown', false],
     [401, 'auth_error', false],
     [402, 'payment_required', false],
+    [403, 'auth_error', false],
+    [413, 'unknown', false],
+    [422, 'unknown', false],
     [404, 'unknown', false],
     [429, 'rate_limited', true],
     [500, 'provider_unavailable', true],
@@ -49,6 +52,16 @@ describe('OpenRouter error mapper', () => {
         retryable,
       }),
     );
+  });
+
+  it.each([400, 403, 404, 413, 422, 418])('shows a safe actionable HTTP %i message', (status) => {
+    const error = mapOpenRouterHttpError(status, {
+      error: { message: SENSITIVE_VALUES.join(' ') },
+    });
+
+    expect(error.message).toContain(`HTTP ${status}`);
+    expect(error.message).not.toBe('OpenRouter request failed.');
+    expectSerializedErrorToBeSanitized(error);
   });
 
   it('does not expose raw provider payloads in user-facing HTTP messages', () => {

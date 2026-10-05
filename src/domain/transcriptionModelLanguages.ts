@@ -8,7 +8,9 @@ import { DEFAULT_TRANSCRIPTION_MODEL_ID, TRANSCRIPTION_MODEL_RECOMMENDATIONS } f
 
 export type TranscriptionLanguageSupport = 'supported' | 'preview' | 'unsupported' | 'unverified';
 
-export const AUTO_DETECT_TRANSCRIPTION_MODEL_ID = 'openai/gpt-4o-transcribe';
+// Verified in OpenRouter's ZDR endpoint list on 2026-10-04. GPT-4o Transcribe
+// has no eligible ZDR endpoint; keep privacy routing enabled for Auto-detect.
+export const AUTO_DETECT_TRANSCRIPTION_MODEL_ID = 'microsoft/mai-transcribe-1.5';
 
 type ModelLanguageSupport = Partial<
   Readonly<Record<ConcreteLanguageId, Exclude<TranscriptionLanguageSupport, 'unverified'>>>

@@ -6,6 +6,31 @@ export function mapOpenRouterHttpError(status: number, payload?: unknown): AppEr
   const cause = sanitizeHttpErrorCause(status, payload);
 
   switch (status) {
+    case 400:
+    case 422:
+      return createAppError('unknown', `OpenRouter rejected the request (HTTP ${status}). Check the selected model and try a shorter recording.`, {
+        provider: PROVIDER,
+        retryable: false,
+        cause,
+      });
+    case 403:
+      return createAppError('auth_error', 'OpenRouter denied access (HTTP 403). Check your API key permissions and account restrictions.', {
+        provider: PROVIDER,
+        retryable: false,
+        cause,
+      });
+    case 404:
+      return createAppError('unknown', 'No eligible OpenRouter endpoint was found (HTTP 404). The model may be unavailable or incompatible with zero-data-retention routing. Select another model in Settings; for Auto-detect, choose a specific recording language first.', {
+        provider: PROVIDER,
+        retryable: false,
+        cause,
+      });
+    case 413:
+      return createAppError('unknown', 'OpenRouter rejected the recording because it is too large (HTTP 413). Try a shorter recording.', {
+        provider: PROVIDER,
+        retryable: false,
+        cause,
+      });
     case 401:
       return createAppError('auth_error', 'OpenRouter authentication failed.', {
         provider: PROVIDER,
@@ -36,7 +61,7 @@ export function mapOpenRouterHttpError(status: number, payload?: unknown): AppEr
         cause,
       });
     default:
-      return createAppError('unknown', 'OpenRouter request failed.', {
+      return createAppError('unknown', `OpenRouter request failed (HTTP ${status}). Try again or contact support with this status.`, {
         provider: PROVIDER,
         retryable: false,
         cause,
