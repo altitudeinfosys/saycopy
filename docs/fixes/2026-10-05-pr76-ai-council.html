@@ -1,0 +1,110 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SayCopy PR 76 — AI Council</title><style>body{margin:0;background:#f4f6f9;color:#182236;font:17px/1.65 system-ui,sans-serif}main{max-width:980px;margin:auto;padding:28px 22px}h1,h2,h3{line-height:1.3}section,article{background:white;border:1px solid #d7dfeb;border-radius:14px;padding:22px;margin:18px 0}a{color:#164eb5}dt{font-weight:700;margin-top:10px}dd{margin:2px 0 12px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:15px/1.6 ui-monospace,monospace}.note{border-left:4px solid #ad6015;padding-left:15px}summary{cursor:pointer;font-weight:700}code{overflow-wrap:anywhere}</style></head><body><main><h1>AI Council: Codex conclusion</h1><p>Prepared for Tarek · October 5, 2026</p><section><h2>Recommendation</h2><p>No confirmed critical or high defect. Fix the shared failure guidance and add the old error message to support documentation. Require real English/Arabic Auto-detect and iPhone large-text checks before releasing the updated native app. The already merged code is reasonable to retain; this council is not release approval.</p><p>Target: <a href="https://github.com/altitudeinfosys/saycopy/pull/76">PR 76</a>, pinned diff <code>0e7f184 → 1fc8ae1</code>. Exact reviewers: Claude Opus and Claude Sonnet, both packet-only and read-only; Codex independently traced repository callers and triaged their claims. No extra reviewers were added.</p></section><section><h2>Critical</h2><p>None verified.</p><h2>High</h2><p>None verified.</p></section><article><h2>Medium: Shared error messages give the wrong guidance for translation</h2><dl><dt>Evidence</dt><dd>src/providers/openRouter/errors.ts:9–30; src/providers/openRouter/client.ts:110–113,210</dd><dt>Impact</dt><dd>The same client mapper handles transcription and chat completions. Translation uses chat completions, yet HTTP 400/422 and 413 suggest a shorter recording, and 404 suggests changing the recording language. Cleanup errors are converted into a cleanup warning by the flow, reducing their visible impact.</dd><dt>Recommended action and verification</dt><dd>Make messages neutral or pass the request operation to the mapper; add client tests for translation and transcription rejections.</dd><dt>Flagged by</dt><dd>Sonnet and Opus</dd><dt>Agreed by</dt><dd>Sonnet and Opus</dd><dt>Disagreed by</dt><dd>None</dd><dt>Not mentioned by</dt><dd>None</dd><dt>Codex verdict</dt><dd>Accepted as an introduced, nonblocking correctness issue in failure guidance. Both reviewers also speculated about model-catalog failures; that portion is rejected because modelCatalog.ts uses its own Error messages.</dd></dl></article><article><h2>Medium: Real transcription verification is required before release</h2><dl><dt>Evidence</dt><dd>src/domain/transcriptionModelLanguages.ts:11–14; src/flows/__tests__/openRouterLiveFlowIntegration.test.ts:226–263</dd><dt>Impact</dt><dd>Mocked Arabic responses prove request shape and stored model identity, not the Azure route accepting the app’s M4A recording or preserving the spoken language. The previous investigation confirmed public eligibility and automatic-language-identification documentation.</dd><dt>Recommended action and verification</dt><dd>Run English and Arabic Auto-detect on an installed native preview, then check explicit-language selection and cleanup fallback. Do this before store submission.</dd><dt>Flagged by</dt><dd>Sonnet</dd><dt>Agreed by</dt><dd>Opus also identified this as a residual risk</dd><dt>Disagreed by</dt><dd>None</dd><dt>Not mentioned by</dt><dd>None</dd><dt>Codex verdict</dt><dd>Accepted as a release verification gap, not proof that MAI is defective. Sonnet’s claim that the prior test deliberately excluded MAI due to a model defect is unsupported: the old resolver forced every Auto selection to GPT-4o.</dd></dl></article><article><h2>Low: Older users cannot match their error text to the support heading</h2><dl><dt>Evidence</dt><dd>website/support/index.html: new HTTP 404 troubleshooting section</dd><dt>Impact</dt><dd>Older apps show “OpenRouter request failed.” The new heading says “No eligible OpenRouter endpoint was found (HTTP 404).” The workaround is present but harder to find by the actual old message.</dd><dt>Recommended action and verification</dt><dd>Add the older generic message as an alias in the heading or opening sentence. Validate the page and internal links.</dd><dt>Flagged by</dt><dd>Opus</dd><dt>Agreed by</dt><dd>None</dd><dt>Disagreed by</dt><dd>None</dd><dt>Not mentioned by</dt><dd>Sonnet</dd><dt>Codex verdict</dt><dd>Accepted as a small documentation improvement.</dd></dl></article><article><h2>Low: Single-line labels may truncate at the largest accessibility sizes</h2><dl><dt>Evidence</dt><dd>src/App.tsx:68–72, tabLabel style</dd><dt>Impact</dt><dd>numberOfLines prevents wrapping, but minimumFontScale=0.7 limits shrinking relative to the scaled font. With four equal-width tabs, extreme Dynamic Type sizes can still require ellipsis. No physical-device layout evidence was supplied.</dd><dt>Recommended action and verification</dt><dd>Check narrow iPhones at default, largest standard, and largest accessibility sizes. Choose a tested accessible layout if truncation occurs; do not blindly disable or cap accessibility scaling.</dd><dt>Flagged by</dt><dd>Sonnet and Opus</dd><dt>Agreed by</dt><dd>Sonnet and Opus</dd><dt>Disagreed by</dt><dd>None</dd><dt>Not mentioned by</dt><dd>None</dd><dt>Codex verdict</dt><dd>Needs device evidence for severity and the best remedy. The original wrap bug is addressed structurally; full label readability at extreme sizes remains unverified. A maxFontSizeMultiplier cap is reviewer advice, not a verified solution.</dd></dl></article><section><h2>Defer or ignore</h2><h3>HTTP 403 invalidates or clears credentials</h3><p><strong>Attribution:</strong> Opus. <strong>Codex verdict:</strong> No other production source branches on auth_error; client retries only network, rate-limited and provider-unavailable categories. No credential deletion or re-auth consequence was found. Reject the claimed regression; defer more precise policy-denial copy as optional hardening.</p><h3>Hardcoded model labels are an introduced defect</h3><p><strong>Attribution:</strong> Sonnet. <strong>Codex verdict:</strong> Labels were already duplicated before PR 76. Centralizing app display copy could be useful later, but this is pre-existing maintainability work, not a regression. Do not add a blanket test forbidding GPT-4o IDs, which can remain valid preferred-model and storage fixtures.</p><h3>fsevents and static validation counts need cleanup</h3><p><strong>Attribution:</strong> Sonnet; Opus noted fsevents as residual. <strong>Codex verdict:</strong> The optional macOS dependency flag changed during the Expo dependency resolution. Main CI successfully used npm ci, tests, typecheck, lint and Doctor. A dated report records historical counts. No functional defect demonstrated; ignore this housekeeping request.</p><h3>Automatic fallback if route availability changes</h3><p><strong>Attribution:</strong> Both as residual risk. <strong>Codex verdict:</strong> Hardcoded Auto routing pre-existed. Defer a privacy-preserving availability/fallback design; do not silently change models or remove ZDR in response to this review.</p></section><section><h2>Reviewer notes and coverage limits</h2><ul><li>Opus: completed successfully in about 65 seconds; four findings, no blocking defect.</li><li>Sonnet: completed successfully in about 31 seconds; five findings, no blocking defect.</li><li>Both received the same complete bounded Git diff and release-verification context; neither ran tools or tests. There was no timeout, retry, skipped reviewer, or partial result.</li><li>Codex verified mapper call sites, catalog isolation, auth-error consumers, tab props, the pre-change resolver and duplicated labels. Main CI for 1fc8ae1 completed successfully. Tests were not rerun for this read-only review.</li><li>The earlier 274 passing tests and Doctor 20/20 remain code/build evidence. Live paid transcription and physical iPhone evidence remain absent. The native Expo dependencies require a new native build; merging does not update installed apps.</li></ul></section><section><h2>Raw reviewer feedback</h2><details><summary>Opus completed report</summary><pre># AI Council review: PR 76 (`0e7f184` → `1fc8ae1`)
+
+I found no blocking defects. The routing change matches its stated purpose, and the new tests cover it. Auto-detect now sends `microsoft/mai-transcribe-1.5` with `provider: { zdr: true }` and no `language`. An explicit language still uses the saved preferred model. The new HTTP messages contain only the status code, and the it.each test checks that nothing sensitive is serialized. I found four smaller issues, all introduced by this diff.
+
+---
+
+### 1. Medium: Transcription-specific advice in what is probably a shared error mapper (introduced)
+
+- **Where:** `src/providers/openRouter/errors.ts`, `mapOpenRouterHttpError`, in the new `case 400/422`, `case 404` and `case 413` branches.
+- **Evidence:** The messages are written for transcription: &quot;try a shorter recording&quot;, &quot;for Auto-detect, choose a specific recording language first&quot; and &quot;rejected the recording because it is too large&quot;. The function takes only `(status, payload)`, so it can&#x27;t tell which request failed. Its location in the provider module suggests the translation workspace, Light cleanup and any model-catalog fetch use it too. The packet doesn&#x27;t show the callers, so I can&#x27;t confirm this.
+- **Impact:** If the mapper is shared, a translation or cleanup request that gets a 404 or 400 would tell the user to change their recording language or shorten their recording. That advice is wrong and sends them to the wrong fix. A 404 from the model catalog in Settings would mention zero-data-retention routing, which wouldn&#x27;t apply.
+- **Smallest safe fix:** Add an optional `context: &#x27;transcription&#x27; | &#x27;chat&#x27; | &#x27;catalog&#x27;` parameter, or let the transcription call site override the message. Show recording-specific text only for transcription; everything else gets a neutral `OpenRouter rejected the request (HTTP ${status}).`
+- **Verification:** Find every call site of `mapOpenRouterHttpError`. Add tests that a cleanup or translation 404/400 doesn&#x27;t contain &quot;recording&quot; or &quot;Auto-detect&quot;.
+
+### 2. Low–Medium: HTTP 403 is now treated as an authentication error (introduced)
+
+- **Where:** `errors.ts`, `case 403` returns `&#x27;auth_error&#x27;`; the test table row `[403, &#x27;auth_error&#x27;, false]`.
+- **Evidence:** Before this diff, 403 fell through to `default` and became `unknown`. OpenRouter also returns 403 for reasons unrelated to the key, such as moderation-flagged input and some provider or policy denials.
+- **Impact:** Any code that reacts to `auth_error` would wrongly blame the user&#x27;s API key. That could mean an &quot;update your API key&quot; prompt, a re-auth flow or clearing a credential. The message text is hedged, but the category isn&#x27;t.
+- **Smallest safe fix:** Map 403 to `&#x27;unknown&#x27;` (or a new `&#x27;forbidden&#x27;` category) and keep the current message. Or first confirm nothing branches on `auth_error` beyond displaying the message.
+- **Verification:** Search for every use of `auth_error`. Add a test that a 403 doesn&#x27;t trigger key invalidation or re-auth UI.
+
+### 3. Low–Medium: Bottom tab labels can still get cut off at the largest iPhone text sizes (introduced, fix incomplete)
+
+- **Where:** `src/App.tsx`, the tab `&lt;Text&gt;` (`adjustsFontSizeToFit`, `minimumFontScale={0.7}`, `numberOfLines={1}`) and `styles.tabLabel` (`width: &#x27;100%&#x27;`, `fontSize: 14`).
+- **Evidence:** iOS accessibility text sizes can scale text by about 3×. Shrinking only to 70% can&#x27;t fit four labels across a roughly 375 pt row with 8 pt padding, so iOS will truncate them with &quot;…&quot;. No `maxFontSizeMultiplier` is set. If the tab bar has a fixed height (it isn&#x27;t shown), the text may also be clipped vertically.
+- **Impact:** The labels stay on one line as intended, but at the largest sizes they can become unreadable (&quot;Transc…&quot;). That works against the reason for enlarging the text in the first place.
+- **Smallest safe fix:** Add `maxFontSizeMultiplier` (around 1.3–1.5) to the tab `Text`, and keep `adjustsFontSizeToFit`. Optionally offer a larger-text alternative for accessibility users, such as a long-press label.
+- **Verification:** Check on a physical iPhone or simulator at default, the largest standard size and AX5. Add a render test asserting `numberOfLines === 1` and that `maxFontSizeMultiplier` is set.
+
+### 4. Low: Support page sends older-app users to an error message they will never see (introduced, documentation)
+
+- **Where:** `website/support/index.html`, the new heading &quot;No eligible OpenRouter endpoint was found (HTTP 404)&quot;.
+- **Evidence:** The paragraph is meant for users still on older app versions that use GPT-4o Transcribe. Those builds map 404 to the old generic &quot;OpenRouter request failed.&quot; message. The test table already had `[404, &#x27;unknown&#x27;, false]`, and the new message ships only with this PR.
+- **Impact:** The users with the actual problem won&#x27;t find the section by matching their error text. The workaround (pick a specific recording language) is hidden from the very group it&#x27;s for.
+- **Smallest safe fix:** Add a sentence or subheading such as: &quot;On older versions this appears as &#x27;OpenRouter request failed.&#x27; when Auto-detect is selected.&quot;
+- **Verification:** Check the page renders and its internal links resolve. Compare the wording with the shipped 1.1.x build.
+
+---
+
+### Residual risks (not counted as findings)
+
+- **MAI-Transcribe 1.5 itself is unverified (new risk from this change):**
+  - It hasn&#x27;t been tested on paid requests or a device for the 11 supported languages, especially Arabic, Hindi, Korean and Chinese.
+  - Auto-detect without a `language` field relies only on the public catalog&#x27;s description.
+  - It&#x27;s unverified that the app&#x27;s recording format and duration are accepted on the Azure route.
+  - The steps in the fix document (English and Arabic auto-detect, explicit-language model, cleanup fallback) are the right minimum.
+- **No fallback if the Auto-detect engine loses its route (pre-existing limitation):** The engine is still a hard-coded constant. The new comment notes that zero-data-retention eligibility was checked on 2026-10-04, but if MAI loses that route, Auto-detect fails again with only the 404 message to help. Nothing checks eligibility at runtime or falls back to another model.
+- **Expo patch needs a new native build:** `expo-modules-core` 57.0.19 → 57.0.20 changes native code, so this needs a new native build rather than an over-the-air update. The fix document correctly says merging doesn&#x27;t update installed apps.
+- **Lockfile `fsevents` change:** `fsevents` lost its `&quot;dev&quot;: true` flag. It&#x27;s optional and macOS-only, so it&#x27;s harmless, but it&#x27;s an unexplained side effect of the deduplication.
+- **Small wording inconsistency:** The default message says &quot;Try again&quot; while `retryable: false`. Separately, the 400/422 message says &quot;Check the selected model&quot; even in Auto-detect mode, where the user didn&#x27;t choose the model.
+- **Test and validation claims not checked:** I couldn&#x27;t confirm the reported 33 suites / 274 tests or Expo Doctor&#x27;s 20/20 from the packet; they&#x27;re the author&#x27;s claims. The integration tests use mocked responses.
+</pre></details><details><summary>Sonnet completed report</summary><pre>I found no blocking defects in the packet. There are 5 actionable findings, all introduced by this diff except the one marked as partly pre-existing. I did not run any tools.
+
+**1. Medium: Auto-detect now depends on an unproven model.**
+- **Where:** `src/domain/transcriptionModelLanguages.ts`, `AUTO_DETECT_TRANSCRIPTION_MODEL_ID`.
+- **Evidence:**
+  - The old test asserted that `resolveTranscriptionModelId(&#x27;microsoft/mai-transcribe-1.5&#x27;, &#x27;auto&#x27;)` returned GPT-4o. So MAI was previously kept out of Auto-detect on purpose, and the diff doesn&#x27;t say what changed.
+  - The only support for MAI&#x27;s language identification and Arabic/English behavior is the comment and the HTML note. Public catalog eligibility is not proof of a working transcription.
+  - The updated test mocks `fetch` and returns Arabic text, so it only proves the request shape (`provider: {zdr: true}`, no `language`).
+  - ZDR eligibility is hardcoded from a 2026-10-04 snapshot.
+- **Impact:** MAI may translate to English, mis-detect languages, or lose its Azure ZDR route. If it does, every Auto-detect recording fails. There is no fallback.
+- **Smallest fix:** Before release, run one real Auto-detect request in English and one in Arabic. Record the result in the fix doc or PR notes. Keep the ID as a single constant.
+- **Verification:** The two live runs, plus the existing mocked integration test.
+- **Origin:** Introduced.
+
+**2. Low–Medium: the new HTTP error copy is too specific for every request type.**
+- **Where:** `src/providers/openRouter/errors.ts`, `mapOpenRouterHttpError`, cases 400/422/404.
+- **Evidence:** The mapper is shared. The 400/422 text says &quot;try a shorter recording&quot; and the 404 text says &quot;choose a specific recording language first&quot;. The 404 text also assumes zero-data-retention routing and Auto-detect.
+- **Impact:** A 404 or 400 from cleanup, translation, or model-list calls shows misleading advice about recordings and Auto-detect.
+- **Smallest fix:** Keep the status code in the shared message, and move the transcription-specific hints to the transcription call site. Alternatively, pass an operation parameter to the mapper.
+- **Verification:** Add tests that a cleanup 404 and a transcription 404 give different guidance.
+- **Origin:** Introduced. The old generic message was safe but unhelpful.
+- **Privacy:** The new messages interpolate only the numeric status. The tests also check that the sensitive-value payload stays out of the serialized error. I found no leak.
+
+**3. Low–Medium: the tab-label fix is unverified at large accessibility text sizes.**
+- **Where:** `src/App.tsx`, the tab `&lt;Text adjustsFontSizeToFit minimumFontScale={0.7} numberOfLines={1}&gt;`.
+- **Evidence:**
+  - Dynamic Type multiplies the 14pt font first, and `minimumFontScale` then shrinks only to 70% of that scaled size. At the largest accessibility sizes, &quot;Transcribe&quot; in a quarter-width tab can still overflow and clip.
+  - No test covers these props, and no device test was done.
+  - `adjustsFontSizeToFit` also behaves differently on Android.
+- **Impact:** The single-line goal may fail at the largest text sizes.
+- **Smallest fix:** Add `maxFontSizeMultiplier` (about 1.2–1.3) to the tab label.
+- **Verification:** A render test for the props, and a manual iPhone check at the largest Dynamic Type and accessibility sizes, on both iOS and Android.
+- **Origin:** Introduced. The earlier layout wrapped or truncated, which is the problem being fixed.
+
+**4. Low: the model name is hardcoded in about eight places.**
+- **Where:** `RecordScreen.tsx`, three strings in `SettingsScreen.tsx`, the setup page and the support page. These sit alongside the constant in `transcriptionModelLanguages.ts`.
+- **Evidence:** The model changed once already, and this diff edits every copy by hand. The only copy test is the `RecordScreen` string.
+- **Impact:** The next swap can leave stale copy, and the support page tells users which engine is in use.
+- **Smallest fix:** Derive the display name in the app screens from one constant. Add a test that fails if `openai/gpt-4o-transcribe` appears in user-facing app strings.
+- **Verification:** The new test, plus a grep.
+- **Origin:** Introduced. Duplicated copy was already there before this diff.
+
+**5. Low: lockfile and fix-document housekeeping.**
+- **Where:** `package-lock.json` and `docs/fixes/2026-10-04-transcribe-routing-and-tabs.html`.
+- **Evidence:**
+  - The `fsevents` entry lost `&quot;dev&quot;: true`, which is unrelated to the Expo patch.
+  - The Expo bump pulls `expo-constants` and `expo-modules-core` forward as transitive dependencies. That is consistent with the SDK check, but it changes the native build, so existing installs need a new build.
+  - The fix doc hardcodes &quot;33 suites / 274 tests&quot; and &quot;20/20 Expo Doctor&quot; as static claims.
+- **Impact:** Possible lockfile noise, and a document that can go stale. Nothing functional.
+- **Smallest fix:** Regenerate the lockfile with the repo&#x27;s npm version and confirm the `fsevents` change is intended. Say in the doc that the numbers were true at the time they were recorded.
+- **Verification:** `npm ci`, `npx expo-doctor`, and the full test run in CI.
+- **Origin:** Introduced.
+
+**Residual risks:**
+- No paid transcription and no physical iPhone test were done.
+- Older installed builds still send GPT-4o with ZDR routing. The support page documents the workaround, and a new build is needed to fix them.
+- Explicit-language model selection looks preserved, because Auto resolution is the only path that changed.
+</pre></details></section></main></body></html>
