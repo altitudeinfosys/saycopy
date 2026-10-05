@@ -574,7 +574,7 @@ describe('RecordScreen', () => {
 
     expect(
       screen.getByText(
-        'Auto-detect uses GPT-4o Transcribe to preserve the detected language. Select a language to use deepgram/nova-3 instead.',
+        'Auto-detect uses MAI-Transcribe 1.5 to preserve the detected language. Select a language to use deepgram/nova-3 instead.',
       ),
     ).toBeTruthy();
   });

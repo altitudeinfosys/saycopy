@@ -65,7 +65,14 @@ export function AppShell({ dependencies: injectedDependencies }: AppProps = {}) 
                 onPress={() => setActiveTab(tab)}
                 style={styles.tab}
               >
-                <Text style={[styles.tabLabel, activeTab === tab && styles.tabLabelActive]}>{tab}</Text>
+                <Text
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.7}
+                  numberOfLines={1}
+                  style={[styles.tabLabel, activeTab === tab && styles.tabLabelActive]}
+                >
+                  {tab}
+                </Text>
               </Pressable>
             ))}
           </View>
@@ -127,7 +134,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    paddingHorizontal: 16,
+    paddingHorizontal: 8,
   },
   tab: {
     alignItems: 'center',
@@ -138,7 +145,9 @@ const styles = StyleSheet.create({
   },
   tabLabel: {
     color: '#64748B',
-    fontSize: 15,
+    width: '100%',
+    textAlign: 'center',
+    fontSize: 14,
     fontWeight: '600',
   },
   tabLabelActive: {
