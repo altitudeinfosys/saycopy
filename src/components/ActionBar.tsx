@@ -1,3 +1,4 @@
+import { reportError } from '../observability/errorReporting';
 import * as Clipboard from 'expo-clipboard';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, Share, StyleSheet, Text, View } from 'react-native';
@@ -67,7 +68,8 @@ export default function ActionBar({
     try {
       await action(resultText);
       onSuccess?.();
-    } catch {
+    } catch (error) {
+      reportError(error, 'ActionBar.runAction');
       onActionError?.(errorMessage);
     }
   }

@@ -46,17 +46,17 @@ describe('transcription model language support', () => {
     expect(isKnownCompatibleTranscriptionModel('provider/future-model', 'auto')).toBe(true);
   });
 
-  it('uses MAI-Transcribe 1.5 for reliable original-language auto-detect', () => {
+  it('uses M4A-compatible Whisper for original-language auto-detect', () => {
     expect(resolveTranscriptionModelId('deepgram/nova-3', 'auto')).toBe(
-      'microsoft/mai-transcribe-1.5',
+      'openai/whisper-large-v3-turbo',
     );
     expect(resolveTranscriptionModelId('provider/future-model', 'auto')).toBe(
-      'microsoft/mai-transcribe-1.5',
+      'openai/whisper-large-v3-turbo',
     );
     expect(resolveTranscriptionModelId('deepgram/nova-3', 'arabic')).toBe('deepgram/nova-3');
     expect(resolveTranscriptionModelId(undefined, 'english')).toBe('openai/whisper-large-v3-turbo');
     expect(resolveTranscriptionModelId('microsoft/mai-transcribe-1.5', 'auto')).toBe(
-      'microsoft/mai-transcribe-1.5',
+      'openai/whisper-large-v3-turbo',
     );
   });
 

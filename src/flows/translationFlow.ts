@@ -1,3 +1,4 @@
+import { reportError } from '../observability/errorReporting';
 import type { AppError } from '../domain/errors';
 import type { TranslateHistoryItem } from '../domain/history';
 import type { ConcreteLanguageId, LanguageId } from '../domain/languages';
@@ -93,6 +94,7 @@ export async function runTranslationFlow(
         customModelId: input.customModelId,
       });
     } catch (error) {
+      reportError(error, 'translationFlow.translateText');
       if (input.sourceType === 'voice') {
         return {
           status: 'translation_failed',

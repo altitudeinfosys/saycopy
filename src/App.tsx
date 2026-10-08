@@ -1,4 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
+import * as Sentry from '@sentry/react-native';
 import { useEffect, useState } from 'react';
 import {
   BackHandler,
@@ -26,7 +27,13 @@ type AppProps = {
 };
 
 export default function App() {
-  return <AppShell />;
+  return (
+    <Sentry.ErrorBoundary fallback={<View style={styles.container}>
+      <Text accessibilityRole="alert">SayCopy encountered an error. Please restart the app.</Text>
+    </View>}>
+      <AppShell />
+    </Sentry.ErrorBoundary>
+  );
 }
 
 export function AppShell({ dependencies: injectedDependencies }: AppProps = {}) {

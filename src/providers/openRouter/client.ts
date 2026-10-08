@@ -1,3 +1,4 @@
+import { reportError } from '../../observability/errorReporting';
 import { createAppError, isAppError, type AppErrorCategory } from '../../domain/errors';
 import {
   mapOpenRouterHttpError,
@@ -95,6 +96,7 @@ export function createOpenRouterClient({
           timeoutMs: requestTimeoutMs,
         });
       } catch (error) {
+        reportError(error, 'client.executeWithRetries');
         const retryDelayMs = retryDelaysMs[attempt];
 
         if (retryDelayMs === undefined || !isRetryableError(error)) {
@@ -224,7 +226,8 @@ async function fetchAndParseJson({
 async function parseOptionalErrorPayload(response: OpenRouterFetchResponse): Promise<unknown> {
   try {
     return await response.json();
-  } catch {
+  } catch (error) {
+    reportError(error, 'client.parseOptionalErrorPayload');
     return undefined;
   }
 }

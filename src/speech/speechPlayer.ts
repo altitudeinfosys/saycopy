@@ -1,3 +1,4 @@
+import { reportError } from '../observability/errorReporting';
 import * as Speech from 'expo-speech';
 
 import { toOpenRouterLanguageCode, type ConcreteLanguageId } from '../domain/languages';
@@ -42,7 +43,8 @@ export function createSpeechPlayer(speech: SpeechModule = Speech): SpeechPlayer 
       let voices: readonly { readonly language: string }[] = [];
       try {
         voices = await speech.getAvailableVoicesAsync();
-      } catch {
+      } catch (error) {
+        reportError(error, 'speechPlayer.speak');
         // Some devices cannot list voices; let the system pick one.
       }
 
@@ -54,7 +56,10 @@ export function createSpeechPlayer(speech: SpeechModule = Speech): SpeechPlayer 
         return 'no_voice';
       }
 
-      speech.speak(text, { language: SPEECH_LOCALES[languageId] });
+      speech.speak(text, {
+        language: SPEECH_LOCALES[languageId],
+        onError: (error) => reportError(error, 'speechPlayer.speak'),
+      });
 
       return 'started';
     },

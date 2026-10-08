@@ -1,6 +1,19 @@
 import { createOpenRouterProvider } from '../provider';
 
 describe('OpenRouter provider', () => {
+  it('rejects a saved MAI M4A preference before upload and offers the tested Auto engine', async () => {
+    const requestTranscription = jest.fn();
+    const provider = createOpenRouterProvider({ client: {
+      requestTranscription, requestChatCompletion: jest.fn(),
+    } });
+    await expect(provider.transcribeAudio({ audio: { base64Audio: 'PRIVATE_AUDIO', format: 'm4a' },
+      sourceLanguageId: 'arabic', modelPresetId: 'balanced',
+      transcriptionModelId: 'microsoft/mai-transcribe-1.5',
+    })).rejects.toMatchObject({ retryable: false,
+      message: expect.stringContaining('Choose Whisper Large V3 Turbo') });
+    expect(requestTranscription).not.toHaveBeenCalled();
+  });
+
   it('marks an abnormal cleanup completion as non-retryable', async () => {
     const provider = createOpenRouterProvider({
       client: {

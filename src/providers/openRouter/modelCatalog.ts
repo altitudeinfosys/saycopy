@@ -23,7 +23,9 @@ const TEXT_MODELS_URL =
 export function createOpenRouterModelCatalog(fetchImpl: FetchLike = fetch): OpenRouterModelCatalog {
   return {
     async listTranscriptionModels() {
-      return listModels(fetchImpl, TRANSCRIPTION_MODELS_URL);
+      // Live M4A rejection verified on 2026-10-08; do not offer an unusable route.
+      return (await listModels(fetchImpl, TRANSCRIPTION_MODELS_URL))
+        .filter((model) => model.id !== 'microsoft/mai-transcribe-1.5');
     },
     async listTextModels() {
       return listModels(fetchImpl, TEXT_MODELS_URL);

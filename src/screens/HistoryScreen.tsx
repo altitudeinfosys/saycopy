@@ -1,3 +1,4 @@
+import { reportError } from '../observability/errorReporting';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BackHandler, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -88,7 +89,8 @@ export default function HistoryScreen({ repository, onOpenItem }: HistoryScreenP
       const loadedItems = await readHistoryItems(repository, query, selectedTag);
       setAllItems(loadedItems.allItems);
       setVisibleItems(loadedItems.visibleItems);
-    } catch {
+    } catch (error) {
+      reportError(error, 'HistoryScreen.HistoryScreen');
       setErrorText('Could not load history.');
     } finally {
       setIsLoading(false);
@@ -122,7 +124,8 @@ export default function HistoryScreen({ repository, onOpenItem }: HistoryScreenP
         setAllItems(loadedItems.allItems);
         setVisibleItems(loadedItems.visibleItems);
         setErrorText('');
-      } catch {
+      } catch (error) {
+        reportError(error, 'HistoryScreen.loadInitialHistoryItems');
         if (isActive) {
           setErrorText('Could not load history.');
         }
@@ -155,7 +158,8 @@ export default function HistoryScreen({ repository, onOpenItem }: HistoryScreenP
     try {
       await repository.deleteHistoryItem(item.id);
       await loadHistoryItems();
-    } catch {
+    } catch (error) {
+      reportError(error, 'HistoryScreen.handleDeleteItem');
       setErrorText('Could not delete this history item.');
     }
   }

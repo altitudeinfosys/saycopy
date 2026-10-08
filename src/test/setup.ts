@@ -6,6 +6,13 @@ type SafeAreaMockProps = {
   readonly [key: string]: unknown;
 };
 
+jest.mock('@sentry/react-native', () => ({
+  init: jest.fn(),
+  captureException: jest.fn(() => 'test-event-id'),
+  wrap: (component: unknown) => component,
+  ErrorBoundary: ({ children }: { children: ReactNode }) => children,
+}));
+
 const mockExpoAudioRecorder = {
   getStatus: jest.fn(() => ({
     canRecord: false,

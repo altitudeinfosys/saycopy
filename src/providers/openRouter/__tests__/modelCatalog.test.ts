@@ -1,6 +1,16 @@
 import { createOpenRouterModelCatalog } from '../modelCatalog';
 
 describe('OpenRouter model catalog', () => {
+  it('omits the route proven to reject native M4A while retaining compatible models', async () => {
+    const catalog = createOpenRouterModelCatalog(async () => ({ ok: true, json: async () => ({
+      data: [{ id: 'microsoft/mai-transcribe-1.5', name: 'MAI' },
+        { id: 'openai/whisper-large-v3-turbo', name: 'Whisper' }],
+    }) }));
+    await expect(catalog.listTranscriptionModels()).resolves.toEqual([
+      { id: 'openai/whisper-large-v3-turbo', name: 'Whisper' },
+    ]);
+  });
+
   function createSuccessfulFetch() {
     return jest.fn(async () => ({
       ok: true,

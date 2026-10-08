@@ -23,7 +23,7 @@ describe('speech player', () => {
     await expect(player.speak('Buenos días', 'spanish')).resolves.toBe('started');
 
     expect(speech.stop).toHaveBeenCalledTimes(1);
-    expect(speech.speak).toHaveBeenCalledWith('Buenos días', { language: 'es-ES' });
+    expect(speech.speak).toHaveBeenCalledWith('Buenos días', expect.objectContaining({ language: 'es-ES' }));
     expect(speech.stop.mock.invocationCallOrder[0]).toBeLessThan(
       speech.speak.mock.invocationCallOrder[0],
     );
@@ -53,6 +53,6 @@ describe('speech player', () => {
     await expect(createSpeechPlayer(speech as never).speak('Bonjour', 'french')).resolves.toBe(
       'started',
     );
-    expect(speech.speak).toHaveBeenCalledWith('Bonjour', { language: 'fr-FR' });
+    expect(speech.speak).toHaveBeenCalledWith('Bonjour', expect.objectContaining({ language: 'fr-FR' }));
   });
 });

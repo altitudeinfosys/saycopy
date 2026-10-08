@@ -45,3 +45,11 @@
 - Use the same labels and terminology in the app and website so users do not have to translate between two explanations.
 - When a behavior change does not require a help or tutorial update, state the reason in the pull-request description.
 - Validate the affected website pages and internal links before considering the change complete.
+
+## Mandatory Sentry Error Reporting
+
+- Every application error must be reported to Sentry, including handled exceptions, retries, fallback outcomes, recording failures, provider failures, storage failures, clipboard failures, speech failures, startup failures, and uncaught JavaScript/native crashes. Do not silently swallow errors.
+- Use the centralized privacy-safe reporter for handled errors and the initialized SDK for uncaught errors. Preserve the original user-facing recovery behavior. Expected cancellation is not an error.
+- Never send API keys, authorization headers, audio/base64, transcripts, translations, clipboard contents, tags, SQL parameters, raw provider payloads, or other user content. Use fixed operation labels and allowlisted diagnostics.
+- Review error-reporting coverage and privacy in every behavior-change PR. Test handled/fallback reporting and scrubbing. Verify configured build identity and receipt of a safe diagnostic event before claiming Sentry is live.
+- Preview and production builds must have a SayCopy Sentry DSN and source-map upload configuration; fail the build if required reporting configuration is missing.

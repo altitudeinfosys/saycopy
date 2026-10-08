@@ -1,3 +1,4 @@
+import { reportError } from '../observability/errorReporting';
 import type { TranscribeHistoryItem } from '../domain/history';
 import { isAppError, type AppErrorCategory } from '../domain/errors';
 import type { LanguageId } from '../domain/languages';
@@ -72,6 +73,7 @@ export async function runTranscriptionFlow(
           })
         ).text;
       } catch (error) {
+        reportError(error, 'transcriptionFlow.cleanupTranscript');
         cleanupFailureNotice = {
           code: 'cleanup_failed',
           message:

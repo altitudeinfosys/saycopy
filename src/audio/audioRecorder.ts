@@ -1,3 +1,4 @@
+import { reportError } from '../observability/errorReporting';
 import {
   RecordingPresets,
   requestRecordingPermissionsAsync as requestExpoRecordingPermissionsAsync,
@@ -152,7 +153,8 @@ async function cleanupReference(
 ) {
   try {
     await temporaryAudio?.cleanup(getAudioReference(reference));
-  } catch {
+  } catch (error) {
+    reportError(error, 'audioRecorder.cleanupReference');
     // Temporary-file cleanup is best-effort and must not replace the primary recorder outcome.
   }
 }
@@ -256,6 +258,7 @@ export function createAudioRecordingController({
         emit({ audio, status: 'stopped', stopReason });
         return audio;
       } catch (error) {
+        reportError(error, 'audioRecorder.stopRecording');
         session = undefined;
         const primaryError = normalizeRecordingError(error);
         await cleanupReference(temporaryAudio, fallbackReference);
@@ -286,7 +289,8 @@ export function createAudioRecordingController({
         temporaryAudio,
         stoppedRecording.uri ? stoppedRecording : fallbackReference,
       );
-    } catch {
+    } catch (error) {
+      reportError(error, 'audioRecorder.stopAndCleanupSession');
       await cleanupReference(temporaryAudio, fallbackReference);
     }
   }
@@ -310,7 +314,8 @@ export function createAudioRecordingController({
           try {
             const audio = await stopPromise;
             await cleanupStoppedAudio(audio);
-          } catch {
+          } catch (error) {
+            reportError(error, 'audioRecorder.cancel');
             // The stop path already performs best-effort fallback cleanup.
           } finally {
             session = undefined;
@@ -399,6 +404,7 @@ export function createAudioRecordingController({
 
         emit({ status: 'stopped' });
       } catch (error) {
+        reportError(error, 'audioRecorder.processStoppedAudio');
         if (operationGeneration !== transitionGeneration) {
           throw error;
         }
@@ -455,6 +461,7 @@ export function createAudioRecordingController({
               void stopRecording('max_duration');
             }, MAX_RECORDING_DURATION_MS);
           } catch (error) {
+            reportError(error, 'audioRecorder.start');
             const primaryError = normalizeRecordingError(error);
             session = undefined;
 
