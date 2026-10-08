@@ -109,7 +109,8 @@
             errors and crashes. Application error reports include fixed operation labels, error
             categories, HTTP status when available, app/build version, and stack locations.
             Native crash reports may also include operating-system and device technical metadata.
-            Sentry processes standard network request information to receive these reports.
+            Sentry processes standard network request information to receive these reports. IP addresses
+            and inferred location metadata are removed before new error events are stored.
           </p>
           <p>
             SayCopy excludes API keys, authorization headers, audio, transcripts, translations,
