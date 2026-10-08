@@ -1,3 +1,4 @@
+import { reportError } from '../observability/errorReporting';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -55,7 +56,8 @@ export default function HistoryDetailScreen({
         setHistoryItem(loadedItem);
         setEditedText(loadedItem ? getHistoryPrimaryText(loadedItem) : '');
         setErrorText('');
-      } catch {
+      } catch (error) {
+        reportError(error, 'HistoryDetailScreen.loadHistoryItem');
         if (isActive) {
           setErrorText('Could not load this history item.');
         }
@@ -97,7 +99,8 @@ export default function HistoryDetailScreen({
       setHistoryItem(updatedItem);
       setEditedText(getHistoryPrimaryText(updatedItem));
       setStatusText('Saved changes');
-    } catch {
+    } catch (error) {
+      reportError(error, 'HistoryDetailScreen.handleSavePress');
       setErrorText('Could not save changes.');
     } finally {
       setIsSaving(false);
@@ -175,7 +178,8 @@ export default function HistoryDetailScreen({
       setEditedText('');
       setErrorText('This history item was deleted.');
       onBack?.();
-    } catch {
+    } catch (error) {
+      reportError(error, 'HistoryDetailScreen.handleDeletePress');
       setErrorText('Could not delete this history item.');
     } finally {
       setIsDeleting(false);

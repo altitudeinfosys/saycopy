@@ -1,3 +1,4 @@
+import { reportError } from '../observability/errorReporting';
 import { LANGUAGE_OPTIONS, type ConcreteLanguageId, type LanguageId } from '../domain/languages';
 import {
   DEFAULT_MODEL_PRESET_ID,
@@ -57,7 +58,8 @@ function defaultNow(): string {
 function parseSettingValue(valueJson: string): unknown {
   try {
     return JSON.parse(valueJson);
-  } catch {
+  } catch (error) {
+    reportError(error, 'settingsRepository.parseSettingValue');
     return undefined;
   }
 }

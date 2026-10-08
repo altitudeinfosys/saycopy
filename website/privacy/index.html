@@ -103,6 +103,23 @@
             translation. You can change this permission at any time in your device Settings.
           </p>
 
+          <h2>Error reporting with Sentry</h2>
+          <p>
+            Updated SayCopy builds use Sentry to diagnose application failures, including handled
+            errors and crashes. Application error reports include fixed operation labels, error
+            categories, HTTP status when available, app/build version, and stack locations.
+            Native crash reports may also include operating-system and device technical metadata.
+            Sentry processes standard network request information to receive these reports.
+          </p>
+          <p>
+            SayCopy excludes API keys, authorization headers, audio, transcripts, translations,
+            clipboard contents, tags, SQL parameters, and raw provider responses from application
+            error reports. Screen capture, session replay, console breadcrumbs, and performance
+            tracing are disabled. We use diagnostics to investigate and fix errors. Sentry’s
+            handling of diagnostic data is governed by its
+            <a href="https://sentry.io/privacy/">privacy policy</a>.
+          </p>
+
           <h2>Tracking, advertising, and analytics</h2>
           <p>
             The app does not include advertising, cross-app tracking, or a third-party analytics SDK.

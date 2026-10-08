@@ -574,7 +574,7 @@ describe('RecordScreen', () => {
 
     expect(
       screen.getByText(
-        'Auto-detect uses MAI-Transcribe 1.5 to preserve the detected language. Select a language to use deepgram/nova-3 instead.',
+        'Auto-detect uses Whisper Large V3 Turbo to preserve the detected language. Select a language to use deepgram/nova-3 instead.',
       ),
     ).toBeTruthy();
   });

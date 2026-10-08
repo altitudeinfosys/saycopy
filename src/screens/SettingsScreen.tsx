@@ -1,3 +1,4 @@
+import { reportError } from '../observability/errorReporting';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
@@ -279,7 +280,8 @@ export default function SettingsScreen({
         setTranscriptionModelInput(loadedSettings.transcriptionModelId);
         setTokenStatus(loadedTokenStatus);
         setErrorText('');
-      } catch {
+      } catch (error) {
+        reportError(error, 'SettingsScreen.loadSettings');
         if (isActive) {
           setErrorText('Could not load settings.');
         }
@@ -323,7 +325,8 @@ export default function SettingsScreen({
     try {
       await operation();
       setMessageText(successMessage);
-    } catch {
+    } catch (error) {
+      reportError(error, 'SettingsScreen.runTokenOperation');
       setErrorText('Could not update token.');
     } finally {
       tokenUpdateInFlightRef.current = false;
@@ -424,7 +427,8 @@ export default function SettingsScreen({
     setErrorText('');
     try {
       setTranscriptionCatalogModels(await modelCatalog.listTranscriptionModels());
-    } catch {
+    } catch (error) {
+      reportError(error, 'SettingsScreen.handleToggleTranscriptionModelPicker');
       setErrorText('Could not load OpenRouter transcription models.');
       setIsTranscriptionModelPickerOpen(false);
     } finally {
@@ -468,7 +472,8 @@ export default function SettingsScreen({
     setErrorText('');
     try {
       setTranslationCatalogModels(await modelCatalog.listTextModels());
-    } catch {
+    } catch (error) {
+      reportError(error, 'SettingsScreen.handleToggleTranslationModelPicker');
       setErrorText('Could not load OpenRouter models.');
       setIsTranslationModelPickerOpen(false);
     } finally {
@@ -488,7 +493,8 @@ export default function SettingsScreen({
 
     try {
       await openExternalUrl(url);
-    } catch {
+    } catch (error) {
+      reportError(error, 'SettingsScreen.handleOpenExternalUrl');
       setErrorText('Could not open the SayCopy website.');
     }
   }
@@ -532,7 +538,8 @@ export default function SettingsScreen({
         setMessageText(successMessage);
       }
       return true;
-    } catch {
+    } catch (error) {
+      reportError(error, 'SettingsScreen.saveSetting');
       const latestSettings = settingsRef.current;
       const rollbackKeys = settingKeys.filter(
         (settingKey) => latestSettingRequestIdsRef.current[settingKey] === requestId,
@@ -710,7 +717,7 @@ export default function SettingsScreen({
         </Text>
         {settings.sourceLanguageId === 'auto' ? (
           <Text style={styles.modelHelp}>
-            Auto-detect uses MAI-Transcribe 1.5 so the detected language is preserved instead of
+            Auto-detect uses Whisper Large V3 Turbo so the detected language is preserved instead of
             translated into English. Your preferred model stays saved and is used when you select
             a language.
           </Text>
@@ -780,7 +787,7 @@ export default function SettingsScreen({
           <Text style={styles.controlLabel}>Choose from OpenRouter</Text>
           <Text style={styles.modelHelp}>
             {settings.sourceLanguageId === 'auto'
-              ? 'Choose any preferred model here. Auto-detect uses its dedicated MAI-Transcribe 1.5 engine, without changing this choice.'
+              ? 'Choose any preferred model here. Auto-detect uses its dedicated Whisper Large V3 Turbo engine, without changing this choice.'
               : `Models known not to support ${getLanguageLabel(settings.sourceLanguageId)} are hidden. New or unverified models remain available with a warning.`}
           </Text>
           <Pressable
@@ -811,7 +818,7 @@ export default function SettingsScreen({
           />
           <Text style={styles.modelHelp}>
             {settings.sourceLanguageId === 'auto'
-              ? 'Advanced: save any preferred transcription model here. It will be used when you select a language; Auto-detect continues to use MAI-Transcribe 1.5.'
+              ? 'Advanced: save any preferred transcription model here. It will be used when you select a language; Auto-detect continues to use Whisper Large V3 Turbo.'
               : 'Advanced: enter a transcription model ID that supports zero-data-retention routing and your source language. Known incompatible choices are blocked.'}
           </Text>
           <View style={styles.modelButtonColumn}>

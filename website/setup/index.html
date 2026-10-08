@@ -130,7 +130,7 @@
             <p>
               Your preferred transcription model is used when you select a specific language:
               English, Spanish, Arabic, French, German, Italian, Portuguese, Chinese, Japanese,
-              Korean, or Hindi. Each model shows how many of these it supports. Auto-detect uses a separate MAI-Transcribe 1.5 engine, so choosing Auto does
+              Korean, or Hindi. Each model shows how many of these it supports. Auto-detect uses a separate Whisper Large V3 Turbo engine, so choosing Auto does
               not replace your preferred model. The source recording language you choose is saved
               and restored when you reopen SayCopy.
             </p>
@@ -162,7 +162,7 @@
         <article class="content-card">
           <h2>How does Auto-detect work?</h2>
           <p>
-            Auto-detect uses MAI-Transcribe 1.5 to identify the spoken language and preserve it in
+            Auto-detect uses Whisper Large V3 Turbo to identify the spoken language and preserve it in
             the transcript. Your preferred model stays saved and is used whenever you select a
             language explicitly.
           </p>
@@ -238,6 +238,17 @@
           <span><small>Download on the</small>App Store</span>
         </a>
       </aside>
+      <section class="content-card" id="diagnostics">
+          <h2>Error reporting</h2>
+          <p>Updated SayCopy builds send error diagnostics to Sentry automatically, including handled
+          failures. You do not need a Sentry account. Application reports exclude your API key,
+          audio, transcripts, translations, and clipboard contents. See the
+          <a href="/privacy">privacy policy</a> for details.</p>
+          <p>If an October 5 preview returns HTTP 400 with Auto-detect, choose a specific recording
+          language and the Recommended transcription model until you install the updated preview.
+          MAI-Transcribe 1.5 rejects SayCopy’s M4A recordings; updated Auto-detect uses
+          Whisper Large V3 Turbo.</p>
+        </section>
     </main>
 
     <footer class="site-footer">

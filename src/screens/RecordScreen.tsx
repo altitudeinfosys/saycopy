@@ -1,3 +1,4 @@
+import { reportError } from '../observability/errorReporting';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -208,7 +209,8 @@ function RecordScreenContent({
         setCleanupEnabled(loadedSettings.cleanupEnabled);
         setAreRecordingOptionsExpanded(false);
         setSettingsLoadStatus('ready');
-      } catch {
+      } catch (error) {
+        reportError(error, 'RecordScreen.loadDefaultSettings');
         if (isActive) {
           setSettingsLoadStatus('failed');
           setFlowErrorText(SETTINGS_LOAD_FAILURE_MESSAGE);
@@ -287,6 +289,7 @@ function RecordScreenContent({
       try {
         tag = await historyRepository.assignTag(historyItemId, tagName);
       } catch (error) {
+        reportError(error, 'RecordScreen.addResultTag');
         if (currentHistoryItemIdRef.current !== historyItemId) {
           return null;
         }
@@ -351,6 +354,7 @@ function RecordScreenContent({
         }
       });
     } catch (error) {
+      reportError(error, 'RecordScreen.processStoppedRecording');
       if (isStaleOpenRouterOperationError(error) || !isCurrent()) {
         return;
       }
@@ -429,7 +433,8 @@ function RecordScreenContent({
         setRecordingElapsedMs(0);
         setFlowErrorText('');
         await activeRecordingController.start();
-      } catch {
+      } catch (error) {
+        reportError(error, 'RecordScreen.handleRecordPress');
         // Failure details are surfaced through recorder state.
       }
       return;
@@ -438,7 +443,8 @@ function RecordScreenContent({
     try {
       await activeRecordingController.stop();
       await processStoppedRecording();
-    } catch {
+    } catch (error) {
+      reportError(error, 'RecordScreen.handleRecordPress');
       // Failure details are surfaced through recorder state.
     }
   }
@@ -455,7 +461,8 @@ function RecordScreenContent({
     try {
       await activeRecordingController.cancel();
       setRecordingElapsedMs(0);
-    } catch {
+    } catch (error) {
+      reportError(error, 'RecordScreen.handleCancelRecording');
       // Failure details are surfaced through recorder state.
     }
   }
@@ -472,7 +479,8 @@ function RecordScreenContent({
       void (async () => {
         try {
           await historyRepository.updateHistoryText(historyItemId, { primaryText: nextText });
-        } catch {
+        } catch (error) {
+          reportError(error, 'RecordScreen.updateHistoryText');
           if (currentHistoryItemIdRef.current === historyItemId) {
             setFlowErrorText('Could not update saved history.');
           }
@@ -497,7 +505,8 @@ function RecordScreenContent({
     sourceLanguageSaveChainRef.current = sourceLanguageSaveChainRef.current.then(async () => {
       try {
         await settingsRepository.saveSettings({ sourceLanguageId: languageId });
-      } catch {
+      } catch (error) {
+        reportError(error, 'RecordScreen.handleSourceLanguageChange');
         if (isMountedRef.current && sourceLanguageSaveRequestIdRef.current === requestId) {
           setFlowErrorText(SOURCE_LANGUAGE_SAVE_FAILURE_MESSAGE);
         }
@@ -552,7 +561,7 @@ function RecordScreenContent({
             />
             {isAutoDetectActive ? (
               <Text style={styles.autoDetectNote}>
-                Auto-detect uses MAI-Transcribe 1.5 to preserve the detected language. Select a
+                Auto-detect uses Whisper Large V3 Turbo to preserve the detected language. Select a
                 language to use {transcriptionModelId} instead.
               </Text>
             ) : null}

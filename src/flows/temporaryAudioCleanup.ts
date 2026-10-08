@@ -1,3 +1,4 @@
+import { reportError } from '../observability/errorReporting';
 import type { FlowAudioInput, TemporaryAudioCleanup } from './types';
 
 export async function cleanupTemporaryAudio(
@@ -8,7 +9,8 @@ export async function cleanupTemporaryAudio(
     await temporaryAudio?.cleanup({
       uri: audio.uri,
     });
-  } catch {
+  } catch (error) {
+    reportError(error, 'temporaryAudioCleanup.cleanupTemporaryAudio');
     // Temporary-file cleanup is best-effort and must not replace the primary flow outcome.
   }
 }

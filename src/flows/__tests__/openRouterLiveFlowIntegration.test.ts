@@ -223,7 +223,7 @@ describe('OpenRouter live flow integration with mocked fetch', () => {
     },
   );
 
-  it('uses MAI-Transcribe 1.5 for Auto while preserving the selected explicit-language model', async () => {
+  it('uses Whisper Large V3 Turbo for Auto while preserving the selected explicit-language model', async () => {
     const fetchImpl = createFetchMock(jsonResponse({ text: 'مرحبا بالعالم' }));
     const historyRepository = createHistoryRepository();
     const provider = createProvider({ fetchImpl });
@@ -247,7 +247,7 @@ describe('OpenRouter live flow integration with mocked fetch', () => {
     expect(fetchImpl).toHaveBeenCalledWith(
       'https://openrouter.test/api/v1/audio/transcriptions',
       expect.objectContaining({
-        body: expect.stringContaining('"model":"microsoft/mai-transcribe-1.5"'),
+        body: expect.stringContaining('"model":"openai/whisper-large-v3-turbo"'),
       }),
     );
     const requestBody = JSON.parse(fetchImpl.mock.calls[0][1].body);
@@ -255,7 +255,7 @@ describe('OpenRouter live flow integration with mocked fetch', () => {
     expect(requestBody).not.toHaveProperty('language');
     expect(fetchImpl).toHaveBeenCalledTimes(1);
     expect(historyRepository.createHistoryItem).toHaveBeenCalledWith(
-      expect.objectContaining({ sttModelId: 'microsoft/mai-transcribe-1.5' }),
+      expect.objectContaining({ sttModelId: 'openai/whisper-large-v3-turbo' }),
     );
   });
 

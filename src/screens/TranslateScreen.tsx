@@ -1,3 +1,4 @@
+import { reportError } from '../observability/errorReporting';
 import * as Clipboard from 'expo-clipboard';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
@@ -183,7 +184,8 @@ function TranslateScreenContent({
     try {
       const items = await historyRepository.listHistoryItems();
       setSavedItems(items.filter(isTranslateItem));
-    } catch {
+    } catch (error) {
+      reportError(error, 'TranslateScreen.refreshSavedItems');
       setErrorText('Could not load saved translations.');
     }
   }, [historyRepository]);
@@ -207,7 +209,8 @@ function TranslateScreenContent({
         setModelPresetId(settings.modelPresetId);
         setCustomModelId(settings.customModelId);
         setTranscriptionModelId(settings.transcriptionModelId);
-      } catch {
+      } catch (error) {
+        reportError(error, 'TranslateScreen.loadSettings');
         if (isActive) {
           setErrorText('Could not load default settings.');
         }
@@ -228,7 +231,8 @@ function TranslateScreenContent({
         if (isActive) {
           setSavedItems(items.filter(isTranslateItem));
         }
-      } catch {
+      } catch (error) {
+        reportError(error, 'TranslateScreen.loadSavedItems');
         if (isActive) {
           setErrorText('Could not load saved translations.');
         }
@@ -254,7 +258,10 @@ function TranslateScreenContent({
   function saveLanguagePair(nextSource: LanguageId, nextTarget: ConcreteLanguageId) {
     void settingsRepository
       ?.saveSettings({ translateSourceLanguageId: nextSource, targetLanguageId: nextTarget })
-      .catch(() => setErrorText('Could not save language choice.'));
+      .catch((error: unknown) => {
+        reportError(error, 'TranslateScreen.saveLanguageChoice');
+        setErrorText('Could not save language choice.');
+      });
   }
 
   function clearResult() {
@@ -347,6 +354,7 @@ function TranslateScreenContent({
         textModelId: result.modelId,
       });
     } catch (error) {
+      reportError(error, 'TranslateScreen.handleTranslate');
       if (!isStaleOpenRouterOperationError(error) && isCurrent()) {
         setErrorText(getErrorMessage(error, 'Translation failed. Try again.'));
       }
@@ -383,6 +391,7 @@ function TranslateScreenContent({
         clearResult();
       });
     } catch (error) {
+      reportError(error, 'TranslateScreen.transcribeStoppedRecording');
       if (!isStaleOpenRouterOperationError(error) && isCurrent()) {
         setErrorText(getErrorMessage(error, 'Could not transcribe the recording.'));
       }
@@ -432,6 +441,7 @@ function TranslateScreenContent({
       await recordingController.stop();
       await transcribeStoppedRecording();
     } catch (error) {
+      reportError(error, 'TranslateScreen.handleMicPress');
       setErrorText(getErrorMessage(error, 'Recording failed. Try again.'));
     }
   }
@@ -451,7 +461,8 @@ function TranslateScreenContent({
           `No ${getLanguageLabel(languageId)} voice is installed on this device. Add one in your phone's accessibility or speech settings.`,
         );
       }
-    } catch {
+    } catch (error) {
+      reportError(error, 'TranslateScreen.handleListen');
       setNoticeText('Could not play the translation aloud.');
     }
   }
@@ -465,7 +476,8 @@ function TranslateScreenContent({
       await activeResultActions.copyText(translation.translatedText);
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 1800);
-    } catch {
+    } catch (error) {
+      reportError(error, 'TranslateScreen.handleCopy');
       setErrorText('Could not copy the translation.');
     }
   }
@@ -489,7 +501,8 @@ function TranslateScreenContent({
       setInputSourceType('manual');
       setInputSttModelId(undefined);
       clearResult();
-    } catch {
+    } catch (error) {
+      reportError(error, 'TranslateScreen.handlePaste');
       setErrorText('Could not paste text from the clipboard.');
     }
   }
@@ -524,7 +537,8 @@ function TranslateScreenContent({
       setSavedItem(item);
       setSavedTags([...(item.tags ?? [])]);
       await refreshSavedItems();
-    } catch {
+    } catch (error) {
+      reportError(error, 'TranslateScreen.handleSave');
       setErrorText('Could not save the translation.');
     } finally {
       setIsSaving(false);

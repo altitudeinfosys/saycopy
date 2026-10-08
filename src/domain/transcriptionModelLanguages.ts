@@ -8,9 +8,9 @@ import { DEFAULT_TRANSCRIPTION_MODEL_ID, TRANSCRIPTION_MODEL_RECOMMENDATIONS } f
 
 export type TranscriptionLanguageSupport = 'supported' | 'preview' | 'unsupported' | 'unverified';
 
-// Verified in OpenRouter's ZDR endpoint list on 2026-10-04. GPT-4o Transcribe
-// has no eligible ZDR endpoint; keep privacy routing enabled for Auto-detect.
-export const AUTO_DETECT_TRANSCRIPTION_MODEL_ID = 'microsoft/mai-transcribe-1.5';
+// Live M4A transcription verified with ZDR on 2026-10-08. MAI accepts WAV
+// but rejects our native M4A recordings with HTTP 400.
+export const AUTO_DETECT_TRANSCRIPTION_MODEL_ID = DEFAULT_TRANSCRIPTION_MODEL_ID;
 
 type ModelLanguageSupport = Partial<
   Readonly<Record<ConcreteLanguageId, Exclude<TranscriptionLanguageSupport, 'unverified'>>>

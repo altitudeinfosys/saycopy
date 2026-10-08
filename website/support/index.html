@@ -68,7 +68,7 @@
               <span class="choice-label">Auto-detect</span>
               <h3>SayCopy identifies the spoken language for you.</h3>
               <p>
-                Auto-detect uses <strong>MAI-Transcribe 1.5</strong> as a dedicated engine. It is
+                Auto-detect uses <strong>Whisper Large V3 Turbo</strong> as a dedicated engine. It is
                 designed to return the transcript in the language you spoke instead of translating
                 it into English.
               </p>
@@ -78,7 +78,7 @@
               <h3>Your preferred transcription model is used.</h3>
               <p>
                 Choose a language when you want SayCopy to send a language hint to your preferred
-                model, such as Deepgram Nova-3, Whisper, Chirp, MAI, or another compatible model.
+                model, such as Deepgram Nova-3, Whisper, Chirp, or another compatible model.
               </p>
             </article>
           </div>
@@ -86,7 +86,7 @@
             Your source recording language is saved and restored the next time you open SayCopy.
             Selecting Auto-detect does not erase or replace your preferred model. In Settings you
             may see both <strong>Preferred: deepgram/nova-3</strong> and
-            <strong>Auto engine: microsoft/mai-transcribe-1.5</strong>. That is expected.
+            <strong>Auto engine: openai/whisper-large-v3-turbo</strong>. That is expected.
           </p>
         </section>
 
@@ -108,7 +108,7 @@
               <dt>Auto-detect engine</dt>
               <dd>
                 Detects and transcribes the spoken language when Recording language is set to
-                Auto-detect. This is currently MAI-Transcribe 1.5 and is independent of the preferred
+                Auto-detect. This is currently Whisper Large V3 Turbo and is independent of the preferred
                 model.
               </dd>
             </div>
@@ -187,7 +187,7 @@
           <h2>Frequently asked questions</h2>
           <div class="faq-list">
             <details>
-              <summary>I selected Deepgram. Why does Auto-detect show MAI-Transcribe 1.5?</summary>
+              <summary>I selected Deepgram. Why does Auto-detect show Whisper Large V3 Turbo?</summary>
               <p>
                 Deepgram remains your preferred model and is used when you select a specific
                 language. Auto-detect uses a dedicated engine because providers expose different
@@ -196,7 +196,7 @@
               </p>
             </details>
             <details>
-              <summary>Can I keep Whisper, Chirp, MAI, or NVIDIA selected?</summary>
+              <summary>Can I keep Whisper, Chirp, or NVIDIA selected?</summary>
               <p>
                 Yes. Any available model can remain your preferred transcription model while
                 Auto-detect uses its dedicated engine. When you choose a specific language, SayCopy
@@ -308,17 +308,32 @@
           <p>
             The model may be unavailable or incompatible with zero-data-retention routing.
             Select another model in Settings. For Auto-detect, first choose a specific recording
-            language so your preferred model is used. Auto-detect uses MAI-Transcribe 1.5 with
+            language so your preferred model is used. Auto-detect uses Whisper Large V3 Turbo with
             zero-data-retention routing; older app versions use GPT-4o Transcribe, which may have
             no eligible endpoint. Update the app when a new version is available, or select a
             specific language as a workaround.
           </p>
           <h3>Other OpenRouter rejection messages</h3>
           <p>
-            HTTP 400 or 422 means the request was rejected: check the selected model and try a
-            shorter recording. HTTP 403 means access was denied: check API key permissions and
+            HTTP 400 or 422 means the request was rejected. Some providers reject an audio format
+            even when a recording is short. October 5 previews used MAI-Transcribe 1.5 for
+            Auto-detect; that route rejects SayCopy’s M4A recordings. Updated previews use
+            Whisper Large V3 Turbo, verified with M4A and zero-data-retention routing. While
+            waiting for the update, select a specific recording language and choose the
+            Recommended transcription model in Settings. Saved MAI preferences are preserved,
+            but an explicit MAI request explains how to choose a compatible model. HTTP 403 means access was denied: check API key permissions and
             account restrictions. HTTP 413 means the recording is too large: try a shorter one.
             Include the HTTP status when contacting support; never include your API key.
+          </p>
+
+          <h3>Error diagnostics</h3>
+          <p>
+            Updated builds report errors to Sentry, including failures where Light cleanup
+            recovers by saving the original transcript. Reports include fixed operation labels,
+            error categories, HTTP status when available, app version, and crash stack locations.
+            Audio, API keys, transcript text, translation text, clipboard contents, and raw
+            provider responses are excluded from application error reports. Screenshots and
+            session replay are disabled. See the <a href="/privacy">privacy policy</a>.
           </p>
 
           <h3>The microphone does not start</h3>

@@ -1,3 +1,4 @@
+import { reportError } from '../observability/errorReporting';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -36,7 +37,8 @@ export default function TagEditor({ canAddTag, onAddTag, onRemoveTag, tags }: Ta
       if (tag) {
         setTagName('');
       }
-    } catch {
+    } catch (error) {
+      reportError(error, 'TagEditor.handleAddTag');
       setErrorText('Could not add tag.');
     } finally {
       setIsSaving(false);
@@ -53,7 +55,8 @@ export default function TagEditor({ canAddTag, onAddTag, onRemoveTag, tags }: Ta
 
     try {
       await onRemoveTag(tag.label);
-    } catch {
+    } catch (error) {
+      reportError(error, 'TagEditor.handleRemoveTag');
       setErrorText('Could not remove tag.');
     } finally {
       setRemovingTagId(null);

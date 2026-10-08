@@ -30,6 +30,11 @@ export function createOpenRouterProvider({
       input.transcriptionModelId,
       input.sourceLanguageId,
     );
+    if (modelId === 'microsoft/mai-transcribe-1.5' && input.audio.format === 'm4a') {
+      throw createAppError('unknown',
+        'MAI-Transcribe 1.5 cannot accept SayCopy’s M4A recordings. Choose Whisper Large V3 Turbo in Settings or select Auto-detect.',
+        { provider: 'openrouter', retryable: false });
+    }
     const result = await client.requestTranscription(
       buildTranscriptionRequest({
         base64Audio: input.audio.base64Audio,

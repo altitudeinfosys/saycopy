@@ -1,3 +1,4 @@
+import { reportError } from '../observability/errorReporting';
 import { File } from 'expo-file-system';
 
 export type TemporaryAudioFileReference = {
@@ -45,6 +46,7 @@ export function createTemporaryAudioFileCleanup({
       try {
         await deleter.deleteAsync(uriOrPath);
       } catch (error) {
+        reportError(error, 'fileCleanup.cleanup');
         logger?.warn('Temporary audio cleanup failed', {
           message: error instanceof Error ? error.message : 'Unknown cleanup error',
           uri: reference.uri,
