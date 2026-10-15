@@ -108,7 +108,9 @@
             Updated SayCopy builds use Sentry to diagnose application failures, including handled
             errors and crashes. Application error reports include fixed operation labels, error
             categories, HTTP status when available, app/build version, and stack locations.
-            Native crash reports may also include operating-system and device technical metadata.
+            Native crash reports may also include operating-system and device technical metadata,
+            including installation or device identifiers used for crash diagnosis. These identifiers
+            are not used for advertising or cross-app tracking.
             Sentry processes standard network request information to receive these reports. IP addresses
             and inferred location metadata are removed before new error events are stored.
           </p>
